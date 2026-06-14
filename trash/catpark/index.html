@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>猫咪乐园</title>
+  <link rel="stylesheet" href="../../src/css/common.css">
+  <style>
+    /* ========== 页面三特有样式 ========== */
+    .canvas-wrapper {
+      position: relative;
+      max-width: 960px;
+      margin: 0 auto 24px;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      border: 3px solid var(--color-border);
+      background: #FFF8F0;
+      cursor: default;
+      aspect-ratio: 4 / 3;
+      min-height: 420px;
+    }
+    .canvas-wrapper canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .canvas-wrapper.grabbing { cursor: grabbing; }
+    .canvas-wrapper.petting { cursor: pointer; }
+
+    /* 交互提示 */
+    .hint-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .hint-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--color-text-light);
+      background: var(--color-card);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--color-border);
+    }
+    .hint-item .key {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--color-bg-warm);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-secondary);
+      border: 1px solid var(--color-border);
+    }
+
+    /* 状态指示器 */
+    .status-indicator {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--color-text-light);
+      margin-bottom: 8px;
+      min-height: 22px;
+      transition: all 0.3s;
+    }
+    .status-indicator .emoji { font-size: 1.1rem; }
+
+    @media (max-width: 640px) {
+      .canvas-wrapper { border-radius: var(--radius-lg); aspect-ratio: 3/4; min-height: 360px; }
+      .hint-bar { gap: 6px; }
+      .hint-item { font-size: 0.72rem; padding: 4px 10px; }
+    }
+  </style>
+</head>
+<body data-nav-current="catpark">
+
+  <!-- ========== 页面头部 ========== -->
+  <header class="page-header">
+    <span class="page-header__icon">🐱</span>
+    <h1 class="page-header__title">猫咪乐园</h1>
+    <p class="page-header__subtitle">
+      一只可爱的橘猫在温暖的房间里等你——用鼠标和它互动吧！
+    </p>
+  </header>
+
+  <!-- ========== 主体内容 ========== -->
+  <main class="container">
+    <!-- 交互提示 -->
+    <div class="hint-bar">
+      <span class="hint-item">🖱️ <span>移动鼠标</span> — 猫咪会用眼睛追随</span>
+      <span class="hint-item">👆 <span>点击猫咪</span> — 抚摸它</span>
+      <span class="hint-item">📍 <span>点击地面</span> — 猫咪会走过去</span>
+      <span class="hint-item"><span class="key">R</span> 重置猫咪位置</span>
+      <span class="hint-item"><span class="key">空格</span> 切换睡觉</span>
+    </div>
+
+    <!-- 状态指示 -->
+    <div class="status-indicator" id="statusIndicator">
+      <span class="emoji">😺</span> <span id="statusText">猫咪正在四处张望…</span>
+    </div>
+
+    <!-- 画布 -->
+    <div class="canvas-wrapper" id="canvasWrapper">
+      <canvas id="mainCanvas"></canvas>
+    </div>
+  </main>
+
+  <!-- ========== 导航组件 ========== -->
+  <script src="../../src/js/nav.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    //  DOM
+    // ============================================================
+    const wrapper   = document.getElementById('canvasWrapper');
+    const canvas    = document.getElementById('mainCanvas');
+    const ctx       = canvas.getContext('2d');
+    const statusEl  = document.getElementById('statusText');
+
+    // ============================================================
+    //  画布尺寸管理
+    // ============================================================
+    const W = 960, H = 720; // 内部逻辑分辨率
+    let scale = 1, offsetX = 0, offsetY = 0;
+
+    function resize() {
+      const rect = wrapper.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      scale = Math.min(canvas.width / W, canvas.height / H);
+      offsetX = (canvas.width - W * scale) / 2;
+      offsetY = (canvas.height - H * scale) / 2;
+      ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+    }
+    window.addEventListener('resize', resize);
+
+    // ============================================================
+    //  鼠标状态
+    // ============================================================
+    const mouse = { x: W/2, y: H/2, down: false, canvasX: 0, canvasY: 0 };
+
+    function updateMouse(e) {
+      const rect = canvas.getBoundingClientRect();
+      mouse.canvasX = e.clientX - rect.left;
+      mouse.canvasY = e.clientY - rect.top;
+      mouse.x = (mouse.canvasX - offsetX / (canvas.width / (W * scale))) / scale;
+      mouse.y = (mouse.canvasY - offsetY / (canvas.height / (H * scale))) / scale;
+      // 简化：直接换算
+      mouse.x = (e.clientX - rect.left) / (rect.width / W);
+      mouse.y = (e.clientY - rect.top) / (rect.height / H);
+    }
+
+    canvas.addEventListener('mousemove', function (e) {
+      updateMouse(e);
+    });
+    canvas.addEventListener('mousedown', function (e) {
+      updateMouse(e);
+      mouse.down = true;
+    });
+    canvas.addEventListener('mouseup', function () { mouse.down = false; });
+    canvas.addEventListener('mouseleave', function () {
+      mouse.down = false;
+      mouse.x = -100; mouse.y = -100; // 光标离开
+    });
+    canvas.addEventListener('touchmove', function (e) {
+      e.preventDefault();
+      const t = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = (t.clientX - rect.left) / (rect.width / W);
+      mouse.y = (t.clientY - rect.top) / (rect.height / H);
+    }, { passive: false });
+    canvas.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      const t = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = (t.clientX - rect.left) / (rect.width / W);
+      mouse.y = (t.clientY - rect.top) / (rect.height / H);
+      mouse.down = true;
+    }, { passive: false });
+    canvas.addEventListener('touchend', function () { mouse.down = false; });
+
+    // 键盘
+    const keys = {};
+    window.addEventListener('keydown', function (e) { keys[e.code] = true; });
+    window.addEventListener('keyup', function (e) { keys[e.code] = false; });
+
+    // ============================================================
+    //  粒子系统
+    // ============================================================
+    const particles = [];
+
+    function spawnHearts(x, y, count) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          type: 'heart',
+          x: x + (Math.random() - 0.5) * 30,
+          y: y + (Math.random() - 0.5) * 10,
+          vx: (Math.random() - 0.5) * 40,
+          vy: -40 - Math.random() * 80,
+          life: 1.2 + Math.random() * 0.8,
+          age: 0,
+          size: 10 + Math.random() * 12,
+          rotation: (Math.random() - 0.5) * 0.8,
+        });
+      }
+    }
+
+    function spawnSparkles(x, y, count) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          type: 'sparkle',
+          x: x + (Math.random() - 0.5) * 20,
+          y: y + (Math.random() - 0.5) * 20,
+          vx: (Math.random() - 0.5) * 60,
+          vy: (Math.random() - 0.5) * 60,
+          life: 0.5 + Math.random() * 0.5,
+          age: 0,
+          size: 3 + Math.random() * 5,
+        });
+      }
+    }
+
+    function spawnZzz(x, y) {
+      if (Math.random() < 0.3) {
+        particles.push({
+          type: 'zzz',
+          x: x,
+          y: y,
+          vx: 10 + Math.random() * 20,
+          vy: -20 - Math.random() * 30,
+          life: 2 + Math.random() * 1.5,
+          age: 0,
+          size: 14 + Math.random() * 10,
+        });
+      }
+    }
+
+    function updateParticles(dt) {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.age += dt;
+        if (p.age >= p.life) { particles.splice(i, 1); continue; }
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        if (p.type === 'heart' || p.type === 'zzz') p.vy -= 20 * dt; // 轻微上浮
+        if (p.type === 'sparkle') { p.vx *= 0.98; p.vy *= 0.98; }
+      }
+    }
+
+    function drawParticles(ctx) {
+      const alpha = p => Math.max(0, 1 - p.age / p.life);
+      for (const p of particles) {
+        ctx.save();
+        ctx.globalAlpha = alpha(p);
+        if (p.type === 'heart') {
+          drawHeart(ctx, p.x, p.y, p.size * alpha(p), p.rotation);
+        } else if (p.type === 'sparkle') {
+          ctx.fillStyle = '#FFD700';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * alpha(p), 0, Math.PI * 2);
+          ctx.fill();
+          // 十字光芒
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(p.x - p.size * 1.5 * alpha(p), p.y);
+          ctx.lineTo(p.x + p.size * 1.5 * alpha(p), p.y);
+          ctx.moveTo(p.x, p.y - p.size * 1.5 * alpha(p));
+          ctx.lineTo(p.x, p.y + p.size * 1.5 * alpha(p));
+          ctx.stroke();
+        } else if (p.type === 'zzz') {
+          const s = p.size * alpha(p);
+          ctx.fillStyle = '#B0C4DE';
+          ctx.font = `${s}px "Segoe UI", sans-serif`;
+          ctx.fillText('Z', p.x, p.y);
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawHeart(ctx, x, y, size, rot) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot || 0);
+      ctx.fillStyle = '#FF6B6B';
+      ctx.beginPath();
+      const s = size / 20;
+      ctx.moveTo(0, -3 * s);
+      ctx.bezierCurveTo(-10 * s, -10 * s, -20 * s, 3 * s, 0, 15 * s);
+      ctx.bezierCurveTo(20 * s, 3 * s, 10 * s, -10 * s, 0, -3 * s);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ============================================================
+    //  场景绘制
+    // ============================================================
+    function drawRoom(ctx) {
+      // --- 墙壁 ---
+      const wallGrad = ctx.createLinearGradient(0, 0, 0, H * 0.7);
+      wallGrad.addColorStop(0, '#FFF5E8');
+      wallGrad.addColorStop(0.6, '#FCE8D0');
+      wallGrad.addColorStop(1, '#F5DCC3');
+      ctx.fillStyle = wallGrad;
+      ctx.fillRect(0, 0, W, H * 0.72);
+
+      // 墙壁纹理（淡淡的竖条纹壁纸感）
+      ctx.fillStyle = 'rgba(210,180,150,0.06)';
+      for (let x = 0; x < W; x += 32) {
+        ctx.fillRect(x, 0, 16, H * 0.72);
+      }
+
+      // --- 地板 ---
+      const floorY = H * 0.72;
+      const floorGrad = ctx.createLinearGradient(0, floorY, 0, H);
+      floorGrad.addColorStop(0, '#D4A574');
+      floorGrad.addColorStop(0.15, '#C49564');
+      floorGrad.addColorStop(1, '#B88454');
+      ctx.fillStyle = floorGrad;
+      ctx.fillRect(0, floorY, W, H - floorY);
+
+      // 地板木纹
+      ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+      ctx.lineWidth = 1;
+      for (let y = floorY; y < H; y += 22) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        // 轻微波浪
+        for (let x = 0; x < W; x += 60) {
+          ctx.lineTo(x + 30, y + Math.sin(x * 0.02) * 2);
+          ctx.lineTo(x + 60, y);
+        }
+        ctx.stroke();
+      }
+
+      // 踢脚线
+      ctx.fillStyle = '#C49B6C';
+      ctx.fillRect(0, floorY - 4, W, 10);
+      ctx.fillStyle = '#B8895A';
+      ctx.fillRect(0, floorY - 4, W, 3);
+
+      // --- 窗户 ---
+      drawWindow(ctx, 620, 110);
+      // --- 地毯 ---
+      drawRug(ctx, 470, floorY + 50);
+      // --- 书架 ---
+      drawBookshelf(ctx, 30, 80);
+      // --- 靠垫 ---
+      drawCushion(ctx, 500, floorY + 15);
+      // --- 盆栽 ---
+      drawPlant(ctx, 860, floorY - 30);
+      // --- 墙上的画框 ---
+      drawFrame(ctx, 170, 150);
+    }
+
+    function drawWindow(ctx, x, y) {
+      ctx.save();
+      // 窗框
+      ctx.fillStyle = '#F5E6D3';
+      ctx.strokeStyle = '#D4B896';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.roundRect(x, y, 200, 240, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      // 窗外天空
+      const skyGrad = ctx.createLinearGradient(x + 10, y + 10, x + 10, y + 230);
+      skyGrad.addColorStop(0, '#87CEEB');
+      skyGrad.addColorStop(0.55, '#B8E4F0');
+      skyGrad.addColorStop(1, '#90D5B0');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(x + 14, y + 14, 172, 212);
+
+      // 云朵
+      drawCloud(ctx, x + 50, y + 50, 0.8);
+      drawCloud(ctx, x + 120, y + 80, 0.6);
+
+      // 太阳
+      ctx.fillStyle = '#FFF9C4';
+      ctx.beginPath();
+      ctx.arc(x + 130, y + 50, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFF176';
+      ctx.beginPath();
+      ctx.arc(x + 130, y + 50, 16, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 远处的树
+      ctx.fillStyle = '#7CB342';
+      ctx.beginPath();
+      ctx.arc(x + 50, y + 200, 35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#689F38';
+      ctx.beginPath();
+      ctx.arc(x + 80, y + 210, 28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#558B2F';
+      ctx.beginPath();
+      ctx.arc(x + 120, y + 195, 30, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#6D4C41';
+      ctx.fillRect(x + 48, y + 215, 6, 30);
+      ctx.fillRect(x + 78, y + 220, 6, 28);
+
+      // 窗格
+      ctx.strokeStyle = '#D4B896';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(x + 100, y + 14); ctx.lineTo(x + 100, y + 226);
+      ctx.moveTo(x + 14, y + 126); ctx.lineTo(x + 186, y + 126);
+      ctx.stroke();
+
+      // 窗台
+      ctx.fillStyle = '#E8D5C0';
+      ctx.fillRect(x - 6, y + 236, 212, 16);
+      ctx.fillStyle = '#DDC8B0';
+      ctx.fillRect(x - 6, y + 236, 212, 4);
+
+      ctx.restore();
+    }
+
+    function drawCloud(ctx, x, y, s) {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath();
+      ctx.arc(x, y, 18 * s, 0, Math.PI * 2);
+      ctx.arc(x + 20 * s, y - 8 * s, 14 * s, 0, Math.PI * 2);
+      ctx.arc(x + 38 * s, y, 16 * s, 0, Math.PI * 2);
+      ctx.arc(x + 18 * s, y + 4 * s, 12 * s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawRug(ctx, x, y) {
+      ctx.save();
+      ctx.fillStyle = '#E8D5C4';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 180, 80, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // 地毯花纹
+      ctx.strokeStyle = 'rgba(180,150,130,0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 140, 55, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(x, y, 100, 35, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      // 流苏
+      ctx.strokeStyle = 'rgba(180,150,130,0.2)';
+      ctx.lineWidth = 1;
+      for (let i = -160; i <= 160; i += 20) {
+        const angle = (i / 160) * Math.PI;
+        const sx = x + Math.cos(angle) * 75 * Math.sign(i);
+        const sy = y + Math.sin(angle) * 77;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + (i > 0 ? 8 : -8), sy + 12);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawBookshelf(ctx, x, y) {
+      ctx.save();
+      const w = 120, h = 240;
+      // 柜体
+      ctx.fillStyle = '#8D6E63';
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#7B5E50';
+      ctx.fillRect(x, y, w, 6);
+      ctx.fillRect(x, y + h - 6, w, 6);
+      ctx.fillRect(x, y, 6, h);
+      ctx.fillRect(x + w - 6, y, 6, h);
+
+      // 隔板
+      for (let row = 0; row < 4; row++) {
+        const ry = y + 30 + row * 52;
+        ctx.fillStyle = '#A1887F';
+        ctx.fillRect(x + 6, ry, w - 12, 6);
+
+        // 书
+        const colors = ['#E57373','#64B5F6','#81C784','#FFB74D','#BA68C8','#4DD0E1','#FF8A65'];
+        for (let b = 0; b < 4; b++) {
+          const bw = 18 + Math.random() * 14;
+          const bh = 38 + Math.random() * 10;
+          const bx = x + 14 + b * 25 + Math.random() * 4;
+          const by = ry + 6 + (46 - bh);
+          ctx.fillStyle = colors[(row * 4 + b) % colors.length];
+          ctx.fillRect(bx, by, bw, bh);
+          ctx.fillStyle = 'rgba(255,255,255,0.15)';
+          ctx.fillRect(bx, by, 4, bh);
+        }
+      }
+
+      // 顶部装饰
+      ctx.fillStyle = '#D7CCC8';
+      ctx.fillRect(x - 4, y - 12, w + 8, 16);
+      ctx.fillStyle = '#BCAAA4';
+      ctx.fillRect(x - 4, y - 12, w + 8, 4);
+
+      ctx.restore();
+    }
+
+    function drawCushion(ctx, x, y) {
+      ctx.save();
+      ctx.fillStyle = '#FFCC80';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 55, 28, -0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFB74D';
+      ctx.beginPath();
+      ctx.ellipse(x, y - 2, 42, 18, -0.15, 0, Math.PI * 2);
+      ctx.fill();
+      // 缝线
+      ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(x, y - 2, 32, 12, -0.15, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPlant(ctx, x, y) {
+      ctx.save();
+      // 花盆
+      ctx.fillStyle = '#E5734A';
+      ctx.beginPath();
+      ctx.moveTo(x - 28, y);
+      ctx.lineTo(x - 22, y + 50);
+      ctx.lineTo(x + 22, y + 50);
+      ctx.lineTo(x + 28, y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#D0623A';
+      ctx.beginPath();
+      ctx.moveTo(x - 22, y + 50);
+      ctx.lineTo(x - 28, y + 56);
+      ctx.lineTo(x + 28, y + 56);
+      ctx.lineTo(x + 22, y + 50);
+      ctx.closePath();
+      ctx.fill();
+
+      // 叶子
+      const leaves = [
+        { ax: -10, ay: -60, bx: -20, by: -20 },
+        { ax: 10, ay: -70, bx: 20, by: -25 },
+        { ax: -5, ay: -50, bx: 30, by: -30 },
+        { ax: 15, ay: -55, bx: -30, by: -20 },
+        { ax: 0, ay: -75, bx: 0, by: -15 },
+      ];
+      leaves.forEach((l, i) => {
+        ctx.fillStyle = ['#66BB6A','#4CAF50','#43A047','#81C784','#388E3C'][i];
+        ctx.beginPath();
+        ctx.ellipse(x + l.ax, y + l.ay, 14 + i * 2, 6 + i, (i - 2) * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function drawFrame(ctx, x, y) {
+      ctx.save();
+      ctx.fillStyle = '#D7CCC8';
+      ctx.strokeStyle = '#BCAAA4';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.roundRect(x, y, 80, 100, 4);
+      ctx.fill();
+      ctx.stroke();
+      // 画中画：小鱼
+      ctx.fillStyle = '#E0E0E0';
+      ctx.fillRect(x + 10, y + 10, 60, 80);
+      // 简单鱼
+      ctx.fillStyle = '#FF8A65';
+      ctx.beginPath();
+      ctx.ellipse(x + 40, y + 50, 22, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x + 62, y + 50); ctx.lineTo(x + 78, y + 38); ctx.lineTo(x + 78, y + 62); ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath();
+      ctx.arc(x + 32, y + 46, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(x + 32, y + 46, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ============================================================
+    //  猫咪类
+    // ============================================================
+    const CAT_STATES = {
+      IDLE: 'idle',
+      WALKING: 'walking',
+      SLEEPING: 'sleeping',
+      STRETCHING: 'stretching',
+      LICKING: 'licking',
+      ALERT: 'alert',
+      PLAYING: 'playing',
+      PETTED: 'petted',
+    };
+
+    class Cat {
+      constructor() {
+        this.x = 480;
+        this.y = 490; // 脚底在地毯上
+        this.targetX = this.x;
+        this.targetY = this.y;
+        this.scale = 1.1;
+        this.facingRight = true;
+
+        // 状态机
+        this.state = CAT_STATES.IDLE;
+        this.stateTimer = 0;
+        this.stateDuration = 2 + Math.random() * 3;
+        this.prevState = CAT_STATES.IDLE;
+
+        // 动画
+        this.blinkTimer = 0;
+        this.blinkInterval = 2 + Math.random() * 4;
+        this.isBlinking = false;
+        this.blinkProgress = 0;
+        this.tailAngle = 0;
+        this.tailSpeed = 1.2;
+        this.breathPhase = 0;
+        this.walkPhase = 0;
+        this.pawLift = 0;
+        this.stretchPhase = 0;
+        this.purrIntensity = 0;
+        this.eyeLookX = 0;
+        this.eyeLookY = 0;
+
+        // 被抚摸
+        this.petCount = 0;
+        this.lastPetTime = 0;
+
+        // 移动
+        this.walkSpeed = 120;
+      }
+
+      distanceToMouse() {
+        const dx = mouse.x - this.x;
+        const dy = (mouse.y - (this.y - 70)) * 0.6;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      update(dt) {
+        this.stateTimer += dt;
+        this.breathPhase += dt * 1.5;
+        this.purrIntensity = Math.max(0, this.purrIntensity - dt * 0.8);
+
+        // 眨眼
+        this.blinkTimer += dt;
+        if (!this.isBlinking && this.blinkTimer >= this.blinkInterval) {
+          this.isBlinking = true;
+          this.blinkProgress = 0;
+          this.blinkTimer = 0;
+          this.blinkInterval = 2 + Math.random() * 5;
+        }
+        if (this.isBlinking) {
+          this.blinkProgress += dt * 6;
+          if (this.blinkProgress >= 1) { this.isBlinking = false; this.blinkProgress = 0; }
+        }
+
+        // 尾巴摆动
+        const tailBaseSpeed = this.state === CAT_STATES.PLAYING ? 4 :
+                              this.state === CAT_STATES.ALERT ? 2.5 :
+                              this.state === CAT_STATES.SLEEPING ? 0.3 : this.tailSpeed;
+        this.tailAngle = Math.sin(this.breathPhase * tailBaseSpeed) * 0.5;
+
+        // 更新眼睛注视方向
+        const dx = mouse.x - this.x;
+        const dy = mouse.y - (this.y - 65);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0 && dist < 400) {
+          const targetLookX = (dx / dist) * 3;
+          const targetLookY = (dy / dist) * 2.5;
+          this.eyeLookX += (targetLookX - this.eyeLookX) * Math.min(dt * 8, 1);
+          this.eyeLookY += (targetLookY - this.eyeLookY) * Math.min(dt * 8, 1);
+        } else {
+          this.eyeLookX += (0 - this.eyeLookX) * dt * 3;
+          this.eyeLookY += (0 - this.eyeLookY) * dt * 3;
+        }
+
+        // 状态逻辑
+        switch (this.state) {
+          case CAT_STATES.IDLE: this.updateIdle(dt); break;
+          case CAT_STATES.WALKING: this.updateWalking(dt); break;
+          case CAT_STATES.SLEEPING: this.updateSleeping(dt); break;
+          case CAT_STATES.STRETCHING: this.updateStretching(dt); break;
+          case CAT_STATES.LICKING: this.updateLicking(dt); break;
+          case CAT_STATES.ALERT: this.updateAlert(dt); break;
+          case CAT_STATES.PLAYING: this.updatePlaying(dt); break;
+          case CAT_STATES.PETTED: this.updatePetted(dt); break;
+        }
+
+        // 检测悬停（用于抚摸判断）
+        this.checkHover(dt);
+      }
+
+      checkHover(dt) {
+        const dist = this.distanceToMouse();
+        if (this.state === CAT_STATES.SLEEPING) return; // 睡觉时不响应悬停
+
+        // 鼠标在猫附近悬停
+        if (dist < 80 && mouse.down && this.state !== CAT_STATES.PETTED &&
+            this.state !== CAT_STATES.WALKING && this.state !== CAT_STATES.PLAYING) {
+          this.enterState(CAT_STATES.PETTED);
+        }
+      }
+
+      updateIdle(dt) {
+        if (this.stateTimer > this.stateDuration) {
+          // 随机切换行为
+          const r = Math.random();
+          if (r < 0.25) {
+            this.enterState(CAT_STATES.STRETCHING);
+          } else if (r < 0.45) {
+            this.enterState(CAT_STATES.LICKING);
+          } else {
+            // 随机走动
+            this.targetX = 120 + Math.random() * 700;
+            this.targetY = 470 + Math.random() * 60;
+            this.enterState(CAT_STATES.WALKING);
+          }
+        }
+      }
+
+      updateWalking(dt) {
+        const tdx = this.targetX - this.x;
+        const tdy = this.targetY - this.y;
+        const tdist = Math.sqrt(tdx * tdx + tdy * tdy);
+
+        if (tdist < 4) {
+          this.enterState(CAT_STATES.IDLE);
+          return;
+        }
+
+        this.facingRight = tdx >= 0;
+        const speed = this.walkSpeed;
+        this.walkPhase += dt * 6;
+
+        if (tdist > 0) {
+          this.x += (tdx / tdist) * speed * dt;
+          this.y += (tdy / tdist) * speed * dt * 0.5;
+        }
+
+        // 如果点到了猫附近，被阻挡就停下
+        if (tdist < 10 && this.stateTimer > 3) {
+          this.enterState(CAT_STATES.IDLE);
+        }
+      }
+
+      updateSleeping(dt) {
+        // 呼吸动画在 draw 中处理
+        // Zzz
+        if (Math.random() < 0.5) spawnZzz(this.x - 15, this.y - 75);
+        if (Math.random() < 0.5) spawnZzz(this.x + 20, this.y - 80);
+
+        // 检测鼠标点击唤醒
+        if (mouse.down && this.distanceToMouse() < 120) {
+          spawnSparkles(this.x, this.y - 50, 8);
+          this.enterState(CAT_STATES.IDLE);
+          this.stateDuration = 1;
+        }
+      }
+
+      updateStretching(dt) {
+        this.stretchPhase = Math.min(1, this.stateTimer / 0.6);
+        if (this.stateTimer > 1.5) {
+          this.enterState(CAT_STATES.IDLE);
+        }
+        this.walkPhase += dt * 3;
+      }
+
+      updateLicking(dt) {
+        this.pawLift = Math.sin(this.stateTimer * 3) * 0.5 + 0.5;
+        if (this.stateTimer > 2.5) {
+          this.pawLift = 0;
+          this.enterState(CAT_STATES.IDLE);
+        }
+        this.walkPhase += dt * 2;
+      }
+
+      updateAlert(dt) {
+        const dist = this.distanceToMouse();
+        this.tailAngle = Math.sin(this.breathPhase * 4) * 0.6;
+
+        if (dist > 200) {
+          this.enterState(CAT_STATES.IDLE);
+        } else if (dist < 60 && this.stateTimer > 1.5) {
+          // 鼠标很近，切换为玩耍模式
+          this.enterState(CAT_STATES.PLAYING);
+        }
+
+        // 微微向鼠标方向倾斜
+        const dx = mouse.x - this.x;
+        if (Math.abs(dx) > 20) {
+          this.facingRight = dx > 0;
+        }
+      }
+
+      updatePlaying(dt) {
+        this.tailAngle = Math.sin(this.breathPhase * 6) * 0.7;
+        this.walkPhase += dt * 8;
+
+        const dist = this.distanceToMouse();
+        if (dist > 250 || this.stateTimer > 5) {
+          this.enterState(CAT_STATES.IDLE);
+        }
+
+        // 偶尔扑向鼠标
+        if (dist < 150 && Math.random() < 0.3 * dt) {
+          spawnSparkles(mouse.x, mouse.y, 3);
+        }
+      }
+
+      updatePetted(dt) {
+        this.purrIntensity = Math.min(1, this.purrIntensity + dt * 2);
+        if (Math.random() < 3 * dt) {
+          spawnHearts(this.x + (Math.random() - 0.5) * 40, this.y - 70, 1);
+        }
+        if (!mouse.down || this.distanceToMouse() > 100) {
+          if (this.stateTimer > 0.8) {
+            this.enterState(CAT_STATES.IDLE);
+          }
+        }
+      }
+
+      enterState(newState) {
+        this.prevState = this.state;
+        this.state = newState;
+        this.stateTimer = 0;
+        this.stretchPhase = 0;
+        this.pawLift = 0;
+        this.walkPhase = 0;
+
+        switch (newState) {
+          case CAT_STATES.IDLE:
+            this.stateDuration = 2 + Math.random() * 5;
+            updateStatus('猫咪正在四处张望…', '😺');
+            break;
+          case CAT_STATES.WALKING:
+            updateStatus('猫咪正在走动…', '🚶');
+            this.walkPhase = 0;
+            break;
+          case CAT_STATES.SLEEPING:
+            updateStatus('猫咪睡着了…zzZ', '😴');
+            break;
+          case CAT_STATES.STRETCHING:
+            updateStatus('猫咪在伸懒腰～', '🙆');
+            break;
+          case CAT_STATES.LICKING:
+            updateStatus('猫咪在舔毛…', '🛁');
+            break;
+          case CAT_STATES.ALERT:
+            updateStatus('猫咪注意到了什么！', '👀');
+            break;
+          case CAT_STATES.PLAYING:
+            updateStatus('猫咪在玩耍！', '🎾');
+            break;
+          case CAT_STATES.PETTED:
+            updateStatus('猫咪感到舒服～呼噜呼噜', '😻');
+            this.petCount++;
+            this.lastPetTime = performance.now() / 1000;
+            break;
+        }
+      }
+
+      // ========== 绘制 ==========
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        const facing = this.facingRight ? 1 : -1;
+
+        if (this.state === CAT_STATES.SLEEPING) {
+          this.drawSleeping(ctx);
+        } else {
+          // 身体阴影
+          ctx.fillStyle = 'rgba(0,0,0,0.08)';
+          ctx.beginPath();
+          ctx.ellipse(0, 6, 48, 12, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 后腿
+          this.drawBackLegs(ctx, facing);
+          // 尾巴
+          this.drawTail(ctx, facing);
+          // 身体
+          this.drawBody(ctx, facing);
+          // 前腿
+          this.drawFrontLegs(ctx, facing);
+          // 头部
+          this.drawHead(ctx, facing);
+        }
+
+        ctx.restore();
+      }
+
+      drawBody(ctx, facing) {
+        ctx.save();
+        // 身体主体 - 豆形
+        const bodyGrad = ctx.createLinearGradient(0, -15, 0, 35);
+        bodyGrad.addColorStop(0, '#F5A623');
+        bodyGrad.addColorStop(0.5, '#E8921E');
+        bodyGrad.addColorStop(1, '#F5D5A0');
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, 8, 44, 28, 0.05, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 身体条纹
+        ctx.strokeStyle = 'rgba(180,100,20,0.2)';
+        ctx.lineWidth = 2.5;
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath();
+          ctx.arc(i * 8, 8, 20, -0.6, 0.6);
+          ctx.stroke();
+        }
+
+        // 白色肚皮
+        ctx.fillStyle = '#FFF8F0';
+        ctx.beginPath();
+        ctx.ellipse(0, 16, 28, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      drawHead(ctx, facing) {
+        ctx.save();
+        const headY = -38;
+        const hx = 5 * facing;
+
+        // 头部圆形
+        const headGrad = ctx.createLinearGradient(0, headY - 20, 0, headY + 10);
+        headGrad.addColorStop(0, '#F5A623');
+        headGrad.addColorStop(1, '#F5C882');
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.arc(hx, headY, 24, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 头部条纹（额头 M 纹）
+        ctx.strokeStyle = 'rgba(180,90,20,0.25)';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(hx - 14, headY - 16);
+        ctx.lineTo(hx - 6, headY - 6);
+        ctx.lineTo(hx, headY - 14);
+        ctx.lineTo(hx + 6, headY - 6);
+        ctx.lineTo(hx + 14, headY - 16);
+        ctx.stroke();
+
+        // 耳朵
+        this.drawEar(ctx, hx - 16, headY - 20, -0.3, facing);
+        this.drawEar(ctx, hx + 16, headY - 20, 0.3, facing);
+
+        // 眼睛
+        this.drawEyes(ctx, hx, headY - 2, facing);
+
+        // 鼻子
+        ctx.fillStyle = '#F48FB1';
+        ctx.beginPath();
+        ctx.moveTo(hx, headY + 3);
+        ctx.lineTo(hx - 3, headY + 6);
+        ctx.lineTo(hx + 3, headY + 6);
+        ctx.closePath();
+        ctx.fill();
+
+        // 嘴巴
+        ctx.strokeStyle = 'rgba(80,40,20,0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(hx, headY + 7);
+        ctx.lineTo(hx - 6, headY + 11);
+        ctx.moveTo(hx, headY + 7);
+        ctx.lineTo(hx + 6, headY + 11);
+        ctx.stroke();
+
+        // 胡须
+        ctx.strokeStyle = 'rgba(200,200,200,0.6)';
+        ctx.lineWidth = 0.8;
+        for (let side = -1; side <= 1; side += 2) {
+          const sx = hx + side * 10;
+          for (let w = -1; w <= 1; w++) {
+            ctx.beginPath();
+            ctx.moveTo(sx, headY + 3 + w * 3);
+            ctx.lineTo(sx + side * 24, headY - 2 + w * 8);
+            ctx.stroke();
+          }
+        }
+
+        ctx.restore();
+      }
+
+      drawEar(ctx, x, y, angle, facing) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        // 外耳
+        ctx.fillStyle = '#E8921E';
+        ctx.beginPath();
+        ctx.moveTo(-10, 4);
+        ctx.lineTo(0, -18);
+        ctx.lineTo(10, 4);
+        ctx.closePath();
+        ctx.fill();
+        // 内耳
+        ctx.fillStyle = '#F8BBD0';
+        ctx.beginPath();
+        ctx.moveTo(-6, 2);
+        ctx.lineTo(0, -13);
+        ctx.lineTo(6, 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      drawEyes(ctx, hx, hy, facing) {
+        // 眨眼动画
+        const blinkScale = this.isBlinking
+          ? (this.blinkProgress < 0.5 ? 1 - this.blinkProgress * 2 : (this.blinkProgress - 0.5) * 2)
+          : 1;
+
+        for (let side = -1; side <= 1; side += 2) {
+          const ex = hx + side * 9;
+          const ey = hy;
+
+          ctx.save();
+          ctx.translate(ex, ey);
+          ctx.scale(1, blinkScale);
+
+          // 眼白
+          ctx.fillStyle = '#FFFEF5';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 8, 9, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 虹膜
+          ctx.fillStyle = '#7CB342';
+          ctx.beginPath();
+          ctx.arc(this.eyeLookX * 0.5, this.eyeLookY * 0.4, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 瞳孔
+          ctx.fillStyle = '#1A1A1A';
+          ctx.beginPath();
+          ctx.arc(this.eyeLookX * 0.7, this.eyeLookY * 0.5, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 高光
+          ctx.fillStyle = '#FFF';
+          ctx.beginPath();
+          ctx.arc(this.eyeLookX * 0.3 + 1, this.eyeLookY * 0.2 - 2, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+      }
+
+      drawBackLegs(ctx, facing) {
+        ctx.fillStyle = '#E8921E';
+        for (let side = -1; side <= 1; side += 2) {
+          ctx.beginPath();
+          ctx.ellipse(side * 22, 22, 18, 14, 0.2, 0, Math.PI * 2);
+          ctx.fill();
+          // 白色爪子
+          ctx.fillStyle = '#FFF8F0';
+          ctx.beginPath();
+          ctx.ellipse(side * 22, 30, 10, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#E8921E';
+        }
+      }
+
+      drawFrontLegs(ctx, facing) {
+        const walkOffset = this.state === CAT_STATES.WALKING
+          ? Math.sin(this.walkPhase) * 8
+          : 0;
+        const walkOffset2 = this.state === CAT_STATES.WALKING
+          ? Math.sin(this.walkPhase + Math.PI) * 8
+          : 0;
+
+        ctx.fillStyle = '#F5A623';
+        // 左前腿
+        ctx.beginPath();
+        ctx.ellipse(-14, 14 + walkOffset, 8, 18, 0.15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFF8F0';
+        ctx.beginPath();
+        ctx.ellipse(-14, 28 + walkOffset, 7, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#F5A623';
+        // 右前腿
+        ctx.beginPath();
+        ctx.ellipse(14, 14 + walkOffset2, 8, 18, -0.15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFF8F0';
+        ctx.beginPath();
+        ctx.ellipse(14, 28 + walkOffset2, 7, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 如果正在舔毛，抬起一只前爪
+        if (this.state === CAT_STATES.LICKING && this.pawLift > 0.3) {
+          ctx.fillStyle = '#F5A623';
+          ctx.beginPath();
+          const pawX = -14;
+          const pawY = 14 - this.pawLift * 30;
+          ctx.ellipse(pawX, pawY, 8, 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#FFF8F0';
+          ctx.beginPath();
+          ctx.ellipse(pawX, pawY + 4, 6, 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      drawTail(ctx, facing) {
+        ctx.save();
+        const tailBaseX = -25 * facing;
+        const tailBaseY = 5;
+
+        ctx.strokeStyle = '#E8921E';
+        ctx.lineWidth = 9;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(tailBaseX, tailBaseY);
+        const cp1x = tailBaseX - 20 * facing;
+        const cp1y = tailBaseY - 25;
+        const cp2x = tailBaseX - 35 * facing;
+        const cp2y = tailBaseY - 55 + this.tailAngle * 30;
+        const endX = tailBaseX - 30 * facing + this.tailAngle * 20;
+        const endY = tailBaseY - 65;
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
+        ctx.stroke();
+
+        // 尾巴尖白色
+        ctx.strokeStyle = '#FFF8F0';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        const t = 0.75;
+        const sx = this.bezierPoint(tailBaseX, cp1x, cp2x, endX, t);
+        const sy = this.bezierPoint(tailBaseY, cp1y, cp2y, endY, t);
+        ctx.moveTo(sx, sy);
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      bezierPoint(p0, p1, p2, p3, t) {
+        const u = 1 - t;
+        return u*u*u*p0 + 3*u*u*t*p1 + 3*u*t*t*p2 + t*t*t*p3;
+      }
+
+      drawSleeping(ctx) {
+        // 缩成一团的猫
+        const breathScale = 1 + Math.sin(this.breathPhase * 0.8) * 0.04;
+
+        ctx.save();
+        ctx.scale(1, breathScale);
+
+        // 身体团
+        const bodyGrad = ctx.createLinearGradient(0, -10, 0, 20);
+        bodyGrad.addColorStop(0, '#F5A623');
+        bodyGrad.addColorStop(0.7, '#E8921E');
+        bodyGrad.addColorStop(1, '#F5D5A0');
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.ellipse(5, 10, 40, 24, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 条纹
+        ctx.strokeStyle = 'rgba(180,100,20,0.18)';
+        ctx.lineWidth = 2;
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath();
+          ctx.arc(i * 8, 10, 20, -0.5, 0.5);
+          ctx.stroke();
+        }
+
+        // 头部（搭在身体上）
+        const headGrad = ctx.createLinearGradient(0, -38, 0, -10);
+        headGrad.addColorStop(0, '#F5A623');
+        headGrad.addColorStop(1, '#F5C882');
+        ctx.fillStyle = headGrad;
+        ctx.beginPath();
+        ctx.arc(-15, -18, 18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 闭着的眼（弧线）
+        ctx.strokeStyle = '#8B6B4A';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(-22, -20, 5, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(-10, -20, 5, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+
+        // 小鼻子
+        ctx.fillStyle = '#F48FB1';
+        ctx.beginPath();
+        ctx.moveTo(-16, -14);
+        ctx.lineTo(-18.5, -11);
+        ctx.lineTo(-13.5, -11);
+        ctx.closePath();
+        ctx.fill();
+
+        // 耳朵（折起）
+        ctx.fillStyle = '#E8921E';
+        ctx.beginPath();
+        ctx.moveTo(-28, -30);
+        ctx.lineTo(-24, -18);
+        ctx.lineTo(-18, -28);
+        ctx.closePath();
+        ctx.fill();
+
+        // 尾巴（环绕身体）
+        ctx.strokeStyle = '#E8921E';
+        ctx.lineWidth = 7;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(30, 5);
+        ctx.bezierCurveTo(45, -15, 20, -25, -5, -5);
+        ctx.stroke();
+        ctx.strokeStyle = '#FFF8F0';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(30, 5);
+        ctx.bezierCurveTo(42, -8, 25, -20, 5, -5);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      // 被点击时
+      onClick(wx, wy) {
+        const dist = Math.sqrt((wx - this.x) ** 2 + ((wy - (this.y - 70)) * 0.7) ** 2);
+
+        if (this.state === CAT_STATES.SLEEPING) {
+          spawnSparkles(this.x, this.y - 50, 10);
+          this.enterState(CAT_STATES.IDLE);
+          this.stateDuration = 2;
+          return;
+        }
+
+        if (dist < 70) {
+          // 点击在猫身上 — 抚摸
+          spawnHearts(this.x, this.y - 65, 5);
+          this.enterState(CAT_STATES.PETTED);
+        } else if (wy > 300) {
+          // 点击在地面上 — 走过去
+          this.targetX = wx;
+          this.targetY = Math.max(470, Math.min(530, wy));
+          this.enterState(CAT_STATES.WALKING);
+        }
+      }
+    }
+
+    // ============================================================
+    //  全局状态 & 初始化
+    // ============================================================
+    const cat = new Cat();
+    let lastTime = performance.now();
+    let frameCount = 0;
+
+    function updateStatus(text, emoji) {
+      statusEl.textContent = text;
+      const emojiEl = document.getElementById('statusIndicator')?.querySelector('.emoji');
+      if (emojiEl) emojiEl.textContent = emoji || '😺';
+    }
+
+    // ============================================================
+    //  主循环
+    // ============================================================
+    function gameLoop(timestamp) {
+      requestAnimationFrame(gameLoop);
+
+      let dt = (timestamp - lastTime) / 1000;
+      if (dt <= 0) dt = 0.016;
+      if (dt > 0.1) dt = 0.1; // 防止跳帧
+      lastTime = timestamp;
+      frameCount++;
+
+      // 键盘交互
+      if (keys['KeyR']) {
+        keys['KeyR'] = false;
+        cat.x = 480; cat.y = 490;
+        cat.targetX = cat.x; cat.targetY = cat.y;
+        cat.enterState(CAT_STATES.IDLE);
+        spawnSparkles(cat.x, cat.y - 40, 12);
+      }
+      if (keys['Space']) {
+        keys['Space'] = false;
+        if (cat.state === CAT_STATES.SLEEPING) {
+          cat.enterState(CAT_STATES.IDLE);
+          spawnSparkles(cat.x, cat.y - 50, 8);
+        } else {
+          cat.enterState(CAT_STATES.SLEEPING);
+        }
+      }
+
+      // 鼠标在地面点击
+      if (mouse.down && cat.distanceToMouse() > 70 && mouse.y > 300) {
+        cat.onClick(mouse.x, mouse.y);
+        mouse.down = false; // 防止连续触发
+      } else if (mouse.down && cat.distanceToMouse() <= 70) {
+        cat.onClick(mouse.x, mouse.y);
+        mouse.down = false;
+      }
+
+      // 更新
+      resize();
+      ctx.clearRect(0, 0, W, H);
+
+      // 鼠标靠近猫时检测 alert
+      const distToMouse = cat.distanceToMouse();
+      if (distToMouse < 150 && distToMouse > 40 &&
+          cat.state !== CAT_STATES.WALKING &&
+          cat.state !== CAT_STATES.SLEEPING &&
+          cat.state !== CAT_STATES.PETTED &&
+          cat.state !== CAT_STATES.PLAYING) {
+        if (Math.random() < 0.008 && cat.state === CAT_STATES.IDLE) {
+          cat.enterState(CAT_STATES.ALERT);
+        }
+      }
+
+      cat.update(dt);
+      updateParticles(dt);
+
+      // 绘制
+      drawRoom(ctx);
+      cat.draw(ctx);
+      drawParticles(ctx);
+
+      // 抚摸时画鼠标光标效果
+      if (cat.state === CAT_STATES.PETTED && mouse.x > 0 && mouse.y > 0 && distToMouse < 120) {
+        ctx.fillStyle = 'rgba(255,107,107,0.3)';
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, 15 + Math.sin(frameCount * 0.2) * 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,107,107,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // 睡觉时环境变暗
+      if (cat.state === CAT_STATES.SLEEPING) {
+        ctx.fillStyle = 'rgba(30,20,40,0.12)';
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+
+    // ============================================================
+    //  点击事件
+    // ============================================================
+    canvas.addEventListener('click', function (e) {
+      updateMouse(e);
+      // 双击检测
+      const now = performance.now();
+      if (now - (cat.lastPetTime * 1000) < 350 && cat.distanceToMouse() < 80) {
+        spawnHearts(cat.x, cat.y - 60, 8);
+        spawnSparkles(cat.x, cat.y - 50, 15);
+        cat.enterState(CAT_STATES.PLAYING);
+        return;
+      }
+      cat.onClick(mouse.x, mouse.y);
+    });
+
+    // ============================================================
+    //  响应式处理
+    // ============================================================
+    resize();
+
+    // ============================================================
+    //  启动
+    // ============================================================
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+    updateStatus('猫咪正在四处张望…', '😺');
+
+    console.log('🐱 猫咪乐园已就绪！');
+    console.log('  🖱️  移动鼠标 — 猫咪会注视光标');
+    console.log('  👆  点击猫咪 — 抚摸它');
+    console.log('  📍  点击地面 — 猫咪走过去');
+    console.log('  R 键 — 重置猫咪位置');
+    console.log('  空格键 — 切换睡觉/醒来');
+  })();
+  </script>
+</body>
+</html>

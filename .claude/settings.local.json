@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"e:\\\\6Project\\\\1web\\\\webTest\\\\data\")",
+      "PowerShell(Copy-Item \"e:\\\\6Project\\\\1web\\\\webTest\\\\userData.json\" \"e:\\\\6Project\\\\1web\\\\webTest\\\\data\\\\userData.json\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"e:\\\\6Project\\\\1web\\\\webTest\\\\probe\")"
+    ]
+  }
+}

@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>HTML站点浏览器 · 双模式扫描</title>
+    <link rel="stylesheet" href="../../src/css/common.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f4fa 0%, #e6edf4 100%);
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 48px;
+            padding: 2rem 2rem 1.8rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 15px 35px -12px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0f2b3d, #1e4a76);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sub {
+            color: #334155;
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+            border-left: 4px solid #3b82f6;
+            padding-left: 1rem;
+            margin-left: 0.25rem;
+        }
+
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.5rem;
+            gap: 1rem;
+            background: #ffffffc9;
+            border-radius: 60px;
+            padding: 0.7rem 1.5rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .badge {
+            background: #0f172a;
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .action-btn.primary-large {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .action-btn.primary-large:hover {
+            background: #2563eb;
+            transform: scale(0.98);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        }
+
+        .secondary-btn {
+            background: #475569;
+            border: none;
+            color: white;
+            padding: 0.45rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .secondary-btn:hover {
+            background: #334155;
+        }
+
+        .more-panel {
+            margin-top: 0.8rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            background: #f1f5f9;
+            padding: 0.6rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+            align-items: center;
+            color: #1e293b;
+        }
+
+        .view-btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 0.25rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .view-btn.active {
+            background: #0f172a;
+            color: white;
+            border-color: #0f172a;
+        }
+
+        select {
+            padding: 0.3rem 1rem;
+            border-radius: 30px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-family: inherit;
+            font-size: 0.75rem;
+        }
+
+        .depth-selector,
+        .group-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #475569;
+        }
+
+        .depth-selector label,
+        .group-toggle label {
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .group-toggle input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        /* 紧凑视图 */
+        .file-grid.compact-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 0.8rem;
+        }
+
+        /* 分组模式 */
+        .file-grid.grouped-view {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .dir-group {
+            background: white;
+            border-radius: 20px;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .dir-group-header {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e4a76;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 2px solid #eef2ff;
+        }
+
+        .dir-group-header .dir-icon {
+            font-size: 1.4rem;
+        }
+
+        .dir-group-header .dir-desc {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .dir-group .group-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 0.6rem;
+        }
+
+        .compact-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 0.9rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+
+        .compact-card:hover {
+            background: #ffffff;
+            border-color: #93c5fd;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        }
+
+        .compact-card .dir-line {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1e4a76;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .compact-card .dir-line .folder-icon {
+            font-size: 1.3rem;
+        }
+
+        .compact-card .file-name-line {
+            font-size: 0.85rem;
+            color: #0f2b3d;
+            font-weight: 600;
+            padding-left: 4px;
+        }
+
+        .compact-card .meta-mini {
+            font-size: 0.65rem;
+            color: #64748b;
+            display: flex;
+            gap: 12px;
+            margin-top: 2px;
+        }
+
+        /* 卡片视图 */
+        .file-grid.card-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .detail-card {
+            background: white;
+            border-radius: 28px;
+            transition: all 0.25s ease;
+            border: 1px solid #e2edf2;
+            overflow: hidden;
+            box-shadow: 0 6px 12px -8px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+        }
+
+        .detail-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.15);
+            border-color: #b9d0f0;
+        }
+
+        .detail-card .card-header {
+            background: #f8fafc;
+            padding: 1.2rem 1.2rem 0.8rem;
+            border-bottom: 1px solid #eef2ff;
+        }
+
+        .detail-card .dir-display {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e4a76;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .detail-card .file-name-display {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0c4e6e;
+            word-break: break-word;
+        }
+
+        .detail-card .card-body {
+            padding: 1rem 1.2rem 1.2rem;
+        }
+
+        .detail-card .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: #54708f;
+            margin-top: 0.4rem;
+        }
+
+        .detail-card .info-row .label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .detail-card .preview-link {
+            margin-top: 12px;
+            font-size: 0.7rem;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .badge-type {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            background: white;
+            border-radius: 48px;
+            padding: 3rem 2rem;
+            text-align: center;
+            grid-column: 1/-1;
+            color: #475569;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border-left: 5px solid #dc2626;
+            padding: 1rem;
+            border-radius: 24px;
+            margin-top: 1rem;
+            color: #991b1b;
+        }
+
+        footer {
+            margin-top: 2.5rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #5b6e8c;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 680px) {
+            body { padding: 1rem; }
+            .hero { padding: 1.2rem; }
+            h1 { font-size: 1.7rem; }
+            .btn-group { width: 100%; justify-content: center; }
+            .file-grid.compact-view {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <h1>
+            <span>📂</span> HTML 站点浏览器
+        </h1>
+        <div class="sub">双模式扫描 · 自动发现项目中的HTML页面，点击卡片即可预览跳转。</div>
+        <div class="stats-bar">
+            <div class="badge" id="fileCountBadge">📄 扫描中...</div>
+            <div class="btn-group">
+                <button class="action-btn primary-large" id="scanCurrentSiteBtn">🌐 扫描当前站点</button>
+                <button class="secondary-btn" id="toggleMoreBtn">⚙️ 更多...</button>
+            </div>
+        </div>
+        <div id="morePanel" style="display: none;" class="more-panel">
+            <button class="secondary-btn" id="scanLocalFolderBtn">📁 扫描本地文件夹</button>
+            <div class="depth-selector">
+                <label for="depthSelect">🔍 扫描深度:</label>
+                <select id="depthSelect">
+                    <option value="0">仅根目录</option>
+                    <option value="1" selected>根目录 + 1层</option>
+                    <option value="2">根目录 + 2层</option>
+                </select>
+            </div>
+            <div class="group-toggle">
+                <input type="checkbox" id="groupByDirCheckbox">
+                <label for="groupByDirCheckbox">📂 路径分类</label>
+            </div>
+            <div class="view-toggle">
+                <span style="font-size:0.7rem;">视图:</span>
+                <button class="view-btn active" data-view="compact">紧凑</button>
+                <button class="view-btn" data-view="card">卡片</button>
+            </div>
+            <select id="sortSelect">
+                <option value="path-asc" selected>按路径 ↑</option>
+                <option value="path-desc">按路径 ↓</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="fileListContainer" class="file-grid compact-view">
+        <div class="empty-state">
+            <div class="loading-spinner" style="margin-bottom: 12px;"></div>
+            <p>正在自动扫描当前站点...</p>
+        </div>
+    </div>
+    <footer>
+        ⚡ 自动扫描当前站点 · 支持视图切换与排序 | 📁 本地文件夹需授权
+    </footer>
+</div>
+
+<!-- ========== 可扩展配置 ========== -->
+<script>
+    const candidateFiles = [
+        'index.html',
+        '2.html', '3.html',
+        //'demo1.html', 'demo.html', 'about.html', 'contact.html', 'test.html',
+        //'demo2.html', 'start.html', 'home.html', 'main.html', 'page.html', 'app.html'
+    ];
+    
+    // subDirs 对应的描述：{ dir: '文件夹路径', emoji: '表情包', desc: '两个字描述' }
+    const subDirsConfig = [
+        { dir: 'cat/', emoji: '🐱', desc: '猫咪' },
+        { dir: 'catpark/', emoji: '🐈', desc: '猫园' },
+        //{ dir: 'docs/', emoji: '📚', desc: '文档' },
+        //{ dir: 'pages/', emoji: '📄', desc: '页面' },
+        //{ dir: 'html/', emoji: '🌐', desc: '网页' },
+        //{ dir: 'static/', emoji: '📦', desc: '静态' },
+        //{ dir: 'views/', emoji: '👁️', desc: '视图' },
+        //{ dir: 'public/', emoji: '🏛️', desc: '公共' },
+        //{ dir: 'demo/', emoji: '🎮', desc: '演示' },
+        //{ dir: 'examples/', emoji: '💡', desc: '示例' },
+        //{ dir: 'checksun/', emoji: '☀️', desc: '检查' },
+        //{ dir: 'finder/', emoji: '🔍', desc: '查找' },
+        //{ dir: 'guestbook/', emoji: '📝', desc: '留言' },
+        //{ dir: 'joke/', emoji: '😄', desc: '笑话' },
+        //{ dir: 'navigation/', emoji: '🧭', desc: '导航' },
+        //{ dir: 'probe/', emoji: '📡', desc: '探测' },
+        //{ dir: 'showcase/', emoji: '🎨', desc: '展示' },
+        //{ dir: 'tmdb-netlify/', emoji: '🎬', desc: '影视' },
+        //{ dir: 'tmdb-vercel/', emoji: '🎥', desc: '电影' },
+        //{ dir: 'web-css/', emoji: '🎨', desc: '样式' },
+        //{ dir: 'web-data/', emoji: '📊', desc: '数据' },
+        //{ dir: 'web-js/', emoji: '⚡', desc: '脚本' },
+        //{ dir: 'xmas/', emoji: '🎄', desc: '圣诞' },
+    ];
+    
+    // 提取纯目录数组用于扫描
+    const subDirs = subDirsConfig.map(item => item.dir);
+    
+    // 目录描述映射表
+    const dirInfoMap = {};
+    subDirsConfig.forEach(item => {
+        dirInfoMap[item.dir] = { emoji: item.emoji, desc: item.desc };
+    });
+    // 根目录描述
+    dirInfoMap['/'] = { emoji: '🏠', desc: '根目录' };
+</script>
+
+<script>
+    let currentFileList = [];
+    let currentScanMode = '';
+    let currentView = 'compact';
+    const fileListContainer = document.getElementById('fileListContainer');
+    const fileCountBadge = document.getElementById('fileCountBadge');
+
+    function showLoading(message) {
+        fileListContainer.innerHTML = `<div class="empty-state"><div class="loading-spinner" style="margin-bottom: 12px;"></div><p>${escapeHtml(message)}</p></div>`;
+    }
+
+    function showError(message) {
+        fileListContainer.innerHTML = `<div class="empty-state error-message">⚠️ 错误：${escapeHtml(message)}</div>`;
+        fileCountBadge.innerHTML = `📄 扫描失败`;
+    }
+
+    function showEmpty(message) {
+        fileListContainer.innerHTML = `<div class="empty-state">📭 ${escapeHtml(message)}</div>`;
+        fileCountBadge.innerHTML = `📄 0 个 HTML 文件`;
+    }
+
+    // 格式化目录显示
+    function formatDirPath(relativePath) {
+        const lastSlash = relativePath.lastIndexOf('/');
+        if (lastSlash === -1) return '/';
+        const dir = relativePath.substring(0, lastSlash + 1);
+        return '/' + dir;
+    }
+
+    // 获取目录的标准化键（用于分组）
+    function getDirKey(relativePath) {
+        const lastSlash = relativePath.lastIndexOf('/');
+        if (lastSlash === -1) return '/';
+        return '/' + relativePath.substring(0, lastSlash + 1);
+    }
+
+    // 获取目录信息
+    function getDirInfo(dirKey) {
+        // 尝试匹配配置中的目录
+        for (const configDir in dirInfoMap) {
+            if (dirKey === configDir || dirKey === '/' + configDir) {
+                return dirInfoMap[configDir] || dirInfoMap['/'];
+            }
+        }
+        // 检查是否包含配置的目录路径
+        for (const configDir of subDirs) {
+            const configKey = '/' + configDir;
+            if (dirKey === configKey) {
+                return dirInfoMap[configDir] || { emoji: '📁', desc: '文件夹' };
+            }
+        }
+        return { emoji: '📁', desc: '文件夹' };
+    }
+
+    function getFileExtension(filename) {
+        return filename.split('.').pop().toLowerCase();
+    }
+
+    function getFileTypeDescription(filename) {
+        const name = filename.toLowerCase();
+        if (name.includes('index')) return '首页';
+        if (name.includes('demo') || name.includes('test')) return '演示/测试';
+        if (name.includes('about')) return '关于';
+        if (name.includes('contact')) return '联系';
+        if (name.includes('page') || name.includes('app')) return '应用页';
+        return '页面';
+    }
+
+    // 排序：根目录排最前面，然后按路径排序
+    function applySortAndGroup(files, sortType) {
+        let sorted = [...files];
+        
+        // 分组函数：获取排序键
+        const getSortKey = (file) => {
+            const path = (file.relativePath || file.name).toLowerCase();
+            const dirKey = getDirKey(file.relativePath || file.name);
+            // 根目录文件排最前面
+            if (dirKey === '/') return '\x00' + path;
+            return '\x01' + path;
+        };
+        
+        if (sortType === 'path-asc') {
+            sorted.sort((a, b) => {
+                const keyA = getSortKey(a);
+                const keyB = getSortKey(b);
+                return keyA.localeCompare(keyB);
+            });
+        } else if (sortType === 'path-desc') {
+            sorted.sort((a, b) => {
+                const keyA = getSortKey(a);
+                const keyB = getSortKey(b);
+                return keyB.localeCompare(keyA);
+            });
+        }
+        return sorted;
+    }
+
+    // 按目录分组
+    function groupByDirectory(files) {
+        const groups = {};
+        files.forEach(file => {
+            const dirKey = getDirKey(file.relativePath || file.name);
+            if (!groups[dirKey]) {
+                groups[dirKey] = [];
+            }
+            groups[dirKey].push(file);
+        });
+        // 排序：根目录在前
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            if (a === '/') return -1;
+            if (b === '/') return 1;
+            return a.localeCompare(b);
+        });
+        return { groups, sortedKeys };
+    }
+
+    function renderFileList(files, scanMode) {
+        const sortSelect = document.getElementById('sortSelect');
+        const sortType = sortSelect ? sortSelect.value : 'path-asc';
+        const groupByDirCheckbox = document.getElementById('groupByDirCheckbox');
+        const groupByDir = groupByDirCheckbox ? groupByDirCheckbox.checked : false;
+        
+        const sortedFiles = applySortAndGroup(files, sortType);
+
+        if (!sortedFiles.length) {
+            showEmpty(scanMode === 'site' ? '当前站点未发现任何 .html 文件。' : '所选文件夹中没有找到 .html 文件。');
+            fileCountBadge.innerHTML = `📄 0 个 HTML 文件`;
+            return;
+        }
+
+        const container = fileListContainer;
+        
+        // 如果开启路径分类，使用分组布局
+        if (groupByDir) {
+            const { groups, sortedKeys } = groupByDirectory(sortedFiles);
+            
+            container.className = 'file-grid grouped-view';
+            container.innerHTML = sortedKeys.map(dirKey => {
+                const dirInfo = getDirInfo(dirKey);
+                const filesInGroup = groups[dirKey];
+                
+                const cardsHtml = filesInGroup.map(file => {
+                    const displayDir = formatDirPath(file.relativePath || file.name);
+                    let clickAttr = '';
+                    if (scanMode === 'folder' && file.blobUrl) {
+                        clickAttr = `data-blob-url="${escapeAttr(file.blobUrl)}" data-mode="folder"`;
+                    } else {
+                        clickAttr = `data-url="${escapeAttr(file.url)}" data-mode="site"`;
+                    }
+                    
+                    return `
+                        <div class="compact-card" ${clickAttr}>
+                            <div class="dir-line">
+                                <span class="folder-icon">📁</span>
+                                <span>${escapeHtml(displayDir)}</span>
+                            </div>
+                            <div class="file-name-line">
+                                📄 ${escapeHtml(file.name)}
+                            </div>
+                            <div class="meta-mini">
+                                ${file.size ? `<span>📐 ${formatFileSize(file.size)}</span>` : ''}
+                                ${file.lastModified ? `<span>🕒 ${new Date(file.lastModified).toLocaleDateString()}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                return `
+                    <div class="dir-group">
+                        <div class="dir-group-header">
+                            <span class="dir-icon">${dirInfo.emoji}</span>
+                            <span>${escapeHtml(dirKey)}</span>
+                            <span class="dir-desc">${escapeHtml(dirInfo.desc)}</span>
+                            <span style="margin-left:auto;font-size:0.7rem;color:#94a3b8;">${filesInGroup.length} 个文件</span>
+                        </div>
+                        <div class="group-cards">
+                            ${cardsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else if (currentView === 'compact') {
+            container.className = 'file-grid compact-view';
+            container.innerHTML = sortedFiles.map(file => {
+                const displayDir = formatDirPath(file.relativePath || file.name);
+                
+                let clickAttr = '';
+                if (scanMode === 'folder' && file.blobUrl) {
+                    clickAttr = `data-blob-url="${escapeAttr(file.blobUrl)}" data-mode="folder"`;
+                } else {
+                    clickAttr = `data-url="${escapeAttr(file.url)}" data-mode="site"`;
+                }
+                
+                return `
+                    <div class="compact-card" ${clickAttr}>
+                        <div class="dir-line">
+                            <span class="folder-icon">📁</span>
+                            <span>${escapeHtml(displayDir)}</span>
+                        </div>
+                        <div class="file-name-line">
+                            📄 ${escapeHtml(file.name)}
+                        </div>
+                        <div class="meta-mini">
+                            ${file.size ? `<span>📐 ${formatFileSize(file.size)}</span>` : ''}
+                            ${file.lastModified ? `<span>🕒 ${new Date(file.lastModified).toLocaleDateString()}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            container.className = 'file-grid card-view';
+            container.innerHTML = sortedFiles.map(file => {
+                const displayDir = formatDirPath(file.relativePath || file.name);
+                const fileType = getFileTypeDescription(file.name);
+                const ext = getFileExtension(file.name);
+                
+                let clickAttr = '';
+                if (scanMode === 'folder' && file.blobUrl) {
+                    clickAttr = `data-blob-url="${file.blobUrl}" data-mode="folder"`;
+                } else {
+                    clickAttr = `data-url="${escapeAttr(file.url)}" data-mode="site"`;
+                }
+                
+                const fileSize = file.size || (file.fileObject ? file.fileObject.size : 0);
+                const lastModifiedInfo = file.lastModified 
+                    ? new Date(file.lastModified).toLocaleString() 
+                    : (file.fileObject && file.fileObject.lastModified 
+                        ? new Date(file.fileObject.lastModified).toLocaleString() 
+                        : (scanMode === 'site' ? '服务器文件' : '未知'));
+                
+                return `
+                    <div class="detail-card" ${clickAttr}>
+                        <div class="card-header">
+                            <div class="dir-display">
+                                <span>📁</span>
+                                <span>${escapeHtml(displayDir)}</span>
+                            </div>
+                            <div class="file-name-display">
+                                🌐 ${escapeHtml(file.name)}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="info-row">
+                                <span><span class="label">📄 类型:</span> <span class="badge-type">${escapeHtml(fileType)}</span></span>
+                                <span><span class="label">📦 格式:</span> ${ext.toUpperCase()}</span>
+                            </div>
+                            <div class="info-row">
+                                <span><span class="label">📐 大小:</span> ${formatFileSize(fileSize)}</span>
+                                <span><span class="label">🕒 修改:</span> ${lastModifiedInfo}</span>
+                            </div>
+                            <div class="info-row">
+                                <span><span class="label">📂 来源:</span> ${scanMode === 'folder' ? '本地文件夹' : '站点扫描'}</span>
+                                <span><span class="label">🔗 路径:</span> ${escapeHtml(file.relativePath || file.name)}</span>
+                            </div>
+                            <div class="preview-link">
+                                🔗 点击卡片跳转预览 →
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        fileCountBadge.innerHTML = `📄 ${sortedFiles.length} 个 HTML 文件`;
+
+        document.querySelectorAll('.compact-card, .detail-card').forEach(card => {
+            card.addEventListener('click', async (e) => {
+                const mode = card.getAttribute('data-mode');
+                if (mode === 'folder') {
+                    const blobUrl = card.getAttribute('data-blob-url');
+                    if (blobUrl) {
+                        window.open(blobUrl, '_blank');
+                    } else {
+                        alert('无法打开文件，缺少预览链接');
+                    }
+                } else {
+                    const url = card.getAttribute('data-url');
+                    if (url) {
+                        window.open(url, '_blank');
+                    } else {
+                        alert('无法跳转，URL 无效');
+                    }
+                }
+            });
+        });
+    }
+
+    async function scanCurrentSite() {
+        const depthSelect = document.getElementById('depthSelect');
+        const depth = depthSelect ? parseInt(depthSelect.value) : 1;
+        
+        const depthText = depth === 0 ? '仅根目录' : (depth === 1 ? '根目录 + 1层' : '根目录 + 2层');
+        showLoading(`正在扫描当前站点（${depthText}）...`);
+        
+        currentScanMode = 'site';
+        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        const foundFiles = [];
+        const testedPaths = new Set();
+
+        async function fileExists(url) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
+                clearTimeout(timeoutId);
+                return res.ok;
+            } catch {
+                return false;
+            }
+        }
+
+        function addFile(name, relativePath, url) {
+            if (!testedPaths.has(url)) {
+                testedPaths.add(url);
+                foundFiles.push({ name, relativePath, url, size: 0, lastModified: null });
+            }
+        }
+
+        // 1. 扫描根目录
+        for (const fileName of candidateFiles) {
+            const fileUrl = baseUrl + fileName;
+            if (await fileExists(fileUrl)) {
+                addFile(fileName, fileName, fileUrl);
+            }
+        }
+
+        // 2. 扫描第一层子目录
+        if (depth >= 1) {
+            for (const subDir of subDirs) {
+                const subBase = baseUrl + subDir;
+                
+                const indexUrl = subBase + 'index.html';
+                if (await fileExists(indexUrl)) {
+                    addFile('index.html', subDir + 'index.html', indexUrl);
+                }
+                for (const fileName of candidateFiles.slice(0, 8)) {
+                    const testUrl = subBase + fileName;
+                    if (await fileExists(testUrl)) {
+                        addFile(fileName, subDir + fileName, testUrl);
+                    }
+                }
+                
+                // 3. 扫描第二层子目录
+                if (depth >= 2) {
+                    for (const subSubDir of subDirs) {
+                        const subSubBase = subBase + subSubDir;
+                        const subIndexUrl = subSubBase + 'index.html';
+                        if (await fileExists(subIndexUrl)) {
+                            addFile('index.html', subDir + subSubDir + 'index.html', subIndexUrl);
+                        }
+                        for (const fileName of candidateFiles.slice(0, 5)) {
+                            const testUrl = subSubBase + fileName;
+                            if (await fileExists(testUrl)) {
+                                addFile(fileName, subDir + subSubDir + fileName, testUrl);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. 上级目录探测
+        const parentBase = baseUrl.substring(0, baseUrl.length - 1);
+        const lastSlash = parentBase.lastIndexOf('/');
+        if (lastSlash !== -1) {
+            const upperBase = parentBase.substring(0, lastSlash + 1);
+            if (upperBase !== baseUrl) {
+                for (const fileName of ['index.html', 'default.html']) {
+                    const testUrl = upperBase + fileName;
+                    if (await fileExists(testUrl)) {
+                        addFile(fileName, '../' + fileName, testUrl);
+                    }
+                }
+            }
+        }
+
+        if (foundFiles.length === 0) {
+            showError('未扫描到任何 HTML 文件。请确保当前站点目录存在 .html 文件，或使用「扫描本地文件夹」功能。');
+            fileCountBadge.innerHTML = `📄 0 个 HTML`;
+            return;
+        }
+
+        currentFileList = foundFiles;
+        renderFileList(currentFileList, 'site');
+    }
+
+    const isFileSystemAccessSupported = 'showDirectoryPicker' in window;
+
+    async function scanLocalFolder() {
+        if (!isFileSystemAccessSupported) {
+            showError('您的浏览器不支持 File System Access API。请使用最新版 Chrome / Edge / Opera 等基于 Chromium 的浏览器进行本地文件夹扫描。');
+            fileCountBadge.innerHTML = `📄 不支持 API`;
+            return;
+        }
+
+        try {
+            const rootDir = await window.showDirectoryPicker();
+            showLoading('正在递归扫描文件夹及子文件夹中的 .html 文件...');
+            const files = await scanDirectoryRecursively(rootDir, '');
+            for (const file of files) {
+                if (file.fileObject instanceof File) {
+                    const blob = new Blob([await file.fileObject.text()], { type: 'text/html' });
+                    file.blobUrl = URL.createObjectURL(blob);
+                } else if (file.handle) {
+                    const fileObj = await file.handle.getFile();
+                    const content = await fileObj.text();
+                    const blob = new Blob([content], { type: 'text/html' });
+                    file.blobUrl = URL.createObjectURL(blob);
+                    file.fileObject = fileObj;
+                    file.size = fileObj.size;
+                    file.lastModified = fileObj.lastModified;
+                }
+            }
+            currentFileList = files;
+            currentScanMode = 'folder';
+            renderFileList(currentFileList, 'folder');
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                showEmpty('未选择任何文件夹，请点击「扫描本地文件夹」并授权目录访问。');
+                fileCountBadge.innerHTML = `📄 未授权`;
+            } else {
+                console.error(err);
+                showError(`扫描本地文件夹失败: ${err.message || '未知错误'}`);
+                fileCountBadge.innerHTML = `📄 扫描出错`;
+            }
+        }
+    }
+
+    async function scanDirectoryRecursively(dirHandle, currentPath = '') {
+        let htmlFiles = [];
+        const entries = dirHandle.values();
+        for await (const entry of entries) {
+            const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+            if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.html')) {
+                const file = await entry.getFile();
+                htmlFiles.push({
+                    name: entry.name,
+                    relativePath: entryPath,
+                    handle: entry,
+                    size: file.size,
+                    lastModified: file.lastModified,
+                    fileObject: file,
+                });
+            } else if (entry.kind === 'directory') {
+                const subFiles = await scanDirectoryRecursively(entry, entryPath);
+                htmlFiles.push(...subFiles);
+            }
+        }
+        return htmlFiles;
+    }
+
+    function revokeBlobUrls(files) {
+        if (files && files.length) {
+            files.forEach(f => {
+                if (f.blobUrl) URL.revokeObjectURL(f.blobUrl);
+            });
+        }
+    }
+
+    function formatFileSize(bytes) {
+        if (!bytes || bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function escapeAttr(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function init() {
+        const scanSiteBtn = document.getElementById('scanCurrentSiteBtn');
+        const scanFolderBtn = document.getElementById('scanLocalFolderBtn');
+        const toggleMoreBtn = document.getElementById('toggleMoreBtn');
+        const morePanel = document.getElementById('morePanel');
+        const sortSelect = document.getElementById('sortSelect');
+        const viewButtons = document.querySelectorAll('.view-btn');
+        const depthSelect = document.getElementById('depthSelect');
+        const groupByDirCheckbox = document.getElementById('groupByDirCheckbox');
+
+        toggleMoreBtn.addEventListener('click', () => {
+            if (morePanel.style.display === 'none' || morePanel.style.display === '') {
+                morePanel.style.display = 'flex';
+            } else {
+                morePanel.style.display = 'none';
+            }
+        });
+
+        scanSiteBtn.addEventListener('click', () => {
+            revokeBlobUrls(currentFileList);
+            scanCurrentSite();
+        });
+
+        scanFolderBtn.addEventListener('click', () => {
+            revokeBlobUrls(currentFileList);
+            scanLocalFolder();
+        });
+
+        depthSelect.addEventListener('change', () => {
+            revokeBlobUrls(currentFileList);
+            scanCurrentSite();
+        });
+
+        // 路径分类勾选时重新渲染
+        groupByDirCheckbox.addEventListener('change', () => {
+            if (currentFileList.length > 0) {
+                renderFileList(currentFileList, currentScanMode);
+            }
+        });
+
+        viewButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                viewButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentView = btn.getAttribute('data-view');
+                if (currentFileList.length > 0) {
+                    renderFileList(currentFileList, currentScanMode);
+                }
+            });
+        });
+
+        sortSelect.addEventListener('change', () => {
+            if (currentFileList.length > 0) {
+                renderFileList(currentFileList, currentScanMode);
+            }
+        });
+
+        scanCurrentSite();
+    }
+
+    init();
+</script>
+<script src="../../src/js/nav.js"></script>
+</body>
+</html>

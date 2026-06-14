@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>留言广场</title>
+  <link rel="stylesheet" href="../../src/css/common.css">
+  <style>
+    /* ========== 页面二特有样式 ========== */
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 28px;
+      align-items: start;
+    }
+
+    /* 发布表单 */
+    .post-form {
+      background: var(--color-card);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      position: sticky;
+      top: 24px;
+    }
+    .post-form__title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--color-secondary);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .post-form__group {
+      margin-bottom: 16px;
+    }
+    .post-form__label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-text-light);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+    .post-form__textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--color-border);
+      background: var(--color-bg-warm);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      color: var(--color-text);
+      resize: vertical;
+      transition: all var(--duration-fast) var(--ease-out-expo);
+      outline: none;
+      line-height: 1.6;
+    }
+    .post-form__textarea:focus {
+      border-color: var(--color-primary-light);
+      box-shadow: 0 0 0 3px rgba(224, 122, 95, 0.1);
+      background: #fff;
+    }
+    .post-form__textarea::placeholder { color: var(--color-text-muted); }
+
+    .post-form__image-preview {
+      display: none;
+      width: 100%;
+      max-height: 180px;
+      object-fit: cover;
+      border-radius: var(--radius-md);
+      margin-top: 10px;
+      border: 1px solid var(--color-border);
+    }
+    .post-form__image-preview.visible { display: block; }
+
+    .post-form__image-remove {
+      display: none;
+      margin-top: 8px;
+      font-size: 0.82rem;
+      color: var(--color-primary);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-weight: 600;
+    }
+    .post-form__image-remove.visible { display: inline-block; }
+
+    .post-form__actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .post-form__char-count {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    /* 留言列表 */
+    .post-list {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .post-list__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .post-list__count {
+      font-size: 0.9rem;
+      color: var(--color-text-light);
+      font-weight: 500;
+    }
+    .post-list__actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* 留言卡片 */
+    .post-card {
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      animation: fadeInUp 0.4s var(--ease-out-expo) both;
+      transition: all var(--duration-fast) var(--ease-out-expo);
+      position: relative;
+    }
+    .post-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    .post-card__meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .post-card__author {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--color-secondary);
+    }
+    .post-card__avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, var(--color-primary-light), var(--color-accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: #fff;
+    }
+    .post-card__time {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+    }
+    .post-card__content {
+      font-size: 0.95rem;
+      color: var(--color-text);
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .post-card__image {
+      margin-top: 14px;
+      max-width: 100%;
+      max-height: 360px;
+      border-radius: var(--radius-md);
+      object-fit: cover;
+      cursor: pointer;
+      transition: transform 0.2s;
+      border: 1px solid var(--color-border);
+    }
+    .post-card__image:hover { transform: scale(1.02); }
+    .post-card__delete {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: transparent;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: all var(--duration-fast);
+    }
+    .post-card:hover .post-card__delete { opacity: 1; }
+    .post-card__delete:hover {
+      background: rgba(224, 122, 95, 0.12);
+      color: var(--color-primary);
+    }
+
+    /* 图片灯箱 */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .lightbox.open { opacity: 1; visibility: visible; }
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    /* 空状态 */
+    .empty-feed {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .empty-feed__icon { font-size: 4rem; margin-bottom: 16px; display: block; }
+    .empty-feed__text { color: var(--color-text-muted); font-size: 0.95rem; line-height: 1.7; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--color-secondary);
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: var(--radius-full);
+      font-size: 0.9rem;
+      font-weight: 500;
+      z-index: 3000;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.4s var(--ease-spring);
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .post-form {
+        position: static;
+        order: -1;
+      }
+    }
+  </style>
+</head>
+<body data-nav-current="guestbook">
+
+  <!-- ========== 页面头部 ========== -->
+  <header class="page-header">
+    <span class="page-header__icon">💬</span>
+    <h1 class="page-header__title">留言广场</h1>
+    <p class="page-header__subtitle">
+      写下你想说的话，分享你喜欢的图片——每一份留言都会被保存在浏览器中。
+    </p>
+  </header>
+
+  <!-- ========== 主体内容 ========== -->
+  <main class="container">
+    <div class="layout">
+
+      <!-- 左侧：留言列表 -->
+      <section>
+        <div class="post-list__header">
+          <span class="post-list__count" id="postCount">共 0 条留言</span>
+          <div class="post-list__actions">
+            <button class="btn btn--secondary btn--sm" id="btnExport" title="导出为 JSON 文件">📥 导出</button>
+            <button class="btn btn--secondary btn--sm" id="btnImport" title="从 JSON 文件导入">📤 导入</button>
+            <input type="file" id="importFile" accept=".json" style="display:none">
+          </div>
+        </div>
+        <div class="post-list" id="postList">
+          <div class="empty-feed">
+            <span class="empty-feed__icon">🌱</span>
+            <p class="empty-feed__text">还没有留言，来做第一个留下足迹的人吧！</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右侧：发布表单 -->
+      <aside>
+        <form class="post-form" id="postForm" autocomplete="off">
+          <h3 class="post-form__title">✍️ 写下留言</h3>
+
+          <div class="post-form__group">
+            <label class="post-form__label" for="inputAuthor">昵称</label>
+            <input type="text" id="inputAuthor" class="input" placeholder="你的名字…" maxlength="30" required>
+          </div>
+
+          <div class="post-form__group">
+            <label class="post-form__label" for="inputContent">内容</label>
+            <textarea id="inputContent" class="post-form__textarea" placeholder="分享你的想法…" maxlength="1000" required></textarea>
+            <div class="post-form__char-count"><span id="charCount">0</span> / 1000</div>
+          </div>
+
+          <div class="post-form__group">
+            <label class="post-form__label">图片（可选）</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input type="text" id="inputImageUrl" class="input" placeholder="粘贴图片 URL…" style="flex:1;min-width:140px;">
+              <label class="btn btn--secondary btn--sm" style="cursor:pointer;white-space:nowrap;">
+                📁 本地上传
+                <input type="file" id="inputImageFile" accept="image/*" style="display:none">
+              </label>
+            </div>
+            <img id="imagePreview" class="post-form__image-preview" alt="预览">
+            <button type="button" id="btnRemoveImage" class="post-form__image-remove">✕ 移除图片</button>
+          </div>
+
+          <div class="post-form__actions">
+            <button type="submit" class="btn btn--primary" id="btnSubmit">💾 发布留言</button>
+            <button type="button" class="btn btn--secondary" id="btnClear">清空</button>
+          </div>
+        </form>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- 图片灯箱 -->
+  <div class="lightbox" id="lightbox"><img id="lightboxImg" src="" alt="放大图片"></div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ========== 导航组件 ========== -->
+  <script src="../../src/js/nav.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    const STORAGE_KEY = 'guestbook_posts';
+    const OLD_STORAGE_KEY = 'demo2_posts'; // 旧 key，用于数据迁移
+    const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB for localStorage
+
+    // ========== DOM 引用 ==========
+    const postList    = document.getElementById('postList');
+    const postCount   = document.getElementById('postCount');
+    const postForm    = document.getElementById('postForm');
+    const inputAuthor = document.getElementById('inputAuthor');
+    const inputContent = document.getElementById('inputContent');
+    const inputImageUrl = document.getElementById('inputImageUrl');
+    const inputImageFile = document.getElementById('inputImageFile');
+    const imagePreview = document.getElementById('imagePreview');
+    const btnRemoveImage = document.getElementById('btnRemoveImage');
+    const charCount    = document.getElementById('charCount');
+    const btnClear     = document.getElementById('btnClear');
+    const btnExport    = document.getElementById('btnExport');
+    const btnImport    = document.getElementById('btnImport');
+    const importFile   = document.getElementById('importFile');
+    const lightbox     = document.getElementById('lightbox');
+    const lightboxImg  = document.getElementById('lightboxImg');
+    const toastEl      = document.getElementById('toast');
+
+    let currentImageData = null; // { type: 'url'|'base64', value: string }
+    let posts = [];
+
+    // ========== 数据持久化 ==========
+
+    function savePosts() {
+      try {
+        // 压缩：只保留最近 200 条
+        if (posts.length > 200) posts = posts.slice(0, 200);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+      } catch (e) {
+        if (e.name === 'QuotaExceededError') {
+          showToast('⚠️ 存储空间不足，请清理旧留言或导出后重置');
+          // 尝试删除旧数据来释放空间
+          posts = posts.slice(0, 50);
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(posts)); } catch (_) {}
+        }
+      }
+    }
+
+    function loadPosts() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        posts = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(posts)) posts = [];
+
+        // 迁移旧数据
+        try {
+          const oldRaw = localStorage.getItem(OLD_STORAGE_KEY);
+          if (oldRaw) {
+            const oldPosts = JSON.parse(oldRaw);
+            if (Array.isArray(oldPosts) && oldPosts.length > 0) {
+              // 合并去重
+              const seen = new Set(posts.map(p => p.id));
+              const fresh = oldPosts.filter(p => !seen.has(p.id));
+              posts = [...fresh, ...posts];
+              savePosts();
+              localStorage.removeItem(OLD_STORAGE_KEY);
+              console.log('✅ 已从旧 key 迁移', fresh.length, '条留言');
+            } else {
+              localStorage.removeItem(OLD_STORAGE_KEY);
+            }
+          }
+        } catch (_) { /* 旧数据无效则忽略 */ }
+      } catch (e) {
+        posts = [];
+      }
+    }
+
+    // ========== 渲染 ==========
+
+    function renderPosts() {
+      if (posts.length === 0) {
+        postList.innerHTML = `
+          <div class="empty-feed">
+            <span class="empty-feed__icon">🌱</span>
+            <p class="empty-feed__text">还没有留言，来做第一个留下足迹的人吧！</p>
+          </div>`;
+      } else {
+        postList.innerHTML = posts.map((p, i) => `
+          <div class="post-card" style="animation-delay:${i * 0.03}s">
+            <button class="post-card__delete" data-index="${i}" title="删除">✕</button>
+            <div class="post-card__meta">
+              <span class="post-card__author">
+                <span class="post-card__avatar">${escapeHtml((p.author || '?').charAt(0))}</span>
+                ${escapeHtml(p.author || '匿名')}
+              </span>
+              <span class="post-card__time">${formatTime(p.time)}</span>
+            </div>
+            <div class="post-card__content">${escapeHtml(p.content || '')}</div>
+            ${p.image ? `<img class="post-card__image" src="${escapeAttr(p.image)}" alt="留言图片" loading="lazy" data-image="${escapeAttr(p.image)}">` : ''}
+          </div>
+        `).join('');
+      }
+      postCount.textContent = `共 ${posts.length} 条留言`;
+
+      // 绑定删除按钮
+      postList.querySelectorAll('.post-card__delete').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const idx = parseInt(this.getAttribute('data-index'));
+          deletePost(idx);
+        });
+      });
+
+      // 绑定图片点击
+      postList.querySelectorAll('.post-card__image').forEach(img => {
+        img.addEventListener('click', function () {
+          openLightbox(this.getAttribute('data-image'));
+        });
+      });
+    }
+
+    function openLightbox(src) {
+      lightboxImg.src = src;
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function deletePost(index) {
+      if (index < 0 || index >= posts.length) return;
+      posts.splice(index, 1);
+      savePosts();
+      renderPosts();
+      showToast('🗑️ 留言已删除');
+    }
+
+    // ========== 表单处理 ==========
+
+    function resetForm() {
+      inputAuthor.value = '';
+      inputContent.value = '';
+      inputImageUrl.value = '';
+      inputImageFile.value = '';
+      currentImageData = null;
+      imagePreview.classList.remove('visible');
+      imagePreview.src = '';
+      btnRemoveImage.classList.remove('visible');
+      charCount.textContent = '0';
+    }
+
+    function handleImageUrl(url) {
+      if (!url.trim()) { removeImage(); return; }
+      currentImageData = { type: 'url', value: url.trim() };
+      imagePreview.src = url.trim();
+      imagePreview.classList.add('visible');
+      btnRemoveImage.classList.add('visible');
+    }
+
+    function handleImageFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        showToast('⚠️ 请选择图片文件');
+        return;
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        showToast('⚠️ 图片过大，请选择 2MB 以下的图片');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function () {
+        currentImageData = { type: 'base64', value: reader.result };
+        imagePreview.src = reader.result;
+        imagePreview.classList.add('visible');
+        btnRemoveImage.classList.add('visible');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeImage() {
+      currentImageData = null;
+      imagePreview.classList.remove('visible');
+      imagePreview.src = '';
+      btnRemoveImage.classList.remove('visible');
+      inputImageUrl.value = '';
+      inputImageFile.value = '';
+    }
+
+    function submitPost() {
+      const author = inputAuthor.value.trim() || '匿名';
+      const content = inputContent.value.trim();
+
+      if (!content) {
+        showToast('⚠️ 请输入留言内容');
+        inputContent.focus();
+        return;
+      }
+
+      const post = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        author: author,
+        content: content,
+        image: currentImageData ? currentImageData.value : null,
+        time: Date.now()
+      };
+
+      posts.unshift(post); // 新留言在最上面
+      savePosts();
+      renderPosts();
+      resetForm();
+      showToast('✅ 留言发布成功！');
+    }
+
+    // ========== 导入导出 ==========
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(posts, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `userData_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('📥 数据已导出');
+    }
+
+    function importData(file) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        try {
+          const data = JSON.parse(reader.result);
+          if (!Array.isArray(data)) throw new Error('格式错误');
+          // 验证数据结构
+          const valid = data.filter(d => d && typeof d.content === 'string');
+          if (valid.length === 0) {
+            showToast('⚠️ 文件中没有有效的留言数据');
+            return;
+          }
+          // 合并：导入的数据放前面
+          posts = [...valid, ...posts];
+          // 去重
+          const seen = new Set();
+          posts = posts.filter(p => {
+            const key = p.id || p.time + p.content;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          savePosts();
+          renderPosts();
+          showToast(`✅ 成功导入 ${valid.length} 条留言`);
+        } catch (e) {
+          showToast('⚠️ 文件格式错误，无法导入');
+        }
+      };
+      reader.readAsText(file);
+      importFile.value = '';
+    }
+
+    // ========== 工具函数 ==========
+
+    function escapeHtml(str) {
+      if (typeof str !== 'string') return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+      if (typeof str !== 'string') return '';
+      return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function formatTime(ts) {
+      const d = new Date(ts);
+      const now = new Date();
+      const diff = now - d;
+      if (diff < 60000) return '刚刚';
+      if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
+      if (diff < 604800000) return Math.floor(diff / 86400000) + ' 天前';
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    let toastTimer;
+    function showToast(msg) {
+      clearTimeout(toastTimer);
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+    }
+
+    // ========== 事件绑定 ==========
+
+    postForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      submitPost();
+    });
+
+    inputContent.addEventListener('input', function () {
+      charCount.textContent = this.value.length;
+      if (this.value.length > 900) {
+        charCount.style.color = 'var(--color-primary)';
+      } else {
+        charCount.style.color = '';
+      }
+    });
+
+    inputImageUrl.addEventListener('input', function () {
+      handleImageUrl(this.value);
+    });
+
+    inputImageFile.addEventListener('change', function () {
+      if (this.files && this.files[0]) handleImageFile(this.files[0]);
+    });
+
+    btnRemoveImage.addEventListener('click', removeImage);
+    btnClear.addEventListener('click', resetForm);
+    btnExport.addEventListener('click', exportData);
+
+    btnImport.addEventListener('click', function () {
+      importFile.click();
+    });
+    importFile.addEventListener('change', function () {
+      if (this.files && this.files[0]) importData(this.files[0]);
+    });
+
+    lightbox.addEventListener('click', closeLightbox);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+
+    // ========== 启动 ==========
+    loadPosts();
+    renderPosts();
+  })();
+  </script>
+</body>
+</html>

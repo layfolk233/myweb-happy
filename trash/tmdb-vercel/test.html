@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMDB API 连通性测试</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 1rem; }
+        pre { background: #f1f5f9; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+        .error { color: #dc2626; background: #fee2e2; padding: 1rem; border-radius: 8px; }
+        .success { color: #16a34a; background: #dcfce7; padding: 1rem; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>🎬 TMDB API 连通性测试</h1>
+    <p>点击下方按钮，测试能否通过 Vercel 代理成功获取电影数据。</p>
+    <button id="testBtn">开始测试</button>
+    <h3>📋 测试结果：</h3>
+    <div id="result">等待测试...</div>
+
+    <script>
+        const testBtn = document.getElementById('testBtn');
+        const resultDiv = document.getElementById('result');
+
+        testBtn.addEventListener('click', async () => {
+            // 显示加载状态
+            resultDiv.innerHTML = '<pre>⏳ 正在请求中...</pre>';
+            
+            try {
+                // 通过你的代理请求 TMDB API
+                // 注意：这里使用相对路径 /api/tmdb，它会由 Vercel 的云函数处理
+                const url = '/api/tmdb/discover/movie?sort_by=popularity.desc&page=1';
+                
+                const response = await fetch(url);
+                
+                // 检查 HTTP 状态码
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+                }
+                
+                const data = await response.json();
+                
+                // 检查返回的数据结构
+                if (data.results && data.results.length > 0) {
+                    const firstMovie = data.results[0];
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ 连接成功！API 工作正常。</div>
+                        <h4>返回的电影示例：</h4>
+                        <pre>${JSON.stringify({
+                            id: firstMovie.id,
+                            title: firstMovie.title,
+                            release_date: firstMovie.release_date,
+                            vote_average: firstMovie.vote_average
+                        }, null, 2)}</pre>
+                        <details>
+                            <summary>点击查看完整响应（前1000字符）</summary>
+                            <pre>${JSON.stringify(data, null, 2).substring(0, 1000)}...</pre>
+                        </details>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">⚠️ API 响应成功，但未返回电影数据。响应内容：<pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                }
+                
+            } catch (error) {
+                // 显示详细错误信息
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 测试失败<br>
+                        错误信息：${error.message}<br><br>
+                        <strong>可能的原因：</strong><br>
+                        1. Vercel 环境变量 TMDB_ACCESS_TOKEN 未设置或无效<br>
+                        2. 代理函数 api/tmdb.js 未正确部署或存在语法错误<br>
+                        3. 网络问题或 Vercel 服务临时故障<br><br>
+                        <strong>解决方法：</strong><br>
+                        - 检查 Vercel 项目 Settings → Environment Variables 中是否添加了 TMDB_ACCESS_TOKEN<br>
+                        - 确认 GitHub 仓库根目录有 api/tmdb.js 文件<br>
+                        - 在 Vercel 项目 Deployments 标签页查看最近的部署日志
+                    </div>
+                `;
+                console.error('测试错误:', error);
+            }
+        });
+    </script>
+</body>
+</html>

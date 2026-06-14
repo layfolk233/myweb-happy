@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMDB电影测试 - Netlify代理</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 1rem; }
+        pre { background: #f1f5f9; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 12px; }
+        .error { color: #dc2626; background: #fee2e2; padding: 1rem; border-radius: 8px; }
+        .success { color: #16a34a; background: #dcfce7; padding: 1rem; border-radius: 8px; }
+        .loading { opacity: 0.6; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <h1>🎬 TMDB API 连通性测试 (Netlify代理)</h1>
+    <p>通过Netlify代理访问TMDB API，已集成Bearer Token认证。</p>
+    <button id="testBtn">开始测试</button>
+    <h3>📋 测试结果：</h3>
+    <div id="result">等待测试...</div>
+
+    <script>
+        // 你的TMDB Access Token
+        const TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyZGNlYjM3NTkwNThiNzdjZGEyNTQzMTQ1MTQ2ZjdmMSIsIm5iZiI6MTc3OTg2MjczMC4xNDMwMDAxLCJzdWIiOiI2YTE2OGNjYTU4M2NmODgzYzViNDY3ODciLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.VsTg3MMVoCRoOSFgoW4S06G1yBdVIb6hrWwTTk0Lj8I';
+        
+        const testBtn = document.getElementById('testBtn');
+        const resultDiv = document.getElementById('result');
+
+        testBtn.addEventListener('click', async () => {
+            // 禁用按钮，防止重复点击
+            testBtn.disabled = true;
+            testBtn.classList.add('loading');
+            resultDiv.innerHTML = '<pre>⏳ 正在请求中...</pre>';
+            
+            try {
+                // 通过Netlify代理请求TMDB API
+                // 注意：路径 /tmdb/3/discover/movie 会匹配 _redirects 规则
+                const url = '/tmdb/3/discover/movie?language=zh-CN&sort_by=popularity.desc&page=1';
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${TMDB_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+                }
+                
+                const data = await response.json();
+                
+                // 检查返回数据
+                if (data.results && data.results.length > 0) {
+                    const movies = data.results.slice(0, 5);
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ 连接成功！API 工作正常。</div>
+                        <h4>前5部电影：</h4>
+                        <pre>${JSON.stringify(movies.map(m => ({
+                            title: m.title,
+                            release_date: m.release_date,
+                            vote_average: m.vote_average
+                        })), null, 2)}</pre>
+                        <details>
+                            <summary>📄 点击查看完整响应（前1500字符）</summary>
+                            <pre>${JSON.stringify(data, null, 2).substring(0, 1500)}${JSON.stringify(data, null, 2).length > 1500 ? '\n\n... (内容过长，已截断)' : ''}</pre>
+                        </details>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">⚠️ API 响应成功，但未返回电影数据。<br>完整响应：<pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ 请求失败<br>
+                        错误信息：${error.message}<br><br>
+                        <strong>可能的原因：</strong><br>
+                        1. Netlify 代理未正确配置（检查 _redirects 文件）<br>
+                        2. Token 无效或已过期<br>
+                        3. TMDB API 服务异常
+                    </div>
+                `;
+                console.error('详细错误:', error);
+            } finally {
+                // 恢复按钮
+                testBtn.disabled = false;
+                testBtn.classList.remove('loading');
+            }
+        });
+    </script>
+</body>
+</html>

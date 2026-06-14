@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>随机笑话</title>
+  <link rel="stylesheet" href="../../src/css/common.css">
+  <style>
+    .joke-card {
+      max-width: 580px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .joke-card__box {
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 32px 24px;
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-lg);
+      border: 2px dashed var(--color-border);
+      margin-bottom: 24px;
+      transition: all var(--duration-normal) var(--ease-out-expo);
+    }
+    .joke-card__box.loaded {
+      border-style: solid;
+      border-color: var(--color-accent-light);
+      background: #fff;
+    }
+    .joke-card__setup {
+      font-size: 1.15rem;
+      color: var(--color-text);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .joke-card__delivery {
+      font-size: 1.05rem;
+      color: var(--color-primary);
+      font-weight: 600;
+      line-height: 1.6;
+    }
+    .joke-card__single {
+      font-size: 1.15rem;
+      color: var(--color-text);
+      line-height: 1.7;
+    }
+    .joke-card__category {
+      margin-top: 14px;
+      font-size: 0.8rem;
+    }
+    .joke-card__hint {
+      color: var(--color-text-muted);
+      font-size: 0.95rem;
+    }
+    .joke-card__error {
+      color: var(--color-primary-dark);
+      font-size: 0.95rem;
+    }
+    .joke-card__actions {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .joke-card__details {
+      text-align: left;
+    }
+    .joke-card__details summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--color-text-light);
+      padding: 8px 0;
+    }
+    .joke-card__details pre {
+      background: var(--color-secondary);
+      color: #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body data-nav-current="joke">
+  <header class="page-header">
+    <span class="page-header__icon">😂</span>
+    <h1 class="page-header__title">随机笑话</h1>
+    <p class="page-header__subtitle">笑一笑十年少</p>
+  </header>
+
+  <div class="container">
+    <div class="joke-card fade-in">
+      <div class="joke-card__box" id="jokeBox">
+        <p class="joke-card__hint">点击下方按钮获取随机笑话 🎯</p>
+      </div>
+      <div class="joke-card__actions">
+        <button class="btn btn--primary btn--lg" id="fetchBtn">😂 再来一个</button>
+      </div>
+      <details class="joke-card__details">
+        <summary>🔎 查看 API 原始响应</summary>
+        <pre id="rawJson">暂无数据，点击按钮后显示</pre>
+      </details>
+    </div>
+  </div>
+
+  <footer class="page-footer">
+    笑话来源：<a href="https://jokeapi.dev" target="_blank" rel="noopener">JokeAPI</a>
+  </footer>
+
+  <script src="../../src/js/nav.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var jokeBox = document.getElementById('jokeBox');
+      var btn = document.getElementById('fetchBtn');
+      var rawPre = document.getElementById('rawJson');
+
+      async function fetchJoke() {
+        btn.disabled = true;
+        btn.textContent = '加载中...';
+        jokeBox.className = 'joke-card__box';
+        jokeBox.innerHTML = '<p class="joke-card__hint">🤔 正在想笑话……</p>';
+
+        try {
+          var res = await fetch('https://v2.jokeapi.dev/joke/Any?safe-mode');
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          var data = await res.json();
+
+          rawPre.textContent = JSON.stringify(data, null, 2);
+
+          jokeBox.className = 'joke-card__box loaded';
+
+          if (data.type === 'single') {
+            jokeBox.innerHTML =
+              '<p class="joke-card__single">' + data.joke + '</p>' +
+              '<span class="tag joke-card__category">#' + data.category + '</span>';
+          } else if (data.type === 'twopart') {
+            jokeBox.innerHTML =
+              '<p class="joke-card__setup">' + data.setup + '</p>' +
+              '<p class="joke-card__delivery">💡 ' + data.delivery + '</p>' +
+              '<span class="tag joke-card__category">#' + data.category + '</span>';
+          }
+        } catch (err) {
+          jokeBox.innerHTML = '<p class="joke-card__error">❌ 获取笑话失败：' + err.message + '</p>';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '😂 再来一个';
+        }
+      }
+
+      btn.addEventListener('click', fetchJoke);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>网站探测</title>
+  <link rel="stylesheet" href="../../src/css/common.css">
+  <style>
+    /* ========== 探测页特有样式 ========== */
+    .probe-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* 输入区 */
+    .probe-input-group {
+      display: flex;
+      gap: 12px;
+      background: var(--color-card);
+      border-radius: var(--radius-xl);
+      padding: 20px 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--color-border);
+      margin-bottom: 32px;
+    }
+    .probe-url-input {
+      flex: 1;
+      padding: 12px 18px;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--color-border);
+      background: var(--color-bg-warm);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      color: var(--color-text);
+      outline: none;
+      transition: all 0.2s;
+    }
+    .probe-url-input:focus {
+      border-color: var(--color-primary-light);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(224,122,95,0.08);
+    }
+    .probe-btn {
+      padding: 12px 28px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .probe-btn:hover { background: #c96b4d; box-shadow: 0 4px 16px rgba(224,122,95,0.35); transform: translateY(-1px); }
+    .probe-btn:active { transform: none; }
+    .probe-btn.probing { opacity: 0.7; pointer-events: none; }
+    .probe-btn .spinner {
+      display: none;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    .probe-btn.probing .spinner { display: inline-block; }
+    .probe-btn.probing .btn-text { display: none; }
+
+    /* 结果卡片 */
+    .probe-result {
+      display: none;
+      background: var(--color-card);
+      border-radius: var(--radius-xl);
+      padding: 32px 28px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--color-border);
+      animation: fadeInUp 0.5s var(--ease-spring);
+    }
+    .probe-result.visible { display: block; }
+
+    .probe-result__head {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .probe-result__logo {
+      width: 64px; height: 64px;
+      border-radius: var(--radius-lg);
+      object-fit: contain;
+      background: var(--color-bg-warm);
+      padding: 6px;
+      flex-shrink: 0;
+      border: 1px solid var(--color-border);
+    }
+    .probe-result__logo-fb {
+      width: 64px; height: 64px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, var(--color-primary-light), var(--color-accent));
+      display: none;
+      align-items: center; justify-content: center;
+      font-size: 1.8rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .probe-result__title {
+      font-size: 1.3rem; font-weight: 700;
+      color: var(--color-secondary);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+    .probe-result__url {
+      font-size: 0.82rem;
+      color: var(--color-text-muted);
+      word-break: break-all;
+    }
+    .probe-result__status {
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .status-badge.ok { background: rgba(76,175,80,0.12); color: #2E7D32; }
+    .status-badge.fail{ background: rgba(244,67,54,0.12); color: #C62828; }
+
+    /* 信息网格 */
+    .probe-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 500px) {
+      .probe-info-grid { grid-template-columns: 1fr; }
+    }
+    .probe-info-item { }
+    .probe-info-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .probe-info-value {
+      font-size: 0.92rem;
+      color: var(--color-text);
+      line-height: 1.6;
+      word-break: break-all;
+    }
+    .probe-info-value.empty {
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+    .probe-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .probe-tag {
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: var(--color-bg-warm);
+      color: var(--color-text-light);
+      border: 1px solid var(--color-border);
+    }
+
+    /* 错误 / 提示 */
+    .probe-error {
+      display: none;
+      padding: 28px;
+      text-align: center;
+      background: var(--color-card);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      animation: fadeInUp 0.4s var(--ease-spring);
+    }
+    .probe-error.visible { display: block; }
+    .probe-error__icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .probe-error__text { color: var(--color-text-muted); font-size: 0.95rem; }
+
+    /* 数据来源标记 */
+    .src-badge {
+      font-size: 0.65rem; font-weight: 600;
+      padding: 1px 6px; border-radius: 10px;
+      background: var(--color-bg-warm);
+      color: var(--color-text-muted);
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+    .src-badge:empty { display: none; }
+
+    /* 多源图标对比 */
+    .probe-favicons { margin-bottom: 20px; padding-top: 4px; }
+    .probe-favicon-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+    .probe-favicon-item {
+      text-align: center;
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      border: 1px solid var(--color-border);
+      min-width: 80px;
+    }
+    .probe-favicon-item img {
+      width: 48px; height: 48px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto 4px;
+    }
+    .probe-favicon-item .label {
+      font-size: 0.68rem;
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+    .probe-favicon-item .label.error {
+      color: #C62828;
+    }
+
+    /* JSON-LD 展示 */
+    .probe-jsonld {
+      background: var(--color-bg-warm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.78rem;
+      color: var(--color-text);
+      line-height: 1.5;
+      overflow-x: auto;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .probe-jsonld:empty { display: none; }
+
+    /* 提示文字 */
+    .probe-hint {
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 0.82rem;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body data-nav-current="probe">
+
+  <!-- ========== 页面头部 ========== -->
+  <header class="page-header">
+    <span class="page-header__icon">🔍</span>
+    <h1 class="page-header__title">网站探测</h1>
+    <p class="page-header__subtitle">
+      输入任意网站地址，一键探测其可访问性及元数据信息。
+    </p>
+  </header>
+
+  <div class="probe-wrap">
+
+    <!-- 输入区 -->
+    <div class="probe-input-group">
+      <input type="url" class="probe-url-input" id="probeUrl"
+             value="www.baidu.com"
+             placeholder="输入网站地址，例如 www.baidu.com"
+             autocomplete="off" spellcheck="false">
+      <button class="probe-btn" id="probeBtn">
+        <span class="spinner"></span>
+        <span class="btn-text">🔍 开始探测</span>
+      </button>
+    </div>
+
+    <!-- 结果区 -->
+    <div class="probe-result" id="probeResult">
+      <div class="probe-result__head">
+        <img class="probe-result__logo" id="resultLogo" src="" alt="" onerror="this.style.display='none';document.getElementById('resultLogoFb').style.display='flex';">
+        <span class="probe-result__logo-fb" id="resultLogoFb"></span>
+        <div style="flex:1;min-width:0;">
+          <div class="probe-result__title" id="resultTitle">—</div>
+          <div class="probe-result__url" id="resultUrl">—</div>
+        </div>
+        <div class="probe-result__status">
+          <span class="status-badge" id="resultStatus"></span>
+        </div>
+      </div>
+
+      <!-- 多源图标 -->
+      <div class="probe-favicons" id="faviconGallery" style="display:none;">
+        <div class="probe-info-label">🖼️ 图标来源（多源比对）</div>
+        <div class="probe-favicon-row" id="faviconRow"></div>
+      </div>
+
+      <div class="probe-info-grid">
+        <div class="probe-info-item">
+          <div class="probe-info-label">📝 网站名称 <span class="src-badge" id="srcTitle"></span></div>
+          <div class="probe-info-value" id="infoTitle">—</div>
+        </div>
+        <div class="probe-info-item">
+          <div class="probe-info-label">👤 作者 <span class="src-badge" id="srcAuthor"></span></div>
+          <div class="probe-info-value" id="infoAuthor">—</div>
+        </div>
+        <div class="probe-info-item">
+          <div class="probe-info-label">📦 站点类型 <span class="src-badge" id="srcType"></span></div>
+          <div class="probe-info-value" id="infoType">—</div>
+        </div>
+        <div class="probe-info-item" style="grid-column: 1 / -1;">
+          <div class="probe-info-label">📖 简介 <span class="src-badge" id="srcDesc"></span></div>
+          <div class="probe-info-value" id="infoDesc">—</div>
+        </div>
+        <div class="probe-info-item" style="grid-column: 1 / -1;">
+          <div class="probe-info-label">📋 JSON-LD 结构化数据</div>
+          <pre class="probe-jsonld" id="infoJsonLd"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 错误 -->
+    <div class="probe-error" id="probeError">
+      <div class="probe-error__icon" id="errorIcon">⚠️</div>
+      <p class="probe-error__text" id="errorText"></p>
+    </div>
+
+    <p class="probe-hint">
+      探测通过直接访问目标网站实现。受 CORS 策略限制，仅部分网站可读取元数据；<br>无法读取时仍会检测连通性。
+    </p>
+  </div>
+
+  <!-- ========== 导航组件 ========== -->
+  <script src="../../src/js/nav.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    const probeUrl   = document.getElementById('probeUrl');
+    const probeBtn   = document.getElementById('probeBtn');
+    const resultEl   = document.getElementById('probeResult');
+    const errorEl    = document.getElementById('probeError');
+    let   aborter    = null;
+
+    // ============================================================
+    //  多源图标获取（并行，不依赖 CORS）
+    // ============================================================
+    function getFaviconSources(url) {
+      let domain;
+      try { domain = new URL(url).hostname; } catch(e) { domain = ''; }
+      const sources = {};
+      if (domain) {
+        sources.google     = { url: 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=128', label: 'Google API' };
+        sources.duckduckgo = { url: 'https://icons.duckduckgo.com/ip3/' + domain + '.ico', label: 'DuckDuckGo' };
+      }
+      try { sources.direct = { url: new URL('/favicon.ico', url).href, label: '/favicon.ico' }; } catch(e) {}
+      return sources;
+    }
+
+    // ============================================================
+    //  CORS 代理获取 HTML
+    // ============================================================
+    async function fetchHtml(url, signal) {
+      // 策略1：直接请求（同源或已配置CORS的站点）
+      try {
+        const ctrl = new AbortController();
+        const onAbort = () => ctrl.abort();
+        signal.addEventListener('abort', onAbort);
+        const resp = await fetch(url, { signal: ctrl.signal });
+        signal.removeEventListener('abort', onAbort);
+        if (resp.ok) {
+          const html = await resp.text();
+          console.log('✅ 直接请求成功 (' + html.length + ' 字节)');
+          return { html, source: 'direct' };
+        }
+      } catch(e) {
+        console.log('⏭ 直接请求失败: ' + e.message);
+      }
+
+      // 策略2：CORS 代理
+      const proxies = [
+        { name: 'corsproxy.io', url: 'https://corsproxy.io/?' + encodeURIComponent(url) },
+        { name: 'allorigins',   url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) },
+      ];
+
+      for (const proxy of proxies) {
+        try {
+          const ctrl = new AbortController();
+          const onAbort = () => ctrl.abort();
+          signal.addEventListener('abort', onAbort);
+          const resp = await fetch(proxy.url, { signal: ctrl.signal });
+          signal.removeEventListener('abort', onAbort);
+          if (resp.ok) {
+            const html = await resp.text();
+            console.log('✅ 代理 ' + proxy.name + ' 成功 (' + html.length + ' 字节)');
+            return { html, source: 'proxy:' + proxy.name };
+          }
+        } catch(e) {
+          console.log('⏭ 代理 ' + proxy.name + ' 失败: ' + e.message);
+        }
+      }
+
+      return null;
+    }
+
+    // ============================================================
+    //  HTML 元数据解析
+    // ============================================================
+    function parseMetaTags(doc) {
+      const result = {};
+      const sources = {};
+
+      // <title>
+      const titleEl = doc.querySelector('title');
+      if (titleEl) { result.title = titleEl.textContent.trim(); sources.title = 'title标签'; }
+
+      // 标准 meta 标签
+      const metaNames = {
+        description:       ['description'],
+        keywords:          ['keywords'],
+        author:            ['author'],
+        'application-name':['application-name'],
+      };
+      Object.entries(metaNames).forEach(([key, names]) => {
+        for (const n of names) {
+          const el = doc.querySelector('meta[name="' + n + '"]');
+          if (el && el.getAttribute('content')) {
+            result[key] = el.getAttribute('content').trim();
+            sources[key] = 'meta[name=' + n + ']';
+            break;
+          }
+        }
+      });
+
+      // opensearch 描述链接（站点短名称，比 <title> 更可靠）
+      const searchLink = doc.querySelector('link[rel="search"][type="application/opensearchdescription+xml"]');
+      if (searchLink && searchLink.getAttribute('title')) {
+        result.opensearchName = searchLink.getAttribute('title').trim();
+        sources.opensearchName = 'link[rel=search]';
+      }
+
+      // Open Graph 标签
+      const ogTags = ['title', 'description', 'image', 'site_name', 'type', 'url'];
+      ogTags.forEach(t => {
+        const el = doc.querySelector('meta[property="og:' + t + '"]');
+        if (el && el.getAttribute('content')) {
+          const val = el.getAttribute('content').trim();
+          if (t === 'site_name') { result.site_name = val; sources.site_name = 'og:site_name'; }
+          else if (!result[t] || t === 'image') { result[t] = val; sources[t] = 'og:' + t; }
+        }
+      });
+
+      // Twitter Card 标签
+      const twitterTags = ['title', 'description', 'image'];
+      twitterTags.forEach(t => {
+        const el = doc.querySelector('meta[name="twitter:' + t + '"]');
+        if (el && el.getAttribute('content') && !result[t]) {
+          result[t] = el.getAttribute('content').trim();
+          sources[t] = 'twitter:' + t;
+        }
+      });
+
+      // 标签列表（从 keywords 拆分）
+      if (result.keywords) {
+        result.tags = result.keywords.split(',').map(t => t.trim()).filter(Boolean).slice(0, 12);
+        sources.tags = 'meta[keywords]';
+      }
+
+      // 图标
+      const iconLink = doc.querySelector('link[rel="icon"]') ||
+                       doc.querySelector('link[rel="shortcut icon"]') ||
+                       doc.querySelector('link[rel="apple-touch-icon"]') ||
+                       doc.querySelector('link[rel="apple-touch-icon-precomposed"]');
+      if (iconLink) {
+        let favHref = iconLink.getAttribute('href') || '';
+        if (favHref) {
+          result.favicon = favHref;
+          sources.favicon = 'link[rel=icon]';
+        }
+      }
+
+      return { result, sources };
+    }
+
+    // ============================================================
+    //  JSON-LD 结构化数据解析
+    // ============================================================
+    function parseJsonLd(doc) {
+      const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
+      const items = [];
+      for (const script of scripts) {
+        try {
+          const data = JSON.parse(script.textContent);
+          // 可能是单个对象或数组
+          const arr = Array.isArray(data) ? data : [data];
+          arr.forEach(item => items.push(item));
+        } catch(e) {}
+      }
+
+      if (items.length === 0) return null;
+
+      // 提取 WebSite / Organization 信息
+      const extracted = {};
+      const sources = {};
+
+      // 优先找 WebSite 或 Organization
+      const siteData = items.find(i => i['@type'] === 'WebSite') ||
+                       items.find(i => i['@type'] === 'Organization') ||
+                       items[0];
+
+      if (siteData) {
+        if (siteData.name && !extracted.title)   { extracted.title = siteData.name; sources.title = 'JSON-LD ' + siteData['@type']; }
+        if (siteData.description && !extracted.description) { extracted.description = siteData.description; sources.description = 'JSON-LD'; }
+        if (siteData.url)                         { extracted.jsonldUrl = siteData.url; }
+        if (siteData.logo)                        { extracted.jsonldLogo = typeof siteData.logo === 'object' ? siteData.logo.url : siteData.logo; }
+        if (siteData['@type'])                    { extracted.type = siteData['@type']; sources.type = 'JSON-LD'; }
+        if (siteData.keywords && !extracted.tags) {
+          if (typeof siteData.keywords === 'string') {
+            extracted.tags = siteData.keywords.split(',').map(t => t.trim()).filter(Boolean);
+          } else if (Array.isArray(siteData.keywords)) {
+            extracted.tags = siteData.keywords;
+          }
+          sources.tags = 'JSON-LD';
+        }
+      }
+
+      extracted.jsonldItems = items;
+      extracted.jsonldSources = sources;
+      return extracted;
+    }
+
+    // ============================================================
+    //  主探测函数
+    // ============================================================
+    async function probeSite(url) {
+      const signal = new AbortController().signal;
+      const timeout = setTimeout(() => {}, 15000); // 用于外层 timeout 检测
+      const meta = { reachable: true, sources: {} };
+
+      // Step 1: 尝试获取 HTML（直接 + 代理）
+      const htmlResult = await fetchHtml(url, signal);
+      let doc = null;
+
+      if (htmlResult) {
+        meta.fetchSource = htmlResult.source;
+        const parser = new DOMParser();
+        doc = parser.parseFromString(htmlResult.html, 'text/html');
+
+        // Step 1a: 解析 meta 标签
+        const metaData = parseMetaTags(doc);
+        Object.assign(meta, metaData.result);
+        Object.assign(meta.sources, metaData.sources);
+      }
+
+      // Step 2: 如果拿到了 HTML，解析 JSON-LD
+      let jsonldData = null;
+      if (doc) {
+        jsonldData = parseJsonLd(doc);
+        if (jsonldData) {
+          // JSON-LD title 始终优先（结构化数据比页面 <title> 更可靠）
+          if (jsonldData.title) {
+            meta.title = jsonldData.title;
+            meta.sources.title = (jsonldData.jsonldSources && jsonldData.jsonldSources.title) || 'JSON-LD';
+          }
+          // 其他字段：JSON-LD 补充 meta 缺失的
+          Object.keys(jsonldData).forEach(k => {
+            if (k === 'jsonldItems' || k === 'jsonldSources' || k === 'title') return;
+            if (jsonldData[k] && !meta[k]) {
+              meta[k] = jsonldData[k];
+            }
+          });
+          if (jsonldData.jsonldSources) {
+            Object.keys(jsonldData.jsonldSources).forEach(k => {
+              if (!meta.sources[k]) meta.sources[k] = jsonldData.jsonldSources[k];
+            });
+          }
+          meta.jsonldItems = jsonldData.jsonldItems;
+          meta.jsonldSources = jsonldData.jsonldSources;
+        }
+      }
+
+      // 标题智能选择：站点级名称 优先于 页面级标题
+      // 优先级：JSON-LD（已处理）> opensearch > og:site_name > application-name > <title>
+      if (meta.opensearchName && meta.sources.title !== 'JSON-LD WebSite' && meta.sources.title !== 'JSON-LD Organization') {
+        meta.title = meta.opensearchName;
+        meta.sources.title = 'link[rel=search]';
+      }
+      if (meta.site_name && meta.sources.title === 'title标签') {
+        meta.title = meta.site_name;
+        meta.sources.title = 'og:site_name';
+      }
+      if (meta['application-name'] && meta.sources.title === 'title标签') {
+        meta.title = meta['application-name'];
+        meta.sources.title = 'meta[name=application-name]';
+      }
+
+      // Step 3: 获取 favicon 多源图标（不依赖 HTML 解析）
+      const favSources = getFaviconSources(url);
+      meta.faviconSources = {};
+      Object.entries(favSources).forEach(([key, src]) => {
+        meta.faviconSources[key] = { url: src.url, label: src.label };
+      });
+      // 折叠：主图标优先用 HTML 中检测到的，其次 Google API
+      if (!meta.favicon && favSources.google) {
+        meta.favicon = favSources.google.url;
+        meta.sources.favicon = 'Google Favicon API';
+      }
+
+      // Step 4: 连通性验证（如果前面都失败了）
+      if (!htmlResult) {
+        try {
+          await fetch(url, { mode: 'no-cors' });
+          meta.reachable = true;
+          meta.fetchSource = 'no-cors only';
+        } catch(e) {
+          meta.reachable = false;
+          meta.error = '无法访问该网站（网络不通或域名不存在）';
+        }
+      }
+
+      return meta;
+    }
+
+    // ============================================================
+    //  渲染结果
+    // ============================================================
+    function showResult(url, meta) {
+      resultEl.classList.add('visible');
+      errorEl.classList.remove('visible');
+
+      // 状态徽章
+      const statusEl = document.getElementById('resultStatus');
+      const fetchLabel = meta.fetchSource ? ' · ' + meta.fetchSource : '';
+      if (meta.reachable) {
+        statusEl.className = 'status-badge ok';
+        statusEl.textContent = '✅ 可访问' + fetchLabel;
+      } else {
+        statusEl.className = 'status-badge fail';
+        statusEl.textContent = '❌ 不可访问';
+      }
+
+      // 主图标
+      const logoUrl = meta.favicon || (meta.jsonldLogo) || '';
+      const logoImg = document.getElementById('resultLogo');
+      const logoFb  = document.getElementById('resultLogoFb');
+      logoFb.style.display = 'none';
+      if (logoUrl) {
+        logoImg.style.display = '';
+        logoImg.src = logoUrl;
+      } else {
+        logoImg.style.display = 'none';
+        logoFb.style.display = 'flex';
+        logoFb.textContent = (meta.title || url || '?')[0].toUpperCase();
+      }
+
+      // 标题 & URL
+      document.getElementById('resultTitle').textContent = meta.title || meta.site_name || '（未获取到标题）';
+      document.getElementById('resultUrl').textContent = url;
+
+      // 多源图标对比
+      if (meta.faviconSources && Object.keys(meta.faviconSources).length > 0) {
+        const gallery = document.getElementById('faviconGallery');
+        const row     = document.getElementById('faviconRow');
+        gallery.style.display = '';
+        row.innerHTML = Object.entries(meta.faviconSources).map(([key, src]) => {
+          return '<div class="probe-favicon-item">' +
+            '<img src="' + escAttr(src.url) + '" alt="" loading="lazy" onerror="this.parentElement.querySelector(\'.label\').textContent=\'❌\';this.parentElement.querySelector(\'.label\').classList.add(\'error\');">' +
+            '<div class="label">' + escHtml(src.label) + '</div>' +
+            '</div>';
+        }).join('');
+      } else {
+        document.getElementById('faviconGallery').style.display = 'none';
+      }
+
+      // 信息项渲染辅助
+      function setInfo(id, srcId, value, emptyText) {
+        document.getElementById(id).textContent = value || emptyText || '—';
+        document.getElementById(id).classList.toggle('empty', !value);
+        document.getElementById(srcId).textContent = meta.sources && meta.sources[id.replace('info','').toLowerCase()] || '';
+      }
+
+      setInfo('infoTitle',  'srcTitle',  meta.title || meta.site_name, '（未获取到）');
+      setInfo('infoDesc',   'srcDesc',   meta.description, '（未获取到）');
+      setInfo('infoAuthor', 'srcAuthor', meta.author, '（未获取到）');
+      setInfo('infoType',   'srcType',   meta.type, '（未获取到）');
+
+      // JSON-LD 展示
+      const jsonldEl = document.getElementById('infoJsonLd');
+      if (meta.jsonldItems && meta.jsonldItems.length > 0) {
+        jsonldEl.textContent = JSON.stringify(meta.jsonldItems, null, 2);
+      } else {
+        jsonldEl.textContent = '（未检测到 JSON-LD 结构化数据）';
+        jsonldEl.classList.add('empty');
+      }
+    }
+
+    function showError(msg) {
+      resultEl.classList.remove('visible');
+      errorEl.classList.add('visible');
+      document.getElementById('errorText').textContent = msg;
+    }
+
+    function resetAll() {
+      resultEl.classList.remove('visible');
+      errorEl.classList.remove('visible');
+      document.getElementById('infoJsonLd').classList.remove('empty');
+    }
+
+    // ============================================================
+    //  事件绑定
+    // ============================================================
+    probeBtn.addEventListener('click', async function () {
+      if (probeBtn.classList.contains('probing')) {
+        probeBtn.classList.remove('probing');
+        return;
+      }
+
+      var rawUrl = probeUrl.value.trim();
+      if (!rawUrl) { showError('请输入一个网站地址'); return; }
+
+      if (!/^https?:\/\//i.test(rawUrl)) rawUrl = 'https://' + rawUrl;
+
+      try { new URL(rawUrl); } catch(e) { showError('请输入有效的网站地址'); return; }
+
+      resetAll();
+      probeBtn.classList.add('probing');
+
+      var result = await probeSite(rawUrl);
+
+      probeBtn.classList.remove('probing');
+
+      if (result.error && !result.reachable) {
+        showError(result.error);
+      } else {
+        showResult(rawUrl, result);
+      }
+    });
+
+    probeUrl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') probeBtn.click();
+    });
+
+    function escHtml(s) {
+      if (typeof s !== 'string') return '';
+      var d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+    function escAttr(s) {
+      if (typeof s !== 'string') return '';
+      return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  })();
+  </script>
+</body>
+</html>

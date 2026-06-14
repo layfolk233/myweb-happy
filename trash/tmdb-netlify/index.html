@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMDb 电影(Netlify)</title>
+    <link rel="stylesheet" href="../../src/css/common.css">
+    <style>
+        body {
+            background: #0a0f1c;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 24px;
+            color: #edf2f7;
+        }
+        .wrapper {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .header {
+            margin-bottom: 28px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            background: linear-gradient(105deg, #90e0ff, #00b4d8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .badge-api {
+            background: #2d3748;
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            margin: 32px 0;
+        }
+        .movie-card {
+            background: #1e293b;
+            border-radius: 24px;
+            padding: 16px;
+            transition: 0.1s linear;
+            border: 1px solid #334155;
+        }
+        .movie-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 0 0 6px;
+        }
+        .movie-meta {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .rating {
+            background: #fbbf24;
+            color: #0f172a;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .overview {
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: #cbd5e1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        button {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            border-radius: 40px;
+            padding: 10px 24px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .raw-json-container {
+            background: #0f172a;
+            border-radius: 24px;
+            padding: 16px;
+            margin-top: 32px;
+            border: 1px solid #2d3a5e;
+        }
+        pre {
+            white-space: pre-wrap;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            overflow-x: auto;
+            max-height: 380px;
+        }
+        .error-box {
+            background: #7f1a1a;
+            border-radius: 24px;
+            padding: 16px;
+        }
+        .flex-btns {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        hr {
+            border-color: #2d3e5f;
+        }
+    </style>
+</head>
+<body data-nav-current="tmdb-netlify">
+<div class="wrapper">
+    <div class="header">
+        <h1>🎬 TMDb /discover/movie <span class="badge-api">官方列表发现接口</span></h1>
+        <p>展示原始 JSON 返回值 + 电影卡片预览（需提供 Bearer Token）</p>
+        <div class="flex-btns">
+            <button id="fetchMoviesBtn">🔥 获取热门发现电影</button>
+        </div>
+    </div>
+
+    <div id="movieGrid" class="card-grid">
+        <div style="grid-column:1/-1; text-align:center; padding: 40px;">👈 点击按钮获取电影数据（需要配置 Access Token）</div>
+    </div>
+
+    <div class="raw-json-container">
+        <div style="font-weight:500;">📋 原始 API 响应 (完整JSON):</div>
+        <pre id="rawJsonResponse">尚未请求，请点击上方按钮。</pre>
+    </div>
+    <p style="font-size:0.7rem; margin-top:12px;">🔑 注意: TMDb API 必须在请求头添加 <code>Authorization: Bearer YOUR_TOKEN</code> 。请在下方脚本中替换 <strong>YOUR_TMDB_ACCESS_TOKEN</strong> 变量。</p>
+</div>
+
+<script src="../../src/js/nav.js"></script>
+<script>
+    // ⚠️ 重要：在这里填入你的 TMDb API Read Access Token
+    // 获取方法：登录 https://www.themoviedb.org/ → 设置 → API → 生成 API Read Access Token
+    const TMDB_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyZGNlYjM3NTkwNThiNzdjZGEyNTQzMTQ1MTQ2ZjdmMSIsIm5iZiI6MTc3OTg2MjczMC4xNDMwMDAxLCJzdWIiOiI2YTE2OGNjYTU4M2NmODgzYzViNDY3ODciLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.VsTg3MMVoCRoOSFgoW4S06G1yBdVIb6hrWwTTk0Lj8I';   // 替换成真实token
+    
+    const fetchBtn = document.getElementById('fetchMoviesBtn');
+    const movieGrid = document.getElementById('movieGrid');
+    const rawJsonPre = document.getElementById('rawJsonResponse');
+    
+    async function fetchDiscoverMovies() {
+        // 检查 Token 是否配置
+        if (TMDB_TOKEN === 'YOUR_TMDB_ACCESS_TOKEN') {
+            movieGrid.innerHTML = `<div style="grid-column:1/-1; background:#ffecd9; color:#b45200; padding:20px; border-radius:30px;">⚠️ 请先配置 TMDB_TOKEN 变量：在代码中找到 "YOUR_TMDB_ACCESS_TOKEN" 并替换为您真实的 API 只读令牌。</div>`;
+            rawJsonPre.textContent = "未配置 Token，请求中止。请添加有效的 Bearer Token。";
+            return;
+        }
+        
+        // UI 加载状态
+        movieGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center;">⏳ 请求 TMDb 接口中...</div>`;
+        rawJsonPre.textContent = "加载中...";
+        
+        try {
+            // discover/movie 默认可以加一些查询参数，这里获取按 popularity 排序的第一页
+            //const url = 'https://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&page=1&language=zh-CN';
+            const url = '/tmdb/3/discover/movie?sort_by=popularity.desc&page=1&language=zh-CN';
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${TMDB_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status} - ${errorText.substring(0, 150)}`);
+            }
+            
+            const data = await response.json();
+            // 显示原始 JSON (格式化)
+            rawJsonPre.textContent = JSON.stringify(data, null, 2);
+            
+            // 渲染电影卡片
+            if (data.results && data.results.length > 0) {
+                renderMovieCards(data.results);
+            } else {
+                movieGrid.innerHTML = `<div style="grid-column:1/-1; background:#1e293b; border-radius:30px; padding:28px; text-align:center;">🤷 没有找到电影，可能 API 返回结果为空。</div>`;
+            }
+            
+        } catch (err) {
+            console.error(err);
+            movieGrid.innerHTML = `<div style="grid-column:1/-1; background:#4c0519; border-radius:28px; padding:20px;">❌ 请求失败：${err.message}<br>请检查网络或 Token 有效性（Bearer 授权）</div>`;
+            rawJsonPre.textContent = `错误: ${err.message}`;
+        }
+    }
+    
+    function renderMovieCards(movies) {
+        if (!movies.length) {
+            movieGrid.innerHTML = `<div style="grid-column:1/-1;">暂无电影数据</div>`;
+            return;
+        }
+        const html = movies.map(movie => `
+            <div class="movie-card">
+                <div class="movie-title">${escapeHtml(movie.title || '无题')}</div>
+                <div class="movie-meta">
+                    <span>📅 ${movie.release_date?.slice(0,4) || '未知'}</span>
+                    <span class="rating">⭐ ${movie.vote_average?.toFixed(1) || '?'}</span>
+                </div>
+                <div class="overview">${escapeHtml(movie.overview?.substring(0, 120) || '暂无简介')}${movie.overview?.length > 120 ? '…' : ''}</div>
+                ${movie.poster_path ? `<div style="margin-top: 12px;"><img style="width:100%; border-radius:16px; max-height:200px; object-fit:cover;" src="https://image.tmdb.org/t/p/w185${movie.poster_path}" alt="poster"></div>` : ''}
+            </div>
+        `).join('');
+        movieGrid.innerHTML = html;
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    fetchBtn.addEventListener('click', fetchDiscoverMovies);
+    // 不自动加载，等待用户点击以便用户注意到 Token 配置的必要性
+</script>
+</body>
+</html>

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>HTML站点浏览器 · 双模式扫描</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f4fa 0%, #e6edf4 100%);
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            padding: 2rem;
+            min-height: 100vh;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 头部卡片 */
+        .hero {
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 48px;
+            padding: 2rem 2rem 1.8rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 15px 35px -12px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0f2b3d, #1e4a76);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sub {
+            color: #334155;
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+            border-left: 4px solid #3b82f6;
+            padding-left: 1rem;
+            margin-left: 0.25rem;
+        }
+
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.5rem;
+            gap: 1rem;
+            background: #ffffffc9;
+            border-radius: 60px;
+            padding: 0.7rem 1.5rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .badge {
+            background: #0f172a;
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 0.45rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        .action-btn:hover {
+            background: #2563eb;
+            transform: scale(0.97);
+        }
+
+        .action-btn.secondary {
+            background: #475569;
+        }
+
+        .action-btn.secondary:hover {
+            background: #334155;
+        }
+
+        /* 文件网格 */
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .file-card {
+            background: white;
+            border-radius: 28px;
+            transition: all 0.25s ease;
+            border: 1px solid #e2edf2;
+            overflow: hidden;
+            box-shadow: 0 6px 12px -8px rgba(0,0,0,0.05);
+            cursor: pointer;
+        }
+
+        .file-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.15);
+            border-color: #b9d0f0;
+        }
+
+        .card-header {
+            background: #f8fafc;
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid #eef2ff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-icon {
+            font-size: 1.8rem;
+        }
+
+        .file-name {
+            font-weight: 700;
+            font-size: 1rem;
+            word-break: break-word;
+            color: #0c4e6e;
+            flex: 1;
+        }
+
+        .card-body {
+            padding: 1rem 1.2rem 1.2rem;
+        }
+
+        .file-path {
+            font-family: 'SF Mono', 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #5b6e8c;
+            background: #f1f5f9;
+            padding: 0.35rem 0.7rem;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 0.8rem;
+            word-break: break-all;
+        }
+
+        .file-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #54708f;
+            margin-top: 0.5rem;
+        }
+
+        .empty-state {
+            background: white;
+            border-radius: 48px;
+            padding: 3rem 2rem;
+            text-align: center;
+            grid-column: 1/-1;
+            color: #475569;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border-left: 5px solid #dc2626;
+            padding: 1rem;
+            border-radius: 24px;
+            margin-top: 1rem;
+            color: #991b1b;
+        }
+
+        footer {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #5b6e8c;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 680px) {
+            body { padding: 1rem; }
+            .hero { padding: 1.2rem; }
+            h1 { font-size: 1.7rem; }
+            .btn-group { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <h1>
+            <span>📂</span> HTML 站点浏览器
+        </h1>
+        <div class="sub">双模式扫描 · 快速发现当前项目中的所有 HTML 页面，点击卡片即可预览跳转。</div>
+        <div class="stats-bar">
+            <div class="badge" id="fileCountBadge">📄 未扫描</div>
+            <div class="btn-group">
+                <button class="action-btn" id="scanCurrentSiteBtn">🌐 扫描当前站点</button>
+                <button class="action-btn secondary" id="scanLocalFolderBtn">📁 扫描本地文件夹</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="fileListContainer" class="file-grid">
+        <div class="empty-state">
+            💡 提示：点击「扫描当前站点」自动发现同目录下所有 .html 文件；<br>
+            或点击「扫描本地文件夹」授权本地目录进行深度递归扫描。
+        </div>
+    </div>
+    <footer>
+        ⚡ 扫描当前站点：基于当前页面地址，列举同目录及子目录中的 HTML（需服务器支持静态清单，采用探测+预定义后备）。<br>
+        📁 扫描本地文件夹：使用 File System Access API 递归扫描（支持 Chrome/Edge）。
+    </footer>
+</div>
+
+<script>
+    /**
+     * 双模式 HTML 文件扫描器
+     * 模式1: 扫描当前站点（基于当前路径，通过 fetch 探测常用文件名 + 尝试解析可能的 index 列表，同时支持递归目录探测）
+     * 模式2: 扫描本地文件夹（File System Access API 递归扫描所有 .html 文件）
+     */
+    
+    let currentFileList = [];          // 存储 { name, relativePath, url, isLocalFile, handle?, fileObject? }
+    let currentScanMode = '';          // 'site' or 'folder'
+    const fileListContainer = document.getElementById('fileListContainer');
+    const fileCountBadge = document.getElementById('fileCountBadge');
+
+    // 辅助：展示加载状态
+    function showLoading(message) {
+        fileListContainer.innerHTML = `<div class="empty-state"><div class="loading-spinner" style="margin-bottom: 12px;"></div><p>${escapeHtml(message)}</p></div>`;
+    }
+
+    function showError(message) {
+        fileListContainer.innerHTML = `<div class="empty-state error-message">⚠️ 错误：${escapeHtml(message)}</div>`;
+        fileCountBadge.innerHTML = `📄 扫描失败`;
+    }
+
+    function showEmpty(message) {
+        fileListContainer.innerHTML = `<div class="empty-state">📭 ${escapeHtml(message)}</div>`;
+        fileCountBadge.innerHTML = `📄 0 个 HTML 文件`;
+    }
+
+    // 通用渲染函数
+    function renderFileList(files, scanMode) {
+        if (!files.length) {
+            showEmpty(scanMode === 'site' ? '当前站点未发现任何 .html 文件。' : '所选文件夹中没有找到 .html 文件。');
+            fileCountBadge.innerHTML = `📄 0 个 HTML 文件`;
+            return;
+        }
+
+        const gridHtml = files.map(file => {
+            // 跳转链接: 如果是本地文件夹模式且存在 blobUrl 优先, 否则用 url (相对路径)
+            let clickHandler = null;
+            if (scanMode === 'folder' && file.blobUrl) {
+                // 使用预先生成的 blob url
+                return `
+                    <div class="file-card" data-blob-url="${file.blobUrl}" data-name="${escapeAttr(file.name)}" data-mode="folder">
+                        <div class="card-header">
+                            <div class="file-icon">📄</div>
+                            <div class="file-name">${escapeHtml(file.name)}</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="file-path" title="${escapeAttr(file.relativePath)}">📁 ${escapeHtml(file.relativePath || file.name)}</div>
+                            <div class="file-meta">
+                                <span>📐 ${formatFileSize(file.size || 0)}</span>
+                                <span>🕒 ${file.lastModified ? new Date(file.lastModified).toLocaleString() : '本地文件'}</span>
+                            </div>
+                            <div style="margin-top: 12px; font-size:0.7rem; color:#3b82f6;">🔗 点击跳转预览 →</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // 站点模式：普通url跳转
+                return `
+                    <div class="file-card" data-url="${escapeAttr(file.url)}" data-mode="site">
+                        <div class="card-header">
+                            <div class="file-icon">🌐</div>
+                            <div class="file-name">${escapeHtml(file.name)}</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="file-path" title="${escapeAttr(file.relativePath)}">🗂️ ${escapeHtml(file.relativePath || file.name)}</div>
+                            <div class="file-meta">
+                                <span>🔗 相对路径</span>
+                                <span>📂 站点资源</span>
+                            </div>
+                            <div style="margin-top: 12px; font-size:0.7rem; color:#3b82f6;">🔗 点击跳转 →</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+
+        fileListContainer.innerHTML = gridHtml;
+        fileCountBadge.innerHTML = `📄 ${files.length} 个 HTML 文件`;
+
+        // 绑定点击事件
+        document.querySelectorAll('.file-card').forEach(card => {
+            card.addEventListener('click', async (e) => {
+                const mode = card.getAttribute('data-mode');
+                if (mode === 'folder') {
+                    const blobUrl = card.getAttribute('data-blob-url');
+                    if (blobUrl) {
+                        window.open(blobUrl, '_blank');
+                    } else {
+                        alert('无法打开文件，缺少预览链接');
+                    }
+                } else {
+                    const url = card.getAttribute('data-url');
+                    if (url) {
+                        window.open(url, '_blank');
+                    } else {
+                        alert('无法跳转，URL 无效');
+                    }
+                }
+            });
+        });
+    }
+
+    // ---------- 模式1：扫描当前站点（根目录及子目录） ----------
+    // 思路：由于静态站点无法递归枚举目录，但我们可以基于当前路径构造探测列表：获取当前页面所在目录，然后尝试请求常见html文件 + 通过遍历子目录名猜测（依赖服务端支持返回404/200）。
+    // 为了提高实用性，我们支持两种子策略：1）已知静态清单（用户可扩展）；2）预先定义常见入口并尝试深度探测一层子目录。
+    // 为了让功能开箱即用且展示强大，实现「智能探测」：基于当前页面路径的目录，预定义文件名数组 + 尝试寻找子目录下的 index.html 或 直接 html。
+    // 增强版：递归 fetch 测试可行子目录（仅限一层，避免过多请求）。
+    
+    async function scanCurrentSite() {
+        showLoading('正在扫描当前站点中的 HTML 文件...');
+        currentScanMode = 'site';
+        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        const foundFiles = [];
+        const testedPaths = new Set();
+
+        // 常见根目录及当前目录下的 html 候选名称 《新增文件文件》
+        const candidateFiles = [
+            'index.html'
+	    //, 'demo1.html', 'demo.html', 'about.html', 'contact.html', 'test.html',
+            //'demo2.html', 'start.html', 'home.html', 'main.html', 'page.html', 'app.html'
+        ];
+        // 额外常见子目录 (一级)
+        const subDirs = ['docs/', 'pages/', 'html/', 'static/', 'views/', 'public/', 'demo/', 'examples/', 
+	'cat/', 'catpark/', 'checksun/', 'finder/', 'guestbook /', 'joke/', 'navigation/', 'probe/', 'showcase/',
+//	'tmdb-netlify/', 'tmdb-vercel/', 'web-css/', 'web-data/', 'web-js/', 'xmas
+	];
+
+        // 检测文件是否存在 (HEAD 或 GET)
+        async function fileExists(url) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
+                clearTimeout(timeoutId);
+                return res.ok;
+            } catch {
+                return false;
+            }
+        }
+
+        // 添加文件 (去重)
+        function addFile(name, relativePath, url) {
+            if (!testedPaths.has(url)) {
+                testedPaths.add(url);
+                foundFiles.push({ name, relativePath, url, size: 0, lastModified: null });
+            }
+        }
+
+        // 1. 扫描根目录/当前目录的候选文件
+        for (const fileName of candidateFiles) {
+            const fileUrl = baseUrl + fileName;
+            if (await fileExists(fileUrl)) {
+                addFile(fileName, fileName, fileUrl);
+            }
+        }
+
+        // 2. 扫描一级子目录下的 index.html 或常见 html 文件 (递归尝试)
+        for (const subDir of subDirs) {
+            const subBase = baseUrl + subDir;
+            // 检测子目录是否存在（通过试探子目录下的 index.html）
+            const indexUrl = subBase + 'index.html';
+            if (await fileExists(indexUrl)) {
+                addFile('index.html', subDir + 'index.html', indexUrl);
+            }
+            // 同时在子目录中探测几个常用html
+            for (const fileName of candidateFiles.slice(0, 5)) {
+                const testUrl = subBase + fileName;
+                if (await fileExists(testUrl)) {
+                    addFile(fileName, subDir + fileName, testUrl);
+                }
+            }
+        }
+
+        // 3. 额外特殊探测: 当前路径往上退一级（如果当前不在根目录）也许友链
+        const parentBase = baseUrl.substring(0, baseUrl.length - 1);
+        const lastSlash = parentBase.lastIndexOf('/');
+        if (lastSlash !== -1) {
+            const upperBase = parentBase.substring(0, lastSlash + 1);
+            if (upperBase !== baseUrl) {
+                for (const fileName of ['index.html', 'default.html']) {
+                    const testUrl = upperBase + fileName;
+                    if (await fileExists(testUrl)) {
+                        addFile(fileName, '../' + fileName, testUrl);
+                    }
+                }
+            }
+        }
+
+        if (foundFiles.length === 0) {
+            showError('未扫描到任何 HTML 文件。请确保当前站点目录存在 .html 文件，或使用「扫描本地文件夹」功能。');
+            fileCountBadge.innerHTML = `📄 0 个 HTML`;
+            return;
+        }
+
+        // 按名称排序
+        foundFiles.sort((a,b) => a.name.localeCompare(b.name));
+        currentFileList = foundFiles;
+        renderFileList(currentFileList, 'site');
+    }
+
+    // ---------- 模式2：扫描本地文件夹 (保留原有强大的递归扫描) 按钮改名为“扫描本地文件夹”，中文错误提示----------
+    const isFileSystemAccessSupported = 'showDirectoryPicker' in window;
+    let directoryHandle = null;
+
+    async function scanLocalFolder() {
+        if (!isFileSystemAccessSupported) {
+            showError('您的浏览器不支持 File System Access API。请使用最新版 Chrome / Edge / Opera 等基于 Chromium 的浏览器进行本地文件夹扫描。');
+            fileCountBadge.innerHTML = `📄 不支持 API`;
+            return;
+        }
+
+        try {
+            const rootDir = await window.showDirectoryPicker();
+            directoryHandle = rootDir;
+            showLoading('正在递归扫描文件夹及子文件夹中的 .html 文件...');
+            const files = await scanDirectoryRecursively(rootDir, '');
+            // 为每个文件生成 blob url 以便预览
+            for (const file of files) {
+                if (file.fileObject instanceof File) {
+                    const blob = new Blob([await file.fileObject.text()], { type: 'text/html' });
+                    file.blobUrl = URL.createObjectURL(blob);
+                } else if (file.handle) {
+                    const fileObj = await file.handle.getFile();
+                    const content = await fileObj.text();
+                    const blob = new Blob([content], { type: 'text/html' });
+                    file.blobUrl = URL.createObjectURL(blob);
+                    file.fileObject = fileObj;
+                    file.size = fileObj.size;
+                    file.lastModified = fileObj.lastModified;
+                }
+            }
+            currentFileList = files;
+            currentScanMode = 'folder';
+            renderFileList(currentFileList, 'folder');
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                showEmpty('未选择任何文件夹，请点击「扫描本地文件夹」并授权目录访问。');
+                fileCountBadge.innerHTML = `📄 未授权`;
+            } else {
+                console.error(err);
+                showError(`扫描本地文件夹失败: ${err.message || '未知错误'}`);
+                fileCountBadge.innerHTML = `📄 扫描出错`;
+            }
+        }
+    }
+
+    // 递归扫描目录 (File System Access API)
+    async function scanDirectoryRecursively(dirHandle, currentPath = '') {
+        let htmlFiles = [];
+        const entries = dirHandle.values();
+        for await (const entry of entries) {
+            const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+            if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.html')) {
+                const file = await entry.getFile();
+                htmlFiles.push({
+                    name: entry.name,
+                    relativePath: entryPath,
+                    handle: entry,
+                    size: file.size,
+                    lastModified: file.lastModified,
+                    fileObject: file,
+                });
+            } else if (entry.kind === 'directory') {
+                const subFiles = await scanDirectoryRecursively(entry, entryPath);
+                htmlFiles.push(...subFiles);
+            }
+        }
+        return htmlFiles;
+    }
+
+    // 清理之前本地文件夹 blob urls (避免内存泄露)
+    function revokeBlobUrls(files) {
+        if (files && files.length) {
+            files.forEach(f => {
+                if (f.blobUrl) URL.revokeObjectURL(f.blobUrl);
+            });
+        }
+    }
+
+    // 辅助: 格式化
+    function formatFileSize(bytes) {
+        if (!bytes || bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function escapeAttr(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // 页面初始化
+    function init() {
+        const scanSiteBtn = document.getElementById('scanCurrentSiteBtn');
+        const scanFolderBtn = document.getElementById('scanLocalFolderBtn');
+        if (scanSiteBtn) scanSiteBtn.addEventListener('click', () => {
+            revokeBlobUrls(currentFileList);
+            scanCurrentSite();
+        });
+        if (scanFolderBtn) scanFolderBtn.addEventListener('click', () => {
+            revokeBlobUrls(currentFileList);
+            scanLocalFolder();
+        });
+        // 默认显示友好提示
+        fileListContainer.innerHTML = `<div class="empty-state">✨ 请点击上方按钮扫描：<br>🌐「扫描当前站点」自动发现项目中所有HTML文件<br>📁「扫描本地文件夹」授权本地目录深度递归扫描</div>`;
+        fileCountBadge.innerHTML = `📄 待扫描`;
+    }
+
+    init();
+</script>
+</body>
+</html>

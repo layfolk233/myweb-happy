@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>好用分享</title>
+  <link rel="stylesheet" href="../../src/css/common.css">
+  <style>
+    /* ============================================================
+       布局
+       ============================================================ */
+    .app-layout {
+      display: flex;
+      gap: 24px;
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+      align-items: flex-start;
+    }
+
+    /* ---- 侧边栏 ---- */
+    .sidebar {
+      width: 230px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 24px;
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    .sidebar__head {
+      padding: 18px 20px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--color-secondary);
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar__list { list-style: none; padding: 8px; }
+    .sidebar__item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--color-text-light);
+      transition: all 0.15s var(--ease-out-expo);
+      user-select: none;
+    }
+    .sidebar__item:hover { background: var(--color-bg-warm); color: var(--color-primary); }
+    .sidebar__item.active {
+      background: rgba(224,122,95,0.1);
+      color: var(--color-primary);
+      font-weight: 700;
+    }
+    .sidebar__item .icon { font-size: 1.1rem; width: 22px; text-align: center; }
+    .sidebar__item .count {
+      margin-left: auto;
+      background: var(--color-bg-warm);
+      color: var(--color-text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: var(--radius-full);
+      min-width: 28px;
+      text-align: center;
+    }
+    .sidebar__item.active .count {
+      background: rgba(224,122,95,0.15);
+      color: var(--color-primary);
+    }
+    .sidebar__total {
+      padding: 12px 20px;
+      border-top: 1px solid var(--color-border);
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+
+    /* ---- 主区域 ---- */
+    .main-area { flex: 1; min-width: 0; }
+
+    /* 工具栏 */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 22px;
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      padding: 14px 18px;
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+    }
+    .search-wrap {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+    .search-wrap .icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    .search-input {
+      width: 100%;
+      padding: 9px 14px 9px 38px;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--color-border);
+      background: var(--color-bg-warm);
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: var(--color-text);
+      outline: none;
+      transition: all 0.15s;
+    }
+    .search-input:focus { border-color: var(--color-primary-light); background: #fff; box-shadow: 0 0 0 3px rgba(224,122,95,0.08); }
+    .search-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      opacity: 0.4;
+      display: none;
+      padding: 4px;
+      border-radius: 50%;
+    }
+    .search-clear.visible { display: block; }
+    .search-clear:hover { opacity: 0.8; background: var(--color-border); }
+
+    /* 视图切换组 */
+    .view-toggle {
+      display: flex;
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-full);
+      padding: 3px;
+      gap: 1px;
+    }
+    .view-btn {
+      padding: 7px 14px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .view-btn.active {
+      background: var(--color-card);
+      color: var(--color-secondary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 600;
+    }
+    .view-btn:hover:not(.active) { color: var(--color-text); }
+
+    /* 测试按钮 */
+    .btn-test {
+      padding: 8px 18px;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--color-border);
+      background: var(--color-card);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-accent-dark);
+      transition: all 0.15s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-test:hover { border-color: var(--color-accent); background: rgba(129,178,154,0.06); }
+    .btn-test.testing { opacity: 0.7; pointer-events: none; animation: pulse 0.8s infinite; }
+    .btn-test .spinner {
+      display: none;
+      width: 14px; height: 14px;
+      border: 2px solid var(--color-border);
+      border-top-color: var(--color-accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    .btn-test.testing .spinner { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 每页条数选择 */
+    .page-size-select {
+      padding: 7px 12px;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--color-border);
+      background: var(--color-card);
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--color-text-light);
+      cursor: pointer;
+      outline: none;
+      transition: all 0.15s;
+    }
+    .page-size-select:hover { border-color: var(--color-primary-light); }
+
+    /* ---- 站点展示区 ---- */
+
+    /* 卡片视图 (默认) */
+    .site-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .site-card {
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      padding: 24px 22px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      transition: all 0.3s var(--ease-out-expo);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      animation: fadeInUp 0.4s var(--ease-out-expo) both;
+    }
+    .site-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+    .site-card__header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .site-card__logo {
+      width: 46px; height: 46px;
+      border-radius: var(--radius-md);
+      object-fit: contain;
+      background: var(--color-bg-warm);
+      padding: 5px; flex-shrink: 0;
+      border: 1px solid var(--color-border);
+    }
+    .site-card__logo-fb {
+      width: 46px; height: 46px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--color-primary-light), var(--color-accent));
+      display: none; align-items: center; justify-content: center;
+      font-size: 1.3rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .site-card__name { font-size: 1.1rem; font-weight: 700; color: var(--color-secondary); line-height: 1.2; }
+    .site-card__cat  { font-size: 0.75rem; color: var(--color-text-muted); font-weight: 500; }
+    .site-card__desc { font-size: 0.9rem; color: var(--color-text-light); line-height: 1.6; flex: 1; margin-bottom: 14px; }
+    .site-card__tags  { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 16px; }
+    .site-card__tag   { padding: 2px 10px; border-radius: var(--radius-full); font-size: 0.73rem; font-weight: 500; background: var(--color-bg-warm); color: var(--color-text-light); border: 1px solid var(--color-border); }
+    .site-card__link  {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: var(--radius-full);
+      background: var(--color-secondary); color: #fff;
+      text-decoration: none; font-size: 0.85rem; font-weight: 600;
+      transition: all 0.2s; align-self: flex-start;
+    }
+    .site-card__link:hover { background: var(--color-primary); box-shadow: 0 4px 14px rgba(224,122,95,0.35); transform: translateY(-2px); }
+    /* 元数据探测标记 */
+    .site-card__badge {
+      position: absolute; top: 10px; left: 14px;
+      font-size: 0.7rem; font-weight: 600;
+      background: rgba(129,178,154,0.15); color: var(--color-accent-dark);
+      padding: 2px 8px; border-radius: var(--radius-full);
+      pointer-events: none;
+    }
+    .site-card--detected { border-color: rgba(129,178,154,0.3); }
+    .site-row--detected { border-left: 3px solid var(--color-accent); }
+    .site-mini--detected { border-color: rgba(129,178,154,0.3); }
+    /* 连通性角标 */
+    .site-status {
+      position: absolute; top: 12px; right: 14px;
+      width: 10px; height: 10px; border-radius: 50%;
+      transition: all 0.3s;
+    }
+    .site-status.ok  { background: #4CAF50; box-shadow: 0 0 6px rgba(76,175,80,0.5); }
+    .site-status.fail{ background: #F44336; box-shadow: 0 0 6px rgba(244,67,54,0.5); }
+    .site-status.busy{ background: #FFC107; animation: pulse 0.6s infinite; }
+
+    /* 通用状态圆点（列表/紧凑视图） */
+    .status-dot {
+      display: inline-block;
+      width: 10px; height: 10px; border-radius: 50%;
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+    .status-dot.ok  { background: #4CAF50; box-shadow: 0 0 6px rgba(76,175,80,0.5); }
+    .status-dot.fail{ background: #F44336; box-shadow: 0 0 6px rgba(244,67,54,0.5); }
+    .status-dot.busy{ background: #FFC107; animation: pulse 0.6s infinite; }
+
+    /* 列表视图 */
+    .site-list { display: flex; flex-direction: column; gap: 10px; }
+    .site-row {
+      background: var(--color-card);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.2s;
+      animation: fadeInUp 0.35s var(--ease-out-expo) both;
+    }
+    .site-row:hover { box-shadow: var(--shadow-md); transform: translateX(4px); }
+    .site-row__logo {
+      width: 38px; height: 38px; border-radius: var(--radius-sm);
+      object-fit: contain; background: var(--color-bg-warm);
+      padding: 3px; flex-shrink: 0; border: 1px solid var(--color-border);
+    }
+    .site-row__logo-fb {
+      width: 38px; height: 38px; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--color-primary-light), var(--color-accent));
+      display: none; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .site-row__info { flex: 1; min-width: 0; }
+    .site-row__name { font-weight: 700; color: var(--color-secondary); font-size: 0.95rem; }
+    .site-row__desc { font-size: 0.82rem; color: var(--color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .site-row__tags { display: flex; gap: 4px; flex-shrink: 0; }
+    .site-row__tag  { padding: 2px 10px; border-radius: var(--radius-full); font-size: 0.72rem; background: var(--color-bg-warm); border: 1px solid var(--color-border); white-space: nowrap; }
+    .site-row__link {
+      padding: 7px 16px; border-radius: var(--radius-full);
+      background: var(--color-secondary); color: #fff; text-decoration: none;
+      font-size: 0.82rem; font-weight: 600; white-space: nowrap; flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .site-row__link:hover { background: var(--color-primary); }
+
+    /* 紧凑视图 */
+    .site-compact {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .site-mini {
+      background: var(--color-card);
+      border-radius: var(--radius-md);
+      padding: 16px 14px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      animation: fadeInUp 0.3s var(--ease-out-expo) both;
+    }
+    .site-mini:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .site-mini__logo {
+      width: 40px; height: 40px; border-radius: var(--radius-sm);
+      object-fit: contain; background: var(--color-bg-warm);
+      padding: 3px; margin: 0 auto 8px; display: block;
+      border: 1px solid var(--color-border);
+    }
+    .site-mini__logo-fb {
+      width: 40px; height: 40px; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--color-primary-light), var(--color-accent));
+      display: none; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 700; color: #fff; margin: 0 auto 8px;
+    }
+    .site-mini__name { font-weight: 700; color: var(--color-secondary); font-size: 0.85rem; margin-bottom: 2px; }
+    .site-mini__cat  { font-size: 0.7rem; color: var(--color-text-muted); }
+
+    /* 分页 */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+    .pagination button {
+      padding: 7px 14px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--color-border);
+      background: var(--color-card);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--color-text-light);
+      transition: all 0.15s;
+    }
+    .pagination button:hover:not(:disabled) { border-color: var(--color-primary-light); color: var(--color-primary); }
+    .pagination button.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+    .pagination button:disabled { opacity: 0.4; cursor: default; }
+    .pagination .info { font-size: 0.82rem; color: var(--color-text-muted); padding: 0 8px; }
+
+    /* 连通性测试结果条 */
+    .test-results-bar {
+      display: none;
+      margin-bottom: 16px;
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      background: var(--color-bg-warm);
+      border: 1px solid var(--color-border);
+      font-size: 0.85rem;
+      color: var(--color-text-light);
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .test-results-bar.visible { display: flex; }
+    .test-results-bar .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .test-results-bar .dot.ok  { background: #4CAF50; }
+    .test-results-bar .dot.fail{ background: #F44336; }
+
+    /* 空状态 / 无结果 */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      grid-column: 1 / -1;
+    }
+    .empty-state__icon { font-size: 3.5rem; margin-bottom: 14px; }
+    .empty-state__text { color: var(--color-text-muted); font-size: 0.95rem; }
+    .empty-state__hint { color: var(--color-text-muted); font-size: 0.82rem; margin-top: 6px; }
+
+    /* 移动端适配 */
+    @media (max-width: 860px) {
+      .app-layout { flex-direction: column; padding: 0 16px 60px; }
+      .sidebar {
+        width: 100%; position: static;
+        display: flex; flex-wrap: wrap; gap: 4px;
+        padding: 8px; overflow-x: auto;
+      }
+      .sidebar__head { display: none; }
+      .sidebar__list { display: flex; flex-wrap: wrap; gap: 4px; padding: 0; }
+      .sidebar__item { padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-full); white-space: nowrap; }
+      .sidebar__item .count { margin-left: 4px; font-size: 0.7rem; padding: 1px 7px; }
+      .sidebar__total { display: none; }
+      .toolbar { flex-wrap: wrap; }
+      .site-grid { grid-template-columns: 1fr; }
+      .site-compact { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    }
+  </style>
+</head>
+<body data-nav-current="hub">
+
+  <!-- ========== 页面头部 ========== -->
+  <header class="page-header">
+    <span class="page-header__icon">🪟</span>
+    <h1 class="page-header__title">好用分享</h1>
+    <p class="page-header__subtitle">
+      收藏的优质网站，以小卡片形式优雅呈现。
+    </p>
+  </header>
+
+  <!-- ========== 主体：侧边栏 + 内容 ========== -->
+  <div class="app-layout">
+
+    <!-- 侧边栏：分类目录 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__head">📂 分类目录</div>
+      <ul class="sidebar__list" id="categoryList"><li class="sidebar__item" style="pointer-events:none;opacity:0.6;"><span class="icon">⏳</span>加载中…</li></ul>
+      <div class="sidebar__total" id="sidebarTotal">正在加载数据…</div>
+    </aside>
+
+    <!-- 主区域 -->
+    <section class="main-area">
+
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="icon">🔍</span>
+          <input type="text" class="search-input" id="searchInput"
+                 placeholder="搜索网站名称、描述、标签…" autocomplete="off">
+          <button class="search-clear" id="searchClear" title="清除">✕</button>
+        </div>
+        <div class="view-toggle" id="viewToggle">
+          <button class="view-btn" data-view="card">🃏 卡片</button>
+          <button class="view-btn" data-view="list">📋 列表</button>
+          <button class="view-btn active" data-view="compact">🔲 紧凑</button>
+        </div>
+        <select class="page-size-select" id="pageSizeSelect" title="每页显示数量">
+          <option value="24">24条/页</option>
+          <option value="48">48条/页</option>
+          <option value="96">96条/页</option>
+          <option value="0">全部显示</option>
+        </select>
+        <button class="btn-test" id="btnTest" title="测试当前分类下所有网站的连通性（忽略搜索词）">
+          <span class="spinner"></span> 🩺 连通测试
+        </button>
+        <button class="btn btn--secondary btn--sm" id="btnExport" title="导出为 JSON 文件">📥 导出</button>
+        <button class="btn btn--secondary btn--sm" id="btnImport" title="从 JSON 文件导入数据">📤 导入</button>
+        <input type="file" id="importFile" accept=".json" style="display:none">
+      </div>
+
+      <!-- 测试结果条 -->
+      <div class="test-results-bar" id="testResultsBar"></div>
+
+      <!-- 站点展示区 -->
+      <div id="siteContainer"><div class="empty-state"><div class="empty-state__icon">⏳</div><p class="empty-state__text">正在加载数据…</p><p class="empty-state__hint">从 data/webData.json 读取网站信息</p></div></div>
+
+      <!-- 分页 -->
+      <div class="pagination" id="pagination"></div>
+    </section>
+  </div>
+
+  <!-- ========== 导航组件 ========== -->
+  <script src="../../src/js/nav.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    //  全局状态
+    // ============================================================
+    let categories  = [];        // 来自 JSON 的分类定义
+    let allSites    = [];        // 来自 JSON 的全部站点
+    let currentCategory = '__all__';   // 当前选中分类 ID
+    let currentView     = 'compact';   // compact | card | list（默认紧凑视图）
+    let searchKeyword   = '';          // 搜索关键词
+    let pageSize        = 24;          // 每页条数
+    let currentPage     = 1;           // 当前页码
+    let siteStatusMap   = {};          // url -> 'ok' | 'fail' | 'busy'
+    let siteMetaMap     = {};          // url -> { title, description, tags, logo, favicon } 探测到的元数据
+
+    // ============================================================
+    //  DOM 引用
+    // ============================================================
+    const categoryList   = document.getElementById('categoryList');
+    const sidebarTotal   = document.getElementById('sidebarTotal');
+    const searchInput    = document.getElementById('searchInput');
+    const searchClear    = document.getElementById('searchClear');
+    const viewToggle     = document.getElementById('viewToggle');
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+    const btnTest        = document.getElementById('btnTest');
+    const btnExport      = document.getElementById('btnExport');
+    const btnImport      = document.getElementById('btnImport');
+    const importFile     = document.getElementById('importFile');
+    const testResultsBar = document.getElementById('testResultsBar');
+    const siteContainer  = document.getElementById('siteContainer');
+    const paginationEl   = document.getElementById('pagination');
+
+    // ============================================================
+    //  数据加载 —— 从 webData.json 获取
+    // ============================================================
+    async function loadData() {
+      let data = null;
+
+      try {
+        const resp = await fetch('../../src/data/webData.json');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        data = await resp.json();
+        console.log('✅ 已加载 data/webData.json');
+      } catch (err) {
+        console.error('❌ 无法加载 webData.json：', err.message);
+        categories = [];
+        allSites = [];
+        showEmpty('⚠️ 数据加载失败', '请确认 data/webData.json 文件存在且格式正确，然后刷新页面。');
+        renderSidebar();
+        applyAllFilters();
+        return;
+      }
+
+      if (data) {
+        // 支持两种格式：新版 {categories, sites} 或旧版纯数组
+        if (Array.isArray(data)) {
+          allSites = data;
+          const catNames = [...new Set(data.map(s => s.category || '未分类'))];
+          categories = catNames.map((name, i) => ({
+            id: 'cat-' + i,
+            name: name,
+            icon: '📌'
+          }));
+        } else {
+          categories = Array.isArray(data.categories) ? data.categories : [];
+          allSites   = Array.isArray(data.sites) ? data.sites : [];
+        }
+
+        if (categories.length === 0) {
+          const catNames = [...new Set(allSites.map(s => s.category || '未分类'))];
+          categories = catNames.map((name, i) => ({
+            id: 'cat-' + i,
+            name: name,
+            icon: '📌'
+          }));
+        }
+
+        allSites = allSites.map(s => ({ ...s, category: s.category || '未分类' }));
+      }
+
+      renderSidebar();
+      applyAllFilters();
+    }
+
+    // ============================================================
+    //  侧边栏渲染
+    // ============================================================
+    function renderSidebar() {
+      // 统计每个分类的站点数
+      const counts = {};
+      allSites.forEach(s => {
+        const catName = s.category;
+        counts[catName] = (counts[catName] || 0) + 1;
+      });
+
+      // 全部
+      const totalCount = allSites.length;
+
+      let html = `
+        <li class="sidebar__item${currentCategory === '__all__' ? ' active' : ''}"
+            data-cat="__all__">
+          <span class="icon">🌟</span>全部<span class="count">${totalCount}</span>
+        </li>`;
+
+      categories.forEach(cat => {
+        const cnt = counts[cat.name] || 0;
+        html += `
+          <li class="sidebar__item${currentCategory === cat.id ? ' active' : ''}"
+              data-cat="${escAttr(cat.id)}">
+            <span class="icon">${escHtml(cat.icon || '📌')}</span>
+            ${escHtml(cat.name)}<span class="count">${cnt}</span>
+          </li>`;
+      });
+
+      categoryList.innerHTML = html;
+      sidebarTotal.textContent = `共 ${categories.length} 个分类 · ${totalCount} 个网站`;
+
+      // 绑定点击
+      categoryList.querySelectorAll('.sidebar__item').forEach(item => {
+        item.addEventListener('click', function () {
+          currentCategory = this.getAttribute('data-cat');
+          currentPage = 1;
+          renderSidebar();
+          applyAllFilters();
+        });
+      });
+    }
+
+    // ============================================================
+    //  过滤与搜索
+    // ============================================================
+    function getFilteredSites() {
+      let sites = allSites;
+
+      // 分类过滤
+      if (currentCategory !== '__all__') {
+        const cat = categories.find(c => c.id === currentCategory);
+        if (cat) {
+          sites = sites.filter(s => s.category === cat.name);
+        }
+      }
+
+      // 关键词搜索
+      if (searchKeyword.trim()) {
+        const kw = searchKeyword.trim().toLowerCase();
+        sites = sites.filter(s => {
+          return (s.name || '').toLowerCase().includes(kw) ||
+                 (s.description || '').toLowerCase().includes(kw) ||
+                 (s.category || '').toLowerCase().includes(kw) ||
+                 (s.tags || []).some(t => t.toLowerCase().includes(kw)) ||
+                 (s.url || '').toLowerCase().includes(kw);
+        });
+      }
+
+      return sites;
+    }
+
+    function applyAllFilters() {
+      const filtered = getFilteredSites();
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      if (currentPage > totalPages) currentPage = totalPages;
+      const start = (currentPage - 1) * pageSize;
+      const pageSites = filtered.slice(start, start + pageSize);
+
+      renderSites(pageSites);
+      renderPagination(filtered.length, totalPages);
+    }
+
+    // ============================================================
+    //  站点渲染 —— 三种视图
+    // ============================================================
+    function renderSites(sites) {
+      if (sites.length === 0) {
+        if (allSites.length === 0) {
+          showEmpty('📭', 'webData.json 中没有网站数据');
+        } else {
+          showEmpty('🔎', '没有匹配的网站', '试试更换分类或修改搜索关键词');
+        }
+        return;
+      }
+
+      if (currentView === 'card')   renderCardView(sites);
+      if (currentView === 'list')   renderListView(sites);
+      if (currentView === 'compact') renderCompactView(sites);
+    }
+
+    function renderCardView(sites) {
+      siteContainer.className = 'site-grid';
+      siteContainer.innerHTML = sites.map((s, i) => {
+        const d = getSiteDisplayData(s);
+        return `
+        <div class="site-card${d.hasMeta ? ' site-card--detected' : ''}" style="animation-delay:${i * 0.04}s">
+          ${statusDot(s, 'site-status')}
+          ${d.hasMeta ? '<span class="site-card__badge" title="已从目标网站自动探测到元数据">🔍 已探测</span>' : ''}
+          <div class="site-card__header">
+            <img class="site-card__logo" src="${escAttr(d.logo)}" alt=""
+                 loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <span class="site-card__logo-fb">${escHtml((d.name||'?')[0].toUpperCase())}</span>
+            <div>
+              <h3 class="site-card__name">${escHtml(d.name)}</h3>
+              <span class="site-card__cat">${escHtml(d.category)}</span>
+            </div>
+          </div>
+          <p class="site-card__desc">${escHtml(d.description || '暂无描述')}</p>
+          <div class="site-card__tags">${d.tags.map(t=>`<span class="site-card__tag">${escHtml(t)}</span>`).join('')}</div>
+          <a href="${escAttr(s.url)}" class="site-card__link" target="_blank" rel="noopener">访问网站 ↗</a>
+        </div>
+      `;}).join('');
+    }
+
+    function renderListView(sites) {
+      siteContainer.className = 'site-list';
+      siteContainer.innerHTML = sites.map((s, i) => {
+        const d = getSiteDisplayData(s);
+        return `
+        <div class="site-row${d.hasMeta ? ' site-row--detected' : ''}" style="animation-delay:${i * 0.03}s">
+          ${statusDot(s, 'status-dot', 'margin-right:8px;')}
+          <img class="site-row__logo" src="${escAttr(d.logo)}" alt=""
+               loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          <span class="site-row__logo-fb">${escHtml((d.name||'?')[0].toUpperCase())}</span>
+          <div class="site-row__info">
+            <div class="site-row__name">${escHtml(d.name)}${d.hasMeta ? ' <span style="font-size:0.7rem;opacity:0.6;">🔍</span>' : ''}</div>
+            <div class="site-row__desc">${escHtml(d.description || '')}</div>
+          </div>
+          <div class="site-row__tags">${d.tags.slice(0,3).map(t=>`<span class="site-row__tag">${escHtml(t)}</span>`).join('')}</div>
+          <a href="${escAttr(s.url)}" class="site-row__link" target="_blank" rel="noopener">访问 ↗</a>
+        </div>
+      `;}).join('');
+    }
+
+    function renderCompactView(sites) {
+      siteContainer.className = 'site-compact';
+      siteContainer.innerHTML = sites.map((s, i) => {
+        const d = getSiteDisplayData(s);
+        return `
+        <div class="site-mini${d.hasMeta ? ' site-mini--detected' : ''}" style="animation-delay:${i * 0.02}s"
+             onclick="window.open('${escAttr(s.url)}','_blank','noopener')" title="${escAttr(d.name + (d.hasMeta ? ' (已探测元数据)' : ''))}">
+          ${statusDot(s, 'status-dot status-dot--compact', 'margin:0 auto 6px;')}
+          <img class="site-mini__logo" src="${escAttr(d.logo)}" alt=""
+               loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          <span class="site-mini__logo-fb">${escHtml((d.name||'?')[0].toUpperCase())}</span>
+          <div class="site-mini__name">${escHtml(d.name)}</div>
+          <div class="site-mini__cat">${d.hasMeta ? '🔍 ' : ''}${escHtml(d.category)}</div>
+        </div>
+      `;}).join('');
+    }
+
+    // 融合 JSON 数据与探测到的元数据
+    function getSiteDisplayData(site) {
+      const meta = siteMetaMap[site.url] || {};
+      return {
+        name:        meta.title || site.name,
+        url:         site.url,
+        logo:        meta.favicon || meta.ogImage || site.logo,
+        description: meta.description || (meta.tags ? meta.tags.join('、') : site.description),
+        tags:        meta.tags || site.tags || [],
+        category:    site.category,
+        hasMeta:     Object.keys(meta).length > 0  // 是否有探测到的数据
+      };
+    }
+
+    function statusDot(site, className, extraStyle) {
+      const status = siteStatusMap[site.url];
+      if (!status) return '';
+      const style = extraStyle || '';
+      return `<span class="${className} ${status}" style="${style}" title="${status==='ok'?'可访问':'不可访问'}"></span>`;
+    }
+
+    function showEmpty(icon, text, hint) {
+      siteContainer.className = '';
+      siteContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state__icon">${icon}</div>
+          <p class="empty-state__text">${text}</p>
+          ${hint ? `<p class="empty-state__hint">${hint}</p>` : ''}
+        </div>`;
+    }
+
+    // ============================================================
+    //  分页
+    // ============================================================
+    function renderPagination(total, totalPages) {
+      if (totalPages <= 1) {
+        paginationEl.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+      html += `<button ${currentPage===1?'disabled':''} data-page="${currentPage-1}">‹ 上一页</button>`;
+
+      // 页码按钮
+      const maxBtns = 7;
+      let startP = Math.max(1, currentPage - Math.floor(maxBtns/2));
+      let endP   = Math.min(totalPages, startP + maxBtns - 1);
+      if (endP - startP < maxBtns - 1) startP = Math.max(1, endP - maxBtns + 1);
+
+      if (startP > 1) {
+        html += `<button data-page="1">1</button>`;
+        if (startP > 2) html += `<span class="info">…</span>`;
+      }
+
+      for (let p = startP; p <= endP; p++) {
+        html += `<button class="${p===currentPage?'active':''}" data-page="${p}">${p}</button>`;
+      }
+
+      if (endP < totalPages) {
+        if (endP < totalPages - 1) html += `<span class="info">…</span>`;
+        html += `<button data-page="${totalPages}">${totalPages}</button>`;
+      }
+
+      html += `<button ${currentPage===totalPages?'disabled':''} data-page="${currentPage+1}">下一页 ›</button>`;
+      html += `<span class="info">共 ${total} 个</span>`;
+
+      paginationEl.innerHTML = html;
+
+      paginationEl.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', function () {
+          const p = parseInt(this.getAttribute('data-page'));
+          if (!isNaN(p) && p >= 1 && p <= totalPages) {
+            currentPage = p;
+            applyAllFilters();
+            siteContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+    }
+
+    // ============================================================
+    //  连通性测试
+    // ============================================================
+    let testAborter = null;
+
+    // 获取仅按分类过滤（忽略搜索关键词）的站点
+    function getCategorySites() {
+      if (currentCategory === '__all__') return allSites;
+      const cat = categories.find(c => c.id === currentCategory);
+      if (!cat) return allSites;
+      return allSites.filter(s => s.category === cat.name);
+    }
+
+    // ============================================================
+    //  网站元数据探测 —— 尝试抓取目标网站的 title/description/logo/tags
+    // ============================================================
+    async function probeSiteMetadata(site) {
+      const url = site.url;
+      const result = {};
+
+      // 获取 favicon：Google API 不依赖 CORS，始终可用作为保底
+      let domain = '';
+      try { domain = new URL(url).hostname; } catch(e) {}
+      if (domain) {
+        result.favicon = 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=64';
+      }
+
+      // 尝试获取并解析 HTML
+      let html = null;
+      let doc = null;
+
+      // 策略1：直接 fetch（同源或支持 CORS 的站点）
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 10000);
+        const resp = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (resp.ok) html = await resp.text();
+      } catch(e) { /* CORS 阻止或网络错误 */ }
+
+      // 策略2：CORS 代理
+      if (!html) {
+        try {
+          const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 12000);
+          const resp = await fetch(proxyUrl, { signal: ctrl.signal });
+          clearTimeout(timer);
+          if (resp.ok) html = await resp.text();
+        } catch(e) { /* 代理也失败 */ }
+      }
+
+      // 解析 HTML
+      if (html) {
+        const parser = new DOMParser();
+        doc = parser.parseFromString(html, 'text/html');
+
+        // <title>
+        const titleEl = doc.querySelector('title');
+        if (titleEl) result.title = titleEl.textContent.trim();
+
+        // opensearch 描述链接（站点短名称，比 <title> 更可靠）
+        const searchLink = doc.querySelector('link[rel="search"][type="application/opensearchdescription+xml"]');
+        if (searchLink && searchLink.getAttribute('title')) {
+          result.opensearchName = searchLink.getAttribute('title').trim();
+        }
+
+        // <meta name="application-name">（HTML5 应用名称）
+        const appName = doc.querySelector('meta[name="application-name"]');
+        if (appName && appName.getAttribute('content')) {
+          result.appName = appName.getAttribute('content').trim();
+        }
+
+        // meta description
+        const metaDesc = doc.querySelector('meta[name="description"]');
+        if (metaDesc) result.description = metaDesc.getAttribute('content') || '';
+
+        // Open Graph
+        const ogTitle = doc.querySelector('meta[property="og:title"]');
+        if (ogTitle) result.ogTitle = ogTitle.getAttribute('content') || '';
+
+        const ogSiteName = doc.querySelector('meta[property="og:site_name"]');
+        if (ogSiteName) result.ogSiteName = ogSiteName.getAttribute('content') || '';
+
+        const ogDesc = doc.querySelector('meta[property="og:description"]');
+        if (ogDesc) result.description = result.description || ogDesc.getAttribute('content') || '';
+
+        const ogImage = doc.querySelector('meta[property="og:image"]');
+        if (ogImage) result.ogImage = ogImage.getAttribute('content') || '';
+
+        // 从 HTML 提取的 favicon 优先于 Google API
+        const iconLink = doc.querySelector('link[rel="icon"]') ||
+                         doc.querySelector('link[rel="shortcut icon"]') ||
+                         doc.querySelector('link[rel="apple-touch-icon"]');
+        if (iconLink) {
+          let favHref = iconLink.getAttribute('href') || '';
+          if (favHref && !/^https?:\/\//i.test(favHref)) {
+            try { favHref = new URL(favHref, url).href; } catch(e) {}
+          }
+          if (favHref) result.favicon = favHref;
+        }
+
+        // JSON-LD 结构化数据（优先于 meta 标签）
+        try {
+          const ldScripts = doc.querySelectorAll('script[type="application/ld+json"]');
+          for (const script of ldScripts) {
+            try {
+              const data = JSON.parse(script.textContent);
+              const items = Array.isArray(data) ? data : [data];
+              const siteData = items.find(i => i['@type'] === 'WebSite') ||
+                               items.find(i => i['@type'] === 'Organization') ||
+                               items[0];
+              if (siteData) {
+                // JSON-LD name 始终优先（结构化数据比页面 <title> 更可靠）
+                if (siteData.name) result.title = siteData.name;
+                if (siteData.description && !result.description) result.description = siteData.description;
+                if (siteData.logo && !result.ogImage) result.ogImage = typeof siteData.logo === 'object' ? siteData.logo.url : siteData.logo;
+              }
+            } catch(e) {}
+          }
+        } catch(e) {}
+
+        // 标题智能选择：站点级名称 优先于 页面级标题
+        // 优先级：JSON-LD（已处理）> opensearch > og:site_name > application-name > <title>
+        if (result.opensearchName) {
+          result.title = result.opensearchName;
+        } else if (result.ogSiteName) {
+          result.title = result.ogSiteName;
+        } else if (result.appName) {
+          result.title = result.appName;
+        }
+
+        console.log('🔍 [' + site.name + '] 元数据探测成功:', result);
+      }
+
+      return result;
+    }
+
+    async function runConnectivityTest() {
+      // 测试当前分类下全部网站（忽略搜索关键词）
+      const targetSites = getCategorySites();
+      if (targetSites.length === 0) {
+        showTestResult('当前没有可测试的网站', '');
+        return;
+      }
+
+      // 重置状态
+      siteStatusMap = {};
+      siteMetaMap = {};
+      targetSites.forEach(s => { siteStatusMap[s.url] = 'busy'; });
+      applyAllFilters();
+
+      btnTest.classList.add('testing');
+      testResultsBar.classList.add('visible');
+      testResultsBar.innerHTML = '⏳ 正在测试连通性…';
+      testAborter = new AbortController();
+
+      let okCount = 0, failCount = 0;
+      const CONCURRENCY = 5; // 每批并发数
+      const TIMEOUT = 8000;  // 单个请求超时
+
+      async function testOne(site) {
+        // Phase 1: 尝试 CORS fetch + 元数据提取
+        const meta = await probeSiteMetadata(site);
+        if (Object.keys(meta).length > 0) {
+          // 元数据提取成功 → 网站可访问 + 获得额外信息
+          siteMetaMap[site.url] = meta;
+          siteStatusMap[site.url] = 'ok';
+          okCount++;
+          applyAllFilters();
+          showTestResult(
+            `测试中… ✅ ${okCount} 可访问  ❌ ${failCount} 不可访问  🔍 ${Object.keys(siteMetaMap).length} 有元数据`,
+            'visible'
+          );
+          return;
+        }
+
+        // Phase 2: CORS 被阻止 → 回退到 no-cors 纯连通性检测
+        try {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), TIMEOUT);
+          await fetch(site.url, {
+            mode: 'no-cors',
+            signal: ctrl.signal
+          });
+          clearTimeout(timer);
+          siteStatusMap[site.url] = 'ok';
+          okCount++;
+        } catch (e) {
+          siteStatusMap[site.url] = 'fail';
+          failCount++;
+        }
+        // 实时更新 UI
+        applyAllFilters();
+        showTestResult(
+          `测试中… ✅ ${okCount} 可访问  ❌ ${failCount} 不可访问  🔍 ${Object.keys(siteMetaMap).length} 有元数据`,
+          'visible'
+        );
+      }
+
+      // 分批并发执行
+      for (let i = 0; i < targetSites.length; i += CONCURRENCY) {
+        if (testAborter.signal.aborted) break;
+        const batch = targetSites.slice(i, i + CONCURRENCY);
+        await Promise.all(batch.map(testOne));
+      }
+
+      // 完成
+      btnTest.classList.remove('testing');
+      const catLabel = currentCategory === '__all__' ? '全部' :
+        (categories.find(c => c.id === currentCategory)?.name || '');
+      const metaCount = Object.keys(siteMetaMap).length;
+      showTestResult(
+        `✅ ${okCount} 个可访问  ❌ ${failCount} 个不可访问${metaCount > 0 ? '  🔍 ' + metaCount + ' 个探测到元数据' : ''} —— ${catLabel}分类测试完成`,
+        'visible'
+      );
+    }
+
+    function showTestResult(msg) {
+      testResultsBar.innerHTML = msg;
+      testResultsBar.classList.add('visible');
+    }
+
+    // ============================================================
+    //  事件绑定
+    // ============================================================
+
+    // 搜索
+    let searchTimer;
+    searchInput.addEventListener('input', function () {
+      searchKeyword = this.value;
+      searchClear.classList.toggle('visible', searchKeyword.length > 0);
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { currentPage = 1; applyAllFilters(); }, 250);
+    });
+    searchClear.addEventListener('click', function () {
+      searchInput.value = '';
+      searchKeyword = '';
+      searchClear.classList.remove('visible');
+      currentPage = 1;
+      applyAllFilters();
+      searchInput.focus();
+    });
+
+    // 每页条数
+    pageSizeSelect.addEventListener('change', function () {
+      const val = parseInt(this.value);
+      pageSize = val === 0 ? 999999 : val; // 0 表示全部
+      currentPage = 1;
+      applyAllFilters();
+    });
+
+    // 视图切换
+    viewToggle.addEventListener('click', function (e) {
+      const btn = e.target.closest('.view-btn');
+      if (!btn) return;
+      currentView = btn.getAttribute('data-view');
+      viewToggle.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPage = 1;
+      applyAllFilters();
+    });
+
+    // 连通测试
+    btnTest.addEventListener('click', function () {
+      if (btnTest.classList.contains('testing')) {
+        // 取消
+        if (testAborter) testAborter.abort();
+        btnTest.classList.remove('testing');
+        showTestResult('测试已取消');
+        // 清除 busy 状态
+        Object.keys(siteStatusMap).forEach(k => {
+          if (siteStatusMap[k] === 'busy') delete siteStatusMap[k];
+        });
+        applyAllFilters();
+        return;
+      }
+      runConnectivityTest();
+    });
+
+    // ============================================================
+    //  导入导出
+    // ============================================================
+
+    function exportData() {
+      const exportObj = {
+        categories: categories,
+        sites: allSites
+      };
+      const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'webData_' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(file) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        try {
+          const data = JSON.parse(reader.result);
+
+          if (Array.isArray(data)) {
+            allSites = data;
+            const catNames = [...new Set(data.map(s => s.category || '未分类'))];
+            categories = catNames.map((name, i) => ({
+              id: 'cat-' + i,
+              name: name,
+              icon: '📌'
+            }));
+          } else {
+            categories = Array.isArray(data.categories) ? data.categories : [];
+            allSites = Array.isArray(data.sites) ? data.sites : [];
+            if (categories.length === 0) {
+              const catNames = [...new Set(allSites.map(s => s.category || '未分类'))];
+              categories = catNames.map((name, i) => ({
+                id: 'cat-' + i,
+                name: name,
+                icon: '📌'
+              }));
+            }
+          }
+
+          allSites = allSites.map(s => ({ ...s, category: s.category || '未分类' }));
+          siteStatusMap = {};
+          siteMetaMap = {};
+          currentCategory = '__all__';
+          currentPage = 1;
+          searchKeyword = '';
+          searchInput.value = '';
+          searchClear.classList.remove('visible');
+          renderSidebar();
+          applyAllFilters();
+          console.log('✅ 成功导入', allSites.length, '个网站，', categories.length, '个分类');
+        } catch (e) {
+          console.error('❌ 导入失败：', e.message);
+          alert('⚠️ 文件格式错误，无法导入。请确认是有效的 webData JSON 文件。');
+        }
+      };
+      reader.readAsText(file);
+      importFile.value = '';
+    }
+
+    // 事件绑定
+    btnExport.addEventListener('click', exportData);
+
+    btnImport.addEventListener('click', function () {
+      importFile.click();
+    });
+    importFile.addEventListener('change', function () {
+      if (this.files && this.files[0]) importData(this.files[0]);
+    });
+
+    // ============================================================
+    //  工具函数
+    // ============================================================
+    function escHtml(s) {
+      if (typeof s !== 'string') return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+    function escAttr(s) {
+      if (typeof s !== 'string') return '';
+      return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ============================================================
+    //  启动
+    // ============================================================
+    loadData();
+  })();
+  </script>
+</body>
+</html>

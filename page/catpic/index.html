@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>猫图工坊</title>
+  <link rel="stylesheet" href="../../src/css/common.css">
+  <style>
+    .cat-card {
+      max-width: 680px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .cat-card__image-area {
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 24px;
+      border: 2px dashed var(--color-border);
+      transition: border-color var(--duration-normal) var(--ease-out-expo);
+    }
+    .cat-card__image-area.loaded {
+      border-style: solid;
+      border-color: var(--color-primary-light);
+    }
+    .cat-card__image {
+      max-width: 100%;
+      max-height: 400px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      object-fit: contain;
+    }
+    .cat-card__placeholder {
+      color: var(--color-text-muted);
+      font-size: 1rem;
+    }
+    .cat-card__size {
+      font-size: 0.8rem;
+      color: var(--color-text-light);
+      margin-top: 12px;
+    }
+    .cat-card__actions {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .cat-card__details {
+      text-align: left;
+    }
+    .cat-card__details summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--color-text-light);
+      padding: 8px 0;
+    }
+    .cat-card__details pre {
+      background: var(--color-secondary);
+      color: #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      margin-top: 8px;
+    }
+    .cat-card__loader {
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .cat-card__loading-text {
+      color: var(--color-text-light);
+      margin-top: 10px;
+      font-size: 0.95rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body data-nav-current="catpic">
+  <header class="page-header">
+    <span class="page-header__icon">🐱</span>
+    <h1 class="page-header__title">猫图工坊</h1>
+    <p class="page-header__subtitle">每次刷新都可能邂逅不同猫咪</p>
+  </header>
+
+  <div class="container">
+    <div class="cat-card fade-in">
+      <div class="cat-card__image-area" id="catImageWrapper">
+        <div class="cat-card__placeholder">🐾 点击下方按钮加载可爱猫咪~</div>
+      </div>
+      <div class="cat-card__actions">
+        <button class="btn btn--primary btn--lg" id="loadCatBtn">😺 随机猫咪</button>
+      </div>
+      <details class="cat-card__details">
+        <summary>🔎 查看 API 原始响应</summary>
+        <pre id="rawJson">暂无数据，点击按钮后显示</pre>
+      </details>
+    </div>
+  </div>
+
+  <footer class="page-footer">
+    图片来源：<a href="https://thecatapi.com" target="_blank" rel="noopener">The Cat API</a>
+  </footer>
+
+  <script src="../../src/js/nav.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var wrapper = document.getElementById('catImageWrapper');
+      var rawPre = document.getElementById('rawJson');
+      var loadBtn = document.getElementById('loadCatBtn');
+
+      async function fetchCatImage() {
+        loadBtn.disabled = true;
+        loadBtn.textContent = '加载中...';
+        wrapper.className = 'cat-card__image-area';
+        wrapper.innerHTML =
+          '<div class="cat-card__loader"></div>' +
+          '<div class="cat-card__loading-text">召唤猫咪中...</div>';
+
+        try {
+          var resp = await fetch('https://api.thecatapi.com/v1/images/search');
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          var data = await resp.json();
+
+          rawPre.textContent = JSON.stringify(data, null, 2);
+
+          if (data && data.length > 0 && data[0].url) {
+            var cat = data[0];
+            wrapper.className = 'cat-card__image-area loaded';
+            wrapper.innerHTML =
+              '<img class="cat-card__image" src="' + cat.url + '" alt="随机猫咪"' +
+              ' onerror="this.onerror=null;this.src=\'https://cdn2.thecatapi.com/images/MTY4ODgwMw.jpg\';this.alt=\'备用猫咪\'">' +
+              '<div class="cat-card__size">📐 ' + (cat.width || '?') + ' × ' + (cat.height || '?') + '</div>';
+          } else {
+            wrapper.innerHTML = '<div class="cat-card__placeholder">😿 没有获取到猫咪图片，请稍后重试</div>';
+          }
+        } catch (err) {
+          console.error('Cat API error:', err.message);
+          wrapper.innerHTML = '<div class="cat-card__placeholder">⚠️ 请求失败: ' + err.message + '</div>';
+          rawPre.textContent = '请求出错: ' + err.message;
+        } finally {
+          loadBtn.disabled = false;
+          loadBtn.textContent = '😺 随机猫咪';
+        }
+      }
+
+      loadBtn.addEventListener('click', fetchCatImage);
+      fetchCatImage();
+    })();
+  </script>
+</body>
+</html>

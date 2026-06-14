@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cat Sketch</title>
+    <link rel="stylesheet" href="../../src/css/common.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(145deg, #0b0b1f 0%, #151b2e 100%);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .mainSVG {
+            width: 90vmin;
+            height: 90vmin;
+            visibility: hidden;
+            position: relative;
+            z-index: 1;
+        }
+        #mask {
+            position: fixed;
+            inset: 0;
+            background: rgba(10,10,30,0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            gap: 18px;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+        #mask .cat-emoji { font-size: 7rem; }
+        #mask span {
+            font-size: 1.2rem;
+            color: #ffb347;
+            letter-spacing: 4px;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); text-shadow: 0 0 8px #ffb347; }
+            50% { transform: scale(1.03); text-shadow: 0 0 25px #ff8c42; }
+        }
+        #starsCanvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+        .hint {
+            position: fixed;
+            bottom: 2%;
+            left: 0; right: 0;
+            text-align: center;
+            font-size: 0.75rem;
+            color: rgba(255,215,150,0.5);
+            z-index: 20;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+<body>
+<div id="mask">
+    <div class="cat-emoji">🐱</div>
+    <span>✦ Click to Sketch ✦</span>
+</div>
+<canvas id="starsCanvas"></canvas>
+<div class="hint">GSAP · SVG Stroke · MotionPath</div>
+
+<svg class="mainSVG" viewBox="0 0 800 700">
+    <defs>
+        <radialGradient id="bodyGrad" cx="48%" cy="38%" r="58%">
+            <stop offset="0%" stop-color="#ffe8c8" />
+            <stop offset="50%" stop-color="#f7b05e" />
+            <stop offset="100%" stop-color="#d4884a" />
+        </radialGradient>
+        <radialGradient id="headGrad" cx="48%" cy="35%" r="60%">
+            <stop offset="0%" stop-color="#ffe8c8" />
+            <stop offset="55%" stop-color="#f7b05e" />
+            <stop offset="100%" stop-color="#d4884a" />
+        </radialGradient>
+        <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffb347" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="#ffb347" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fff3c9" stop-opacity="1" />
+            <stop offset="50%" stop-color="#ffc96e" stop-opacity="0.5" />
+            <stop offset="100%" stop-color="#ffb347" stop-opacity="0" />
+        </radialGradient>
+        <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="4" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="warmGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="8" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <circle id="dot" r="3"/>
+        <polygon id="star" points="0,-7 2,-2 7,-2 3,1 4,7 0,4 -4,7 -3,1 -7,-2 -2,-2"/>
+        <path id="paw" d="M-2,-2 L2,-2 L3,1.5 L1.5,3.5 L-1.5,3.5 L-3,1.5Z"/>
+    </defs>
+
+    <!-- 背景光晕 -->
+    <circle class="cat-part" cx="400" cy="380" r="280" fill="url(#glowGrad)" opacity="0" filter="url(#warmGlow)"/>
+
+    <!-- 尾巴（用 <g> 包裹，整体旋转） -->
+    <g class="tail-group cat-part">
+        <path fill="none" stroke="#c47a44" stroke-width="18" stroke-linecap="round" d="M 530,445 C 575,420 605,375 595,330 C 588,298 560,288 542,310"/>
+        <path fill="none" stroke="#e8a050" stroke-width="13" stroke-linecap="round" d="M 530,445 C 575,420 605,375 595,330 C 588,298 560,288 542,310"/>
+        <path fill="none" stroke="#f7c878" stroke-width="7" stroke-linecap="round" d="M 530,445 C 575,420 605,375 595,330 C 588,298 560,288 542,310"/>
+    </g>
+
+    <!-- 身体 -->
+    <path class="cat-body cat-part" d="
+        M 318,352 C 292,358 268,390 268,430
+        C 268,492 318,545 400,550
+        C 482,545 532,492 532,430
+        C 532,390 508,358 482,352
+        C 458,344 430,340 400,338
+        C 370,340 342,344 318,352 Z
+    " fill="url(#bodyGrad)" stroke="#c47a44" stroke-width="1.5"/>
+
+    <!-- 肚皮 -->
+    <path class="cat-part" d="
+        M 358,398 Q 400,485 442,398 Q 400,415 358,398 Z
+    " fill="#fff5e6" opacity="0.5"/>
+
+    <!-- 前爪 -->
+    <ellipse class="cat-part" cx="338" cy="540" rx="32" ry="15" fill="#eda555" stroke="#c47a44" stroke-width="1"/>
+    <ellipse class="cat-part" cx="462" cy="540" rx="32" ry="15" fill="#eda555" stroke="#c47a44" stroke-width="1"/>
+    <ellipse class="cat-part" cx="338" cy="538" rx="22" ry="8" fill="#f5c88a" opacity="0.6"/>
+    <ellipse class="cat-part" cx="462" cy="538" rx="22" ry="8" fill="#f5c88a" opacity="0.6"/>
+
+    <!-- 头部 -->
+    <ellipse class="cat-head cat-part" cx="400" cy="265" rx="112" ry="104" fill="url(#headGrad)" stroke="#c47a44" stroke-width="1.5"/>
+
+    <!-- 左耳（圆弧曲线） -->
+    <path class="earLeft cat-part" d="M 305,218 C 288,170 265,125 268,100 C 282,118 348,168 365,200 Z" fill="#f0a550" stroke="#c47a44" stroke-width="1.5" stroke-linejoin="round"/>
+    <path class="cat-part" d="M 316,212 C 305,178 285,140 288,120 C 298,132 345,172 354,200 Z" fill="#ffb7b2" opacity="0.7"/>
+    <!-- 右耳（圆弧曲线） -->
+    <path class="earRight cat-part" d="M 495,218 C 512,170 535,125 532,100 C 518,118 452,168 435,200 Z" fill="#f0a550" stroke="#c47a44" stroke-width="1.5" stroke-linejoin="round"/>
+    <path class="cat-part" d="M 484,212 C 495,178 515,140 512,120 C 502,132 455,172 446,200 Z" fill="#ffb7b2" opacity="0.7"/>
+
+    <!-- 腮红 -->
+    <circle class="cheek cat-part" cx="318" cy="300" r="20" fill="#ffb7b2" opacity="0"/>
+    <circle class="cheek cat-part" cx="482" cy="300" r="20" fill="#ffb7b2" opacity="0"/>
+
+    <!-- 眼睛 -->
+    <g class="eyes">
+        <g class="eyeLeft">
+            <ellipse cx="355" cy="262" rx="26" ry="30" fill="white"/>
+            <circle cx="358" cy="265" r="18" fill="#4a2810"/>
+            <circle class="pupilL" cx="358" cy="267" r="10" fill="#1a0a02"/>
+            <circle cx="349" cy="254" r="7" fill="white" opacity="0.92"/>
+            <circle cx="366" cy="273" r="3.5" fill="white" opacity="0.55"/>
+        </g>
+        <g class="eyeRight">
+            <ellipse cx="445" cy="262" rx="26" ry="30" fill="white"/>
+            <circle cx="442" cy="265" r="18" fill="#4a2810"/>
+            <circle class="pupilR" cx="442" cy="267" r="10" fill="#1a0a02"/>
+            <circle cx="433" cy="254" r="7" fill="white" opacity="0.92"/>
+            <circle cx="450" cy="273" r="3.5" fill="white" opacity="0.55"/>
+        </g>
+    </g>
+
+    <!-- 鼻子 -->
+    <path class="cat-part" d="M 395,308 L 405,308 L 400,316 Z" fill="#e8836b" stroke="#d06a52" stroke-width="0.8"/>
+    <ellipse class="cat-part" cx="400" cy="310" rx="3" ry="2" fill="#f0a090" opacity="0.5"/>
+
+    <!-- 嘴巴 -->
+    <path class="cat-part" d="M 400,318 Q 390,330 378,323" fill="none" stroke="#8b5a2b" stroke-width="2.5" stroke-linecap="round"/>
+    <path class="cat-part" d="M 400,318 Q 410,330 422,323" fill="none" stroke="#8b5a2b" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- 胡须 -->
+    <g class="whiskers">
+        <line class="whisker" x1="332" y1="300" x2="240" y2="288" stroke="#ffe1b9" stroke-width="2" stroke-linecap="round" opacity="0"/>
+        <line class="whisker" x1="332" y1="310" x2="235" y2="310" stroke="#ffe1b9" stroke-width="2" stroke-linecap="round" opacity="0"/>
+        <line class="whisker" x1="332" y1="320" x2="240" y2="332" stroke="#ffe1b9" stroke-width="2" stroke-linecap="round" opacity="0"/>
+        <line class="whisker" x1="468" y1="300" x2="560" y2="288" stroke="#ffe1b9" stroke-width="2" stroke-linecap="round" opacity="0"/>
+        <line class="whisker" x1="468" y1="310" x2="565" y2="310" stroke="#ffe1b9" stroke-width="2" stroke-linecap="round" opacity="0"/>
+        <line class="whisker" x1="468" y1="320" x2="560" y2="332" stroke="#ffe1b9" stroke-width="2" stroke-linecap="round" opacity="0"/>
+    </g>
+
+    <!-- 描边动画路径 -->
+    <g class="outlines">
+        <path id="headOL" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" filter="url(#softGlow)" d="
+            M 268,100 C 282,118 348,168 365,200 C 380,185 400,175 400,175 C 400,175 420,185 435,200 C 452,168 518,118 532,100
+        "/>
+        <path id="bodyOL" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" filter="url(#softGlow)" d="
+            M 318,352 C 292,358 268,390 268,430 C 268,492 318,545 400,550 C 482,545 532,492 532,430 C 532,390 508,358 482,352
+        "/>
+        <path id="tailOL" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" filter="url(#softGlow)" d="
+            M 530,445 C 575,420 605,375 595,330 C 588,298 560,288 542,310
+        "/>
+    </g>
+
+    <!-- 粒子容器 -->
+    <g class="particleBox"></g>
+    <circle class="sparkleMaster" fill="url(#starGlow)" r="20" opacity="0"/>
+</svg>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MotionPathPlugin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/EasePack.min.js"></script>
+
+<script>
+(function(){
+    'use strict';
+
+    gsap.registerPlugin(MotionPathPlugin);
+
+    var svg = document.querySelector('.mainSVG');
+    gsap.set(svg, { visibility:'visible' });
+
+    gsap.set('.cat-part', { opacity:0 });
+    gsap.set('.outlines', { opacity:0 });
+    gsap.set('.whisker', { opacity:0 });
+
+    document.querySelectorAll('.outlines path').forEach(function(p){
+        var len = p.getTotalLength();
+        gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
+    });
+
+    var tl = gsap.timeline({ paused:true });
+
+    tl
+        .set('.outlines', { opacity:1 })
+        .to('#headOL', { strokeDashoffset:0, duration:2.5, ease:'power2.inOut' })
+        .to('#bodyOL', { strokeDashoffset:0, duration:2, ease:'power2.inOut' }, '-=1.2')
+        .to('#tailOL', { strokeDashoffset:0, duration:1.5, ease:'power2.inOut' }, '-=0.8')
+
+        .to('.cat-part:not(.tail-group):not(.cheek)', {
+            opacity:1, duration:0.7, stagger:{ each:0.05, from:'center' }, ease:'power2.out'
+        }, '-=1.5')
+        .to('.cheek', { opacity:0.25, duration:0.8, stagger:0.1 }, '-=0.8')
+
+        .fromTo('.eyeLeft', { scaleY:0, transformOrigin:'center' },
+            { scaleY:1, duration:0.45, ease:'back.out(3)' }, '-=0.5')
+        .fromTo('.eyeRight', { scaleY:0, transformOrigin:'center' },
+            { scaleY:1, duration:0.45, ease:'back.out(3)' }, '-=0.35')
+
+        .to('.whisker', { opacity:0.8, duration:0.4, stagger:0.04, ease:'power1.out' }, '-=0.2')
+
+        .to('.outlines', { opacity:0, duration:0.8, ease:'power1.in' }, '+=0.4')
+
+        .call(initLiving, null, '-=0.3')
+        .call(initParticles, null, '-=0.6');
+
+    function initLiving(){
+        gsap.to('.tail-group', {
+            rotation:12,
+            transformOrigin:'530 445',
+            repeat:-1, yoyo:true, duration:1.6, ease:'sine.inOut'
+        });
+
+        gsap.to('.whisker', {
+            rotation:function(){ return (Math.random()-0.5)*6; },
+            transformOrigin:'100% 50%',
+            repeat:-1, yoyo:true, stagger:{ each:0.08, from:'edges' },
+            duration:0.9, ease:'power1.inOut'
+        });
+
+        gsap.to('.cat-head', {
+            y:-4, repeat:-1, yoyo:true, duration:2.8, ease:'sine.inOut'
+        });
+
+        gsap.to('.cat-body', {
+            scaleY:1.015, scaleX:1.008, transformOrigin:'50% 100%',
+            repeat:-1, yoyo:true, duration:3, ease:'sine.inOut'
+        });
+
+        gsap.to('.cheek', {
+            opacity:0.4, repeat:-1, yoyo:true, duration:2.5, ease:'sine.inOut'
+        });
+
+        function blink(){
+            var delay = 2500 + Math.random()*3000;
+            setTimeout(function(){
+                gsap.to('.eyeLeft, .eyeRight', {
+                    scaleY:0.05, transformOrigin:'center',
+                    duration:0.08, yoyo:true, repeat:1, ease:'power2.inOut',
+                    onComplete:function(){ setTimeout(blink, 500); }
+                });
+            }, delay);
+        }
+        blink();
+
+        function twitchEar(){
+            var ears = ['.earLeft','.earRight'];
+            var pick = ears[Math.floor(Math.random()*2)];
+            var both = Math.random()>0.65;
+            gsap.to(pick, {
+                rotation:-10, transformOrigin:'50% 100%',
+                duration:0.12, yoyo:true, repeat:1, ease:'power2.inOut'
+            });
+            if(both){
+                var other = pick==='.earLeft'? '.earRight':'.earLeft';
+                gsap.to(other, {
+                    rotation:-8, transformOrigin:'50% 100%',
+                    duration:0.14, yoyo:true, repeat:1, ease:'power2.inOut', delay:0.04
+                });
+            }
+            setTimeout(twitchEar, 3500+Math.random()*3500);
+        }
+        twitchEar();
+
+        setTimeout(function(){
+            var glow = svg.querySelector('.cat-part');
+            gsap.to(glow, {
+                opacity:0.45, repeat:-1, yoyo:true, duration:3.5, ease:'sine.inOut'
+            });
+        }, 2000);
+    }
+
+    var pPool=[], pIdx=0;
+    var pColors=['#FFBF69','#F4D03F','#FF9F68','#E67E22','#F8C471','#FFB347','#fff3c9','#ffe8c8'];
+    var pShapes=['#dot','#star','#paw'];
+
+    var BODY_PATH = 'M 318,352 C 292,358 268,390 268,430 C 268,492 318,545 400,550 C 482,545 532,492 532,430 C 532,390 508,358 482,352 C 458,344 430,340 400,338 C 370,340 342,344 318,352 Z';
+
+    function initParticles(){
+        for(var i=0;i<80;i++){
+            var sid=pShapes[i%pShapes.length];
+            var p=document.querySelector(sid).cloneNode(true);
+            p.removeAttribute('id');
+            svg.appendChild(p);
+            p.setAttribute('fill',pColors[i%pColors.length]);
+            p.classList.add('ptcl');
+            gsap.set(p,{ x:-100, y:-100, opacity:0, scale:0.4+Math.random()*0.8 });
+            pPool.push(p);
+        }
+        var sm=document.querySelector('.sparkleMaster');
+        gsap.set(sm,{ opacity:0.9 });
+        var flow=gsap.timeline({ repeat:-1, onUpdate:emitParticle });
+        flow.to(sm,{
+            duration:7, ease:'none',
+            motionPath:{ path: BODY_PATH, autoRotate:false }
+        });
+    }
+
+    function emitParticle(){
+        var p=pPool[pIdx%pPool.length];
+        var sm=document.querySelector('.sparkleMaster');
+        var px=gsap.getProperty(sm,'x')||0;
+        var py=gsap.getProperty(sm,'y')||0;
+        gsap.set(p,{ x:px, y:py, scale:0.5+Math.random()*1.2, opacity:0.85+Math.random()*0.15 });
+        var vel=15+Math.random()*45;
+        var ang=Math.random()*Math.PI*2;
+        var grav=8+Math.random()*25;
+        var dur=0.8+Math.random()*1.8;
+        gsap.to(p,{
+            duration:dur,
+            x:px+Math.cos(ang)*vel*dur,
+            y:py+Math.sin(ang)*vel*dur+0.5*grav*dur*dur,
+            scale:0, opacity:0, rotation:Math.random()*360-180,
+            ease:'power2.out'
+        });
+        pIdx++;
+    }
+
+    function initStarfield(){
+        var c=document.getElementById('starsCanvas');
+        if(!c)return;
+        var ctx=c.getContext('2d');
+        var w=c.width=window.innerWidth;
+        var h=c.height=window.innerHeight;
+        var stars=[];
+        for(var i=0;i<500;i++){
+            stars.push({
+                x:Math.random()*w, y:Math.random()*h,
+                r:Math.random()*2.2+0.5,
+                a:Math.random()*0.7+0.2,
+                s:0.002+Math.random()*0.007
+            });
+        }
+        function draw(){
+            ctx.clearRect(0,0,w,h);
+            ctx.fillStyle='#070715';
+            ctx.fillRect(0,0,w,h);
+            stars.forEach(function(s){
+                ctx.beginPath();
+                ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+                ctx.fillStyle='rgba(255,225,160,'+(s.a*0.85)+')';
+                ctx.fill();
+                s.a+=s.s;
+                if(s.a>1||s.a<0.2)s.s=-s.s;
+            });
+            requestAnimationFrame(draw);
+        }
+        draw();
+        window.addEventListener('resize',function(){
+            w=c.width=window.innerWidth;
+            h=c.height=window.innerHeight;
+        });
+    }
+
+    document.addEventListener('mousemove',function(e){
+        var r=svg.getBoundingClientRect();
+        var mx=(e.clientX-r.left)/r.width*800;
+        var my=(e.clientY-r.top)/r.height*700;
+        var eyes=[[358,265,'.pupilL'],[442,265,'.pupilR']];
+        eyes.forEach(function(ee){
+            var dx=mx-ee[0], dy=my-ee[1];
+            var d=Math.sqrt(dx*dx+dy*dy)||1;
+            var m=5;
+            gsap.to(ee[2],{
+                attr:{ cx:ee[0]+dx/d*m, cy:ee[1]+dy/d*m },
+                duration:0.25, ease:'power2.out', overwrite:'auto'
+            });
+        });
+    });
+
+    var started=false;
+    var maskDiv=document.getElementById('mask');
+    var hintDiv=document.querySelector('.hint');
+
+    window.addEventListener('click',function(){
+        if(started)return;
+        started=true;
+        if(maskDiv){
+            maskDiv.style.transition='opacity 0.6s';
+            maskDiv.style.opacity='0';
+            setTimeout(function(){ maskDiv.remove(); },600);
+        }
+        if(hintDiv) hintDiv.style.opacity='0';
+        initStarfield();
+        tl.play();
+    });
+})();
+</script>
+<script src="../../src/js/nav.js"></script>
+</body>
+</html>
