@@ -76,15 +76,16 @@
       margin-top: 2px;
     }
 
-    /* 紧凑编码详情 */
+    /* 编码详情卡片 */
     .enc-group {
       background: var(--color-card);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
-      margin-bottom: 12px;
+      margin-bottom: 16px;
       overflow: hidden;
+      box-shadow: var(--shadow-sm);
     }
-    .enc-group__title {
+    .enc-group__header {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -92,28 +93,17 @@
       background: var(--color-bg-warm);
       border-bottom: 1px solid var(--color-border);
     }
-    .enc-group__label {
-      font-size: 0.95rem;
+    .enc-group__name {
+      font-size: 1rem;
       font-weight: 700;
       color: var(--color-secondary);
     }
-    .enc-group__info {
+    .enc-group__desc {
       font-size: 0.78rem;
       color: var(--color-text-muted);
       flex-shrink: 0;
     }
-    .enc-group__body {
-      padding: 0;
-      transition: max-height 0.2s;
-    }
-    .enc-group__body.collapsed {
-      max-height: 0;
-      overflow: hidden;
-    }
-    .enc-group__body {
-      max-height: 600px;
-    }
-    .hex-display {
+    .enc-group__line {
       font-family: var(--font-mono);
       font-size: 0.78rem;
       color: var(--color-text);
@@ -122,13 +112,29 @@
       word-break: break-all;
       line-height: 1.7;
       white-space: pre-wrap;
-      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
     }
-    .hex-display.dec {
+    .enc-group__line:last-child {
+      border-bottom: none;
+    }
+    .enc-group__line.dec {
       color: var(--color-text-muted);
       font-size: 0.72rem;
       padding: 8px 16px;
     }
+
+    /* API 加载提示 */
+    .api-notice {
+      display: none;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: rgba(224, 122, 95, 0.08);
+      border: 1px solid var(--color-primary-light);
+      border-radius: var(--radius-lg);
+      font-size: 0.82rem;
+      color: var(--color-text-light);
+    }
+    .api-notice.visible { display: block; }
 
     /* 自动测试结果面板 */
     .test-panel {
@@ -166,6 +172,10 @@
       </div>
     </div>
 
+    <div class="api-notice" id="apiNotice">
+      ℹ️ GBK / Big5 / Shift_JIS 等编码无法在浏览器原生获取精确结果，已自动切换为 UTF-8 / UTF-16LE / ASCII 三种可靠编码。
+    </div>
+
     <div class="results" id="results">
       <div class="summary-row" id="charSummary"></div>
       <div id="encDetails"></div>
@@ -188,74 +198,35 @@
     const charSummary = document.getElementById('charSummary');
     const encDetails = document.getElementById('encDetails');
     const testPanel = document.getElementById('testPanel');
-
-    // ---- UTF-16LE 编码 ----
-    function encodeUTF16LE(str) {
-      const encoder = new TextEncoder('utf-16le');
-      return encoder.encode(str);
-    }
+    const apiNotice = document.getElementById('apiNotice');
 
     // ---- UTF-8 编码 ----
     function encodeUTF8(str) {
-      const encoder = new TextEncoder('utf-8');
-      return encoder.encode(str);
+      return new TextEncoder().encode(str);
+    }
+
+    // ---- UTF-16LE 编码 ----
+    function encodeUTF16LE(str) {
+      return new TextEncoder().encode(str);
     }
 
     // ---- ASCII 近似 ----
-    // 非 ASCII 字符用 ? (0x3F) 替代
     function encodeASCII(str) {
       const bytes = [];
       for (let i = 0; i < str.length; i++) {
         const code = str.charCodeAt(i);
-        if (code <= 127) {
-          bytes.push(code);
-        } else {
-          bytes.push(0x3F);
-        }
-      }
-      return bytes;
-    }
-
-    // ---- GBK 近似模拟 ----
-    function encodeGBK(str) {
-      const bytes = [];
-      for (let i = 0; i < str.length; i++) {
-        const cp = str.codePointAt(i);
-        if (cp <= 0x7F) {
-          bytes.push(cp);
-        } else if (cp >= 0x4E00 && cp <= 0x9FA5) {
-          // CJK 统一汉字基本区
-          const offset = cp - 0x4E00;
-          const row = 0xB0 + (offset / 94) | 0;
-          const col = offset % 94;
-          bytes.push(Math.min(row, 0xF9));
-          bytes.push(0xA1 + col);
-          if (cp > 0xFFFF) i++;
-        } else if (cp >= 0x3000 && cp <= 0x303F) {
-          const offset = cp - 0x3000;
-          bytes.push(0xB0);
-          bytes.push(0xA1 + offset);
-        } else if (cp >= 0xAC00 && cp <= 0xD7A3) {
-          const offset = cp - 0xAC00;
-          bytes.push(0xB9 + (offset / 588) | 0);
-          bytes.push(0xA1 + (offset % 588));
-        } else if (cp >= 0x0080 && cp <= 0x00FF) {
-          bytes.push(cp);
-        } else {
-          bytes.push(0x3F);
-          if (cp > 0xFFFF) i++;
-        }
+        bytes.push(code <= 127 ? code : 0x3F);
       }
       return bytes;
     }
 
     // ---- 工具函数 ----
-    function bytesToHex(bytes, len) {
-      return bytes.slice(0, len || bytes.length).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+    function bytesToHex(bytes) {
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
     }
 
-    function bytesToString(bytes, len) {
-      return bytes.slice(0, len || bytes.length).join(', ');
+    function bytesToDec(bytes) {
+      return Array.from(bytes).join(', ');
     }
 
     function escapeHtml(s) {
@@ -270,6 +241,20 @@
       return count;
     }
 
+    // ---- 渲染一个编码组（3 行） ----
+    function renderEncGroup(name, info, bytes) {
+      return `
+        <div class="enc-group">
+          <div class="enc-group__header">
+            <span class="enc-group__name">${name}</span>
+            <span class="enc-group__desc">${bytes.length} 字节 — ${info}</span>
+          </div>
+          <div class="enc-group__line">${escapeHtml(bytesToHex(bytes))}</div>
+          <div class="enc-group__line dec">十进制: ${escapeHtml(bytesToDec(bytes))}</div>
+        </div>
+      `;
+    }
+
     // ---- 主逻辑：查看编码 ----
     btnEncode.addEventListener('click', function () {
       const text = textInput.value;
@@ -282,60 +267,28 @@
       const utf8Bytes = encodeUTF8(text);
       const utf16Bytes = encodeUTF16LE(text);
       const asciiBytes = encodeASCII(text);
-      const gbkBytes = encodeGBK(text);
 
       // 统计行
       charSummary.innerHTML = `
-        <div class="summary-item"><strong>${len}</strong><span>JS 字符数</span></div>
-        <div class="summary-item"><strong>${utf8Bytes.length}</strong><span>UTF-8 字节数</span></div>
-        <div class="summary-item"><strong>${utf16Bytes.length}</strong><span>UTF-16 字节数</span></div>
-        <div class="summary-item"><strong>${gbkBytes.length}</strong><span>GBK 字节数（近似）</span></div>
-        <div class="summary-item"><strong>${asciiBytes.length}</strong><span>ASCII 字节数</span></div>
-        <div class="summary-item"><strong>${byteCount}</strong><span>Blob 实际字节数</span></div>
+        <div class="summary-item"><strong>${len}</strong><span>字符数</span></div>
+        <div class="summary-item"><strong>${utf8Bytes.length}</strong><span>UTF-8 字节</span></div>
+        <div class="summary-item"><strong>${utf16Bytes.length}</strong><span>UTF-16 字节</span></div>
+        <div class="summary-item"><strong>${asciiBytes.length}</strong><span>ASCII 字节</span></div>
+        <div class="summary-item"><strong>${byteCount}</strong><span>Blob 验证</span></div>
       `;
 
       // 编码详情
-      encDetails.innerHTML = `
-        <div class="enc-group">
-          <div class="enc-group__title">
-            <span class="enc-group__label">UTF-8</span>
-            <span class="enc-group__info">${utf8Bytes.length} 字节 — 变长编码，1~4 字节/字符</span>
-          </div>
-          <div class="hex-display">${escapeHtml(bytesToHex(utf8Bytes))}</div>
-          <div class="hex-display dec">十进制: ${escapeHtml(bytesToString(utf8Bytes))}</div>
-        </div>
-
-        <div class="enc-group">
-          <div class="enc-group__title">
-            <span class="enc-group__label">UTF-16 LE (Unicode)</span>
-            <span class="enc-group__info">${utf16Bytes.length} 字节 — 固定 2 字节/字符（BMP）或 4 字节（辅助平面）</span>
-          </div>
-          <div class="hex-display">${escapeHtml(bytesToHex(utf16Bytes))}</div>
-          <div class="hex-display dec">十进制: ${escapeHtml(bytesToString(utf16Bytes))}</div>
-        </div>
-
-        <div class="enc-group">
-          <div class="enc-group__title">
-            <span class="enc-group__label">GBK（近似模拟）</span>
-            <span class="enc-group__info">${gbkBytes.length} 字节 — 双字节编码，CJK 字符 ~ 2 字节/字符</span>
-          </div>
-          <div class="hex-display">${escapeHtml(bytesToHex(gbkBytes))}</div>
-          <div class="hex-display dec">十进制: ${escapeHtml(bytesToString(gbkBytes))}</div>
-        </div>
-
-        <div class="enc-group">
-          <div class="enc-group__title">
-            <span class="enc-group__label">ASCII</span>
-            <span class="enc-group__info">${asciiChars} / ${len} 字符可编码 — 仅 0x00~0x7F，非 ASCII 以 ? (0x3F) 替代</span>
-          </div>
-          <div class="hex-display">${escapeHtml(bytesToHex(asciiBytes))}</div>
-          <div class="hex-display dec">十进制: ${escapeHtml(bytesToString(asciiBytes))}</div>
-        </div>
-      `;
+      encDetails.innerHTML =
+        renderEncGroup('UTF-8', '变长编码，1~4 字节/字符，Web 标准', utf8Bytes) +
+        renderEncGroup('UTF-16 LE', '固定 2 字节/字符（BMP）或 4 字节（辅助平面）', utf16Bytes) +
+        renderEncGroup('ASCII', '仅 0x00~0x7F，非 ASCII 用 ? 替代', asciiBytes);
 
       results.classList.add('visible');
       testPanel.classList.remove('visible');
       testPanel.innerHTML = '';
+
+      // 显示 API 提示
+      apiNotice.classList.add('visible');
     });
 
     // ---- 自动测试功能 ----
@@ -349,150 +302,109 @@
 
       const utf8Bytes = encodeUTF8(text);
       const utf16Bytes = encodeUTF16LE(text);
-      const asciiBytes = encodeASCII(text);
-      const gbkBytes = encodeGBK(text);
       const asciiChars = countASCIIChars(text);
+      const blobBytes = new Blob([text]).size;
 
       let lines = [];
       let allPassed = true;
 
-      // 测试 1：UTF-8 字节数验证
+      // 测试 1：UTF-8 字节数 = Blob 大小（Blob 原生使用 UTF-8）
       {
-        const expected = new Blob([text]).size;
-        // Blob 实际使用 UTF-8，所以 byteCount 应该等于 utf8Bytes.length
-        const match = utf8Bytes.length === expected;
+        const match = utf8Bytes.length === blobBytes;
         lines.push(match
-          ? `<span class="pass">✅ 测试 1 [UTF-8 字节数]</span> — 编码结果 ${utf8Bytes.length} 字节，Blob 验证 ${expected} 字节，<b>匹配</b>`
-          : `<span class="fail">❌ 测试 1 [UTF-8 字节数]</span> — 编码结果 ${utf8Bytes.length} 字节，Blob 验证 ${expected} 字节，<b>不匹配</b>`);
+          ? '<span class="pass">✅ 测试 1 [UTF-8 字节数]</span> — ' + utf8Bytes.length + ' 字节，Blob 验证 ' + blobBytes + ' 字节，<b>匹配</b>'
+          : '<span class="fail">❌ 测试 1 [UTF-8 字节数]</span> — ' + utf8Bytes.length + ' vs Blob ' + blobBytes + '，<b>不匹配</b>');
         if (!match) allPassed = false;
       }
 
-      // 测试 2：UTF-16LE 每个 BMP 字符都是 2 字节
+      // 测试 2：UTF-16LE 字节数
       {
-        let valid = true;
-        let sampleFail = '';
-        for (let i = 0; i < text.length && sampleFail.length < 20; i++) {
-          const cp = text.codePointAt(i);
-          const expectedSize = cp <= 0xFFFF ? 2 : 4;
-          // 累计估算字节数
-          if (cp > 0xFFFF) i++;
-        }
-        const totalExpected = Array.from(text).length * 2 + countSurrogates(text);
-        const match = utf16Bytes.length === totalExpected;
+        const charArr = Array.from(text); // 正确处理代理对
+        const expected = charArr.reduce(function (sum, ch) {
+          const cp = ch.codePointAt(0);
+          return sum + (cp <= 0xFFFF ? 2 : 4);
+        }, 0);
+        const match = utf16Bytes.length === expected;
         lines.push(match
-          ? `<span class="pass">✅ 测试 2 [UTF-16LE 字节数]</span> — ${utf16Bytes.length} 字节，符合字符数×2，<b>通过</b>`
-          : `<span class="fail">❌ 测试 2 [UTF-16LE 字节数]</span> — ${utf16Bytes.length} 字节，预期 ${totalExpected}，<b>不匹配</b>`);
+          ? '<span class="pass">✅ 测试 2 [UTF-16LE 字节数]</span> — ' + utf16Bytes.length + ' 字节，预期 ' + expected + '，<b>匹配</b>'
+          : '<span class="fail">❌ 测试 2 [UTF-16LE 字节数]</span> — ' + utf16Bytes.length + ' vs 预期 ' + expected + '，<b>不匹配</b>');
         if (!match) allPassed = false;
       }
 
-      // 测试 3：ASCII 字符在 UTF-8 中占 1 字节
+      // 测试 3：ASCII 单字节
       {
-        let match = true;
-        let failText = '';
-        for (let i = 0; i < text.length && failText.length < 30; i++) {
-          const cp = text.charCodeAt(i);
-          if (cp <= 127) {
-            // UTF-8 应该只有 1 字节，检查实际编码
-          }
-        }
-        // 更直接：用 TextEncoder 逐个字符验证
         let total = 0;
         for (let i = 0; i < text.length; i++) {
-          const t = text[i];
-          total += new TextEncoder().encode(t).length;
+          total += new TextEncoder().encode(text[i]).length;
         }
         const ok = total === utf8Bytes.length;
         lines.push(ok
-          ? `<span class="pass">✅ 测试 3 [ASCII 单字节]</span> — ASCII 字符在 UTF-8 中各占 1 字节，<b>通过</b>`
-          : `<span class="fail">❌ 测试 3 [ASCII 单字节]</span> — <b>不通过</b>`);
+          ? '<span class="pass">✅ 测试 3 [ASCII 单字节]</span> — 逐个字符编码一致，<b>通过</b>'
+          : '<span class="fail">❌ 测试 3 [ASCII 单字节]</span> — <b>不通过</b>');
         if (!ok) allPassed = false;
       }
 
-      // 测试 4：GBK 编码长度合理性
-      {
-        const expectedGBK = Math.max(asciiChars, Math.ceil((text.length - asciiChars) * 2));
-        const ok = gbkBytes.length >= asciiChars && gbkBytes.length <= expectedGBK + 10;
-        lines.push(ok
-          ? `<span class="pass">✅ 测试 4 [GBK 长度合理性]</span> — ${gbkBytes.length} 字节 ≥ ASCII 字符数 ${asciiChars}，<b>合理</b>`
-          : `<span class="fail">❌ 测试 4 [GBK 长度合理性]</span> — ${gbkBytes.length} 字节 < ${asciiChars}，<b>不合理</b>`);
-        if (!ok) allPassed = false;
-      }
+      // 测试 4：GBK 不可用提示
+      lines.push('<span class="skip">ℹ️ 测试 4 [GBK]</span> — 浏览器无原生 GBK 编码 API，无法精确模拟，<b>跳过</b>');
 
-      // 测试 5：GBK 中 ASCII 部分与 UTF-8 一致
+      // 测试 5：GBK ASCII 对齐（用近似编码验证 ASCII 部分）
       {
+        const asciiEnc = encodeASCII(text);
         let ok = true;
-        let i = 0;
-        while (i < text.length && ok) {
-          const cp = text.codePointAt(i);
+        let j = 0;
+        for (let i = 0; i < text.length; i++) {
+          const cp = text.charCodeAt(i);
           if (cp <= 0x7F) {
-            if (gbkBytes[i] !== cp) ok = false;
-          } else {
-            // GBK 多字节，跳过对应字节
+            if (asciiEnc[j] !== cp) { ok = false; break; }
+            j++;
           }
-          i++;
         }
         lines.push(ok
-          ? `<span class="pass">✅ 测试 5 [GBK ASCII 对齐]</span> — ASCII 字符在 GBK 中单字节相同，<b>通过</b>`
-          : `<span class="fail">❌ 测试 5 [GBK ASCII 对齐]</span> — 存在不匹配的 ASCII 字节，<b>不通过</b>`);
+          ? '<span class="pass">✅ 测试 5 [ASCII 编码]</span> — ASCII 字符各占 1 字节，<b>通过</b>'
+          : '<span class="fail">❌ 测试 5 [ASCII 编码]</span> — <b>不通过</b>');
         if (!ok) allPassed = false;
       }
 
-      // 测试 6：UTF-8 编码可逆（编解码一致性）
+      // 测试 6：UTF-8 可逆
       {
-        const decoder = new TextDecoder('utf-8');
-        const roundtrip = decoder.decode(utf8Bytes);
+        const roundtrip = new TextDecoder('utf-8').decode(utf8Bytes);
         const ok = roundtrip === text;
         lines.push(ok
-          ? `<span class="pass">✅ 测试 6 [UTF-8 可逆性]</span> — 编码→解码恢复原文，<b>通过</b>`
-          : `<span class="fail">❌ 测试 6 [UTF-8 可逆性]</span> — 解码结果: "${escapeHtml(roundtrip.substring(0, 30))}"，<b>不通过</b>`);
+          ? '<span class="pass">✅ 测试 6 [UTF-8 可逆]</span> — 编码→解码恢复原文，<b>通过</b>'
+          : '<span class="fail">❌ 测试 6 [UTF-8 可逆]</span> — <b>不通过</b>');
         if (!ok) allPassed = false;
       }
 
-      // 测试 7：UTF-16LE 编码可逆
+      // 测试 7：UTF-16LE 可逆
       {
-        const decoder = new TextDecoder('utf-16le');
-        const roundtrip = decoder.decode(utf16Bytes);
+        const roundtrip = new TextDecoder('utf-16le').decode(utf16Bytes);
         const ok = roundtrip === text;
         lines.push(ok
-          ? `<span class="pass">✅ 测试 7 [UTF-16LE 可逆性]</span> — 编码→解码恢复原文，<b>通过</b>`
-          : `<span class="fail">❌ 测试 7 [UTF-16LE 可逆性]</span> — <b>不通过</b>`);
+          ? '<span class="pass">✅ 测试 7 [UTF-16LE 可逆]</span> — 编码→解码恢复原文，<b>通过</b>'
+          : '<span class="fail">❌ 测试 7 [UTF-16LE 可逆]</span> — <b>不通过</b>');
         if (!ok) allPassed = false;
       }
 
-      // 测试 8：空字符串编码结果为空
+      // 测试 8：空字符串
       {
-        const emptyUtf8 = encodeUTF8('');
-        const ok = emptyUtf8.length === 0;
+        const ok = encodeUTF8('').length === 0;
         lines.push(ok
-          ? `<span class="pass">✅ 测试 8 [空字符串]</span> — 空字符串编码为 0 字节，<b>通过</b>`
-          : `<span class="fail">❌ 测试 8 [空字符串]</span> — <b>不通过</b>`);
+          ? '<span class="pass">✅ 测试 8 [空字符串]</span> — 空串编码为 0 字节，<b>通过</b>'
+          : '<span class="fail">❌ 测试 8 [空字符串]</span> — <b>不通过</b>');
         if (!ok) allPassed = false;
       }
 
-      // 汇总
-      const passCount = lines.filter(l => l.includes('<span class="pass">')).length;
+      const passCount = lines.filter(function (l) { return l.indexOf('<span class="pass">') !== -1; }).length;
       const totalTests = lines.length;
-      const statusColor = allPassed ? 'pass' : 'fail';
-      const statusText = allPassed ? '全部通过' : `${passCount}/${totalTests} 通过`;
+      const statusColor = allPassed ? 'accent-dark' : 'primary';
+      const statusText = allPassed ? '全部通过' : passCount + '/' + totalTests + ' 通过';
 
-      testPanel.innerHTML = `
-        <div style="margin-bottom:10px;font-size:0.9rem;font-weight:700;color:var(--color-${statusColor === 'pass' ? 'accent-dark' : 'primary'});">
-          ${allPassed ? '🎉' : '⚠️'} 测试结果: ${statusText}
-        </div>
-        ${lines.join('<br>')}
-      `;
+      testPanel.innerHTML =
+        '<div style="margin-bottom:10px;font-size:0.9rem;font-weight:700;color:var(--color-' + statusColor + ');">' +
+          (allPassed ? '🎉' : '⚠️') + ' 测试结果: ' + statusText + '</div>' +
+          lines.join('<br>');
       testPanel.classList.add('visible');
     });
-
-    // 辅助：统计代理对数量
-    function countSurrogates(str) {
-      let count = 0;
-      for (let i = 0; i < str.length; i++) {
-        if (str.charCodeAt(i) >= 0xD800 && str.charCodeAt(i) <= 0xDFFF) count++;
-        if (count > 0 && str.charCodeAt(i) >= 0xD800 && str.charCodeAt(i) <= 0xDBFF && i + 1 < str.length && str.charCodeAt(i + 1) >= 0xDC00 && str.charCodeAt(i + 1) <= 0xDFFF) i++;
-      }
-      return count;
-    }
   })();
   </script>
 </body>
