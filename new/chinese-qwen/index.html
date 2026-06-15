@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中文诗句学习 · 每日一首</title>
+  <link rel="stylesheet" href="../src/css/common.css">
+  <style>
+    /* ========== 页面特有样式 ========== */
+
+    .hero {
+      text-align: center;
+      padding: 80px 24px 40px;
+      position: relative;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+    }
+    .hero__badge {
+      display: inline-block;
+      padding: 6px 18px;
+      background: rgba(224,122,95,0.1);
+      color: var(--color-primary);
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      margin-bottom: 24px;
+    }
+    .hero__title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--color-secondary);
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .hero__desc {
+      font-size: 0.95rem;
+      color: var(--color-text-light);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+
+    .body-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* 加载提示 */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-muted);
+      font-size: 0.95rem;
+    }
+    .loading__spinner {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 诗句主卡片 */
+    .poem-card {
+      background: var(--color-card);
+      border-radius: var(--radius-xl);
+      padding: 40px 36px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow var(--duration-normal) var(--ease-out-expo);
+    }
+    .poem-card:hover { box-shadow: var(--shadow-md); }
+    .poem-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-accent), var(--color-primary));
+    }
+    .poem-card__meta {
+      font-size: 0.82rem;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .poem-card__title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-secondary);
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+    .poem-card__author {
+      font-size: 0.95rem;
+      color: var(--color-primary);
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .poem-card__lines {
+      font-size: 1.2rem;
+      line-height: 2.4;
+      color: var(--color-text);
+      text-align: center;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      margin-bottom: 24px;
+    }
+    .poem-card__lines .line {
+      display: block;
+    }
+
+    /* 拼音行 */
+    .poem-card__pinyin {
+      font-size: 0.82rem;
+      color: var(--color-text-light);
+      text-align: center;
+      line-height: 2;
+      margin-bottom: 16px;
+      font-weight: 400;
+    }
+
+    /* 翻译 & 注释 */
+    .poem-card__notes {
+      padding: 16px 20px;
+      background: rgba(224,122,95,0.04);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--color-primary-light);
+      font-size: 0.85rem;
+      color: var(--color-text-light);
+      line-height: 1.8;
+      text-align: left;
+    }
+    .poem-card__notes-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+
+    /* 四字词语 & 词组网格 */
+    .tag-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .tag-item {
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      text-align: center;
+      transition: all 0.35s var(--ease-out-expo);
+      position: relative;
+      overflow: hidden;
+    }
+    .tag-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--accent, var(--color-primary));
+      transition: height 0.25s var(--ease-out-expo);
+    }
+    .tag-item:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+    .tag-item:hover::before { height: 4px; }
+    .tag-item__word {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--color-secondary);
+      margin-bottom: 6px;
+    }
+    .tag-item__cn {
+      font-size: 0.78rem;
+      color: var(--color-text-light);
+      line-height: 1.4;
+    }
+
+    .accent-idiom   { --accent: var(--color-primary); }
+    .accent-sentence { --accent: var(--color-accent); }
+    .accent-word     { --accent: var(--color-secondary); }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      margin-bottom: 14px;
+    }
+
+    /* 刷新按钮 */
+    .refresh-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+
+    /* 错误 */
+    .error-msg {
+      text-align: center;
+      padding: 24px;
+      background: rgba(224,122,95,0.06);
+      border: 1px solid var(--color-primary-light);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-light);
+      font-size: 0.9rem;
+    }
+
+    /* 背景水墨装饰 */
+    .ink-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.4;
+    }
+
+    /* 响应式 */
+    @media (max-width: 640px) {
+      .hero__title { font-size: 1.8rem; }
+      .hero { padding: 50px 16px 30px; }
+      .body-wrap { padding: 0 16px 60px; }
+      .poem-card { padding: 28px 20px; }
+      .poem-card__title { font-size: 1.2rem; }
+      .poem-card__lines { font-size: 1.05rem; line-height: 2.2; }
+      .tag-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    }
+  </style>
+</head>
+<body data-nav-current="index">
+
+  <section class="hero">
+    <div class="hero__badge">🏮 DAILY POETRY</div>
+    <h1 class="hero__title">中文诗句学习</h1>
+    <p class="hero__desc">每日一首古诗，搭配两个四字词、三个日常词组，让经典融入生活。</p>
+  </section>
+
+  <div class="body-wrap">
+    <div class="loading" id="loading">
+      <div class="loading__spinner"></div>
+      <div>正在获取每日诗句…</div>
+    </div>
+    <div id="content" style="display:none;"></div>
+  </div>
+
+  <script src="../src/js/nav.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ---- 工具函数 ----
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function pick(arr, n) {
+      var result = [];
+      var copy = arr.slice();
+      for (var i = 0; i < n && copy.length; i++) {
+        var idx = Math.floor(Math.random() * copy.length);
+        result.push(copy.splice(idx, 1)[0]);
+      }
+      return result;
+    }
+
+    function showError(msg) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').innerHTML = '<div class="error-msg">' + escHtml(msg) + '</div>';
+    }
+
+    // ---- 渲染 ----
+    function renderPage(poem) {
+      var html = [];
+
+      // 诗句主卡片
+      html.push('<div class="poem-card">');
+      if (poem.meta) {
+        html.push('<div class="poem-card__meta">' + escHtml(poem.meta) + '</div>');
+      }
+      if (poem.title) {
+        html.push('<div class="poem-card__title">' + escHtml(poem.title) + '</div>');
+      }
+      if (poem.author) {
+        html.push('<div class="poem-card__author">' + escHtml(poem.author) + '</div>');
+      }
+      if (poem.lines && poem.lines.length) {
+        html.push('<div class="poem-card__lines">');
+        poem.lines.forEach(function(line) {
+          html.push('<span class="line">' + escHtml(line) + '</span>');
+        });
+        html.push('</div>');
+      }
+      if (poem.pinyin) {
+        html.push('<div class="poem-card__pinyin">' + escHtml(poem.pinyin) + '</div>');
+      }
+      if (poem.translation) {
+        html.push('<div class="poem-card__notes">');
+        html.push('<div class="poem-card__notes-label">译文</div>');
+        html.push(escHtml(poem.translation));
+        html.push('</div>');
+      }
+      if (poem.note) {
+        html.push('<div class="poem-card__notes">');
+        html.push('<div class="poem-card__notes-label">赏析</div>');
+        html.push(escHtml(poem.note));
+        html.push('</div>');
+      }
+      html.push('</div>');
+
+      // 四字词语
+      if (poem.idioms && poem.idioms.length) {
+        html.push('<div class="section-label" style="margin-top:24px;">两个四字词 · Idioms</div>');
+        html.push('<div class="tag-grid">');
+        poem.idioms.forEach(function(item) {
+          html.push('<div class="tag-item accent-idiom">');
+          html.push('<div class="tag-item__word">' + escHtml(item.word) + '</div>');
+          if (item.cn) html.push('<div class="tag-item__cn">' + escHtml(item.cn) + '</div>');
+          html.push('</div>');
+        });
+        html.push('</div>');
+      }
+
+      // 词组
+      if (poem.phrases && poem.phrases.length) {
+        html.push('<div class="section-label">三个日常词组 · Phrases</div>');
+        html.push('<div class="tag-grid">');
+        poem.phrases.forEach(function(item) {
+          html.push('<div class="tag-item accent-sentence">');
+          html.push('<div class="tag-item__word">' + escHtml(item.word) + '</div>');
+          if (item.cn) html.push('<div class="tag-item__cn">' + escHtml(item.cn) + '</div>');
+          html.push('</div>');
+        });
+        html.push('</div>');
+      }
+
+      // 刷新按钮
+      html.push('<div class="refresh-row">');
+      html.push('<button class="btn btn--primary" id="btnRefresh">🔄 换一首</button>');
+      html.push('</div>');
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').innerHTML = html.join('');
+      document.getElementById('btnRefresh').addEventListener('click', loadData);
+    }
+
+    // ---- 本地预设诗句 ----
+    var poemPresets = [
+      {
+        title: '登鹳雀楼',
+        author: '[唐] 王之涣',
+        lines: ['白日依山尽，', '黄河入海流。', '欲穷千里目，', '更上一层楼。'],
+        pinyin: 'Bái rì yī shān jìn, huáng hé rù hǎi liú. Yù qióng qiān lǐ mù, gèng shàng yī céng lóu.',
+        translation: '太阳依傍山峦渐渐下落，黄河向着大海滔滔东流。如果想要看到一千里之外的景色，就要再登上一层高楼。',
+        note: '本诗前两句写景，气势磅礴；后两句寓理于景，道出"站得高看得远"的人生哲理。',
+        meta: '五言绝句',
+        idioms: [
+          { word: '依山尽', cn: '沿着山势渐渐消失' },
+          { word: '更上一层楼', cn: '再提升一个层次' }
+        ],
+        phrases: [
+          { word: '黄河入海', cn: '比喻大势所趋、不可阻挡' },
+          { word: '千里目', cn: '远大的视野与志向' },
+          { word: '白日依山', cn: '壮丽的自然景象' }
+        ]
+      },
+      {
+        title: '静夜思',
+        author: '[唐] 李白',
+        lines: ['床前明月光，', '疑是地上霜。', '举头望明月，', '低头思故乡。'],
+        pinyin: 'Chuáng qián míng yuè guāng, yí shì dì shàng shuāng. Jǔ tóu wàng míng yuè, dī tóu sì gù xiāng.',
+        translation: '明亮的月光洒在窗前，让人误以为是地上铺了一层白霜。抬起头仰望空中明月，低下头不禁思念起远方的故乡。',
+        note: '全诗语言朴素自然，却将思乡之情表达得深挚动人，是李白最著名的作品。',
+        meta: '五言绝句',
+        idioms: [
+          { word: '举头望月', cn: '仰望明月寄托思念' },
+          { word: '低头思乡', cn: '低头沉思故乡的亲人' }
+        ],
+        phrases: [
+          { word: '明月光', cn: '月光如水，清澈明亮' },
+          { word: '地上霜', cn: '月光如霜，营造清冷氛围' },
+          { word: '思故乡', cn: '对家乡和亲人的怀念' }
+        ]
+      },
+      {
+        title: '春晓',
+        author: '[唐] 孟浩然',
+        lines: ['春眠不觉晓，', '处处闻啼鸟。', '夜来风雨声，', '花落知多少。'],
+        pinyin: 'Chūn mián bù jué xiǎo, chù chù wén tí niǎo. Yè lái fēng yǔ shēng, huā luò zhī duō shǎo.',
+        translation: '春天的夜晚睡得格外香甜，不知不觉天已破晓。到处可以听到鸟儿婉转的啼叫。想起昨夜风雨交加，不知花儿被吹落了多少。',
+        note: '语言清新平易，短短二十字写尽春晨生机与惜春之情。',
+        meta: '五言绝句',
+        idioms: [
+          { word: '春眠不觉', cn: '春日贪睡，不知不觉天已亮' },
+          { word: '花落知多少', cn: '感叹时光流逝、美好难留' }
+        ],
+        phrases: [
+          { word: '处处啼鸟', cn: '到处鸟鸣声声，春意盎然' },
+          { word: '风雨声', cn: '昨夜风雨，暗含惜花之情' },
+          { word: '闻啼鸟', cn: '醒来即闻鸟鸣，生机盎然' }
+        ]
+      },
+      {
+        title: '望庐山瀑布',
+        author: '[唐] 李白',
+        lines: ['日照香炉生紫烟，', '遥看瀑布挂前川。', '飞流直下三千尺，', '疑是银河落九天。'],
+        pinyin: 'Rì zhào xiāng lú shēng zǐ yān, yáo kàn pù bù guà qián chuān. Fēi liú zhí xià sān qiān chǐ, yí shì yín hé luò jiǔ tiān.',
+        translation: '阳光照在香炉峰上升起紫色的云烟，远远望去瀑布像一条白练挂在山前。飞速奔流的瀑布从三千尺高处直泻而下，让人怀疑是银河从九重天上坠落下来。',
+        note: '"飞流直下三千尺"是李白夸张手法的经典，气势恢宏，想象奇特。',
+        meta: '七言绝句',
+        idioms: [
+          { word: '日照香炉', cn: '阳光照耀庐山香炉峰' },
+          { word: '银河落九天', cn: '形容瀑布高悬直泻的壮观景象' }
+        ],
+        phrases: [
+          { word: '紫烟', cn: '瀑布水雾在阳光下呈现的紫色烟霭' },
+          { word: '挂前川', cn: '瀑布如白练悬挂山间' },
+          { word: '飞流直下', cn: '水流急速奔腾而下' }
+        ]
+      },
+      {
+        title: '江雪',
+        author: '[唐] 柳宗元',
+        lines: ['千山鸟飞绝，', '万径人踪灭。', '孤舟蓑笠翁，', '独钓寒江雪。'],
+        pinyin: 'Qiān shān niǎo fēi jué, wàn jìng rén zōng miè. Gū zhōu suō lì wēng, dú diào hán jiāng xuě.',
+        translation: '千山万岭飞鸟绝迹，万条路径无人行走。只有一叶孤舟上披着蓑衣、戴着斗笠的老人，独自在冰天雪地的江面上垂钓。',
+        note: '这首诗是柳宗元被贬永州后所作，借寒江独钓表达自己的孤高与坚贞。',
+        meta: '五言绝句',
+        idioms: [
+          { word: '人踪灭', cn: '不见人的踪迹，极度寂静' },
+          { word: '独钓寒江', cn: '孤独而坚贞地坚守自我' }
+        ],
+        phrases: [
+          { word: '千山绝', cn: '群山之中毫无飞鸟踪迹' },
+          { word: '蓑笠翁', cn: '穿蓑衣戴斗笠的老翁' },
+          { word: '万径灭', cn: '无数小路上看不到任何脚印' }
+        ]
+      },
+      {
+        title: '咏鹅',
+        author: '[唐] 骆宾王',
+        lines: ['鹅，鹅，鹅，', '曲项向天歌。', '白毛浮绿水，', '红掌拨清波。'],
+        pinyin: 'É, é, é, qū xiàng xiàng tiān gē. Bái máo fú lǜ shuǐ, hóng zhǎng bō qīng bō.',
+        translation: '鹅啊鹅，弯着脖子朝天欢唱。洁白的羽毛浮在碧绿的水面上，红红的脚掌在清澈的水中拨动波纹。',
+        note: '相传骆宾王七岁时作此诗，色彩鲜明，画面生动，堪称天籁。',
+        meta: '五言古诗',
+        idioms: [
+          { word: '曲项向天', cn: '弯着脖子朝天高歌' },
+          { word: '红掌拨波', cn: '红脚掌划动水波' }
+        ],
+        phrases: [
+          { word: '白毛浮绿', cn: '白鹅浮在碧绿的水面' },
+          { word: '向天歌', cn: '向着天空放声歌唱' },
+          { word: '清波', cn: '清澈的水中波纹荡漾' }
+        ]
+      },
+      {
+        title: '相思',
+        author: '[唐] 王维',
+        lines: ['红豆生南国，', '春来发几枝。', '愿君多采撷，', '此物最相思。'],
+        pinyin: 'Hóng dòu shēng nán guó, chūn lái fā jǐ zhī. Yuàn jūn duō cǎi xié, cǐ wù zuì xiāng sī.',
+        translation: '红豆生长在温暖的南方，春天到来时又发出多少新枝。希望你多多采摘，因为它最能寄托相思之情。',
+        note: '借红豆表达相思之情，含蓄隽永，是全唐诗中短小精悍的佳作。',
+        meta: '五言绝句',
+        idioms: [
+          { word: '红豆相思', cn: '借红豆寄托深切思念' },
+          { word: '多采撷', cn: '多多采摘，暗含珍重之意' }
+        ],
+        phrases: [
+          { word: '生南国', cn: '生长于南方温暖之地' },
+          { word: '发几枝', cn: '春天里又长出多少新枝' },
+          { word: '最相思', cn: '最能代表思念之情' }
+        ]
+      },
+      {
+        title: '游子吟',
+        author: '[唐] 孟郊',
+        lines: ['慈母手中线，', '游子身上衣。', '临行密密缝，', '意恐迟迟归。', '谁言寸草心，', '报得三春晖。'],
+        pinyin: 'Cí mǔ shǒu zhōng xiàn, yóu zǐ shēn shàng yī. Lín xíng mì mì féng, yì kǒng chí chí guī. Shuí yán cùn cǎo xīn, bào dé sān chūn huī.',
+        translation: '慈祥的母亲手里拿着针线，为即将远行的儿子赶制衣裳。临行前密密地缝着，担心儿子迟迟才能回来。谁说小草的心意，能报答得了春天阳光的恩泽呢？',
+        note: '以朴素的日常场景歌颂母爱，最后两句以比喻升华，千古传诵。',
+        meta: '乐府诗',
+        idioms: [
+          { word: '临行密密', cn: '临行前缝补得非常仔细' },
+          { word: '寸草春晖', cn: '子女的孝心难以报答父母的恩情' }
+        ],
+        phrases: [
+          { word: '手中线', cn: '母亲手中的针线，承载着无尽牵挂' },
+          { word: '迟迟归', cn: '远行的人迟迟才能归来' },
+          { word: '三春晖', cn: '春天阳光，比喻母爱温暖无私' }
+        ]
+      },
+      {
+        title: '早发白帝城',
+        author: '[唐] 李白',
+        lines: ['朝辞白帝彩云间，', '千里江陵一日还。', '两岸猿声啼不住，', '轻舟已过万重山。'],
+        pinyin: 'Zhāo cí bái dì cǎi yún jiān, qiān lǐ jiāng líng yī rì huán. Liǎng àn yuán shēng tí bù zhù, qīng zhōu yǐ guò wàn chóng shān.',
+        translation: '清晨告别高耸入云间的白帝城，千里之外的江陵一天就可以到达。两岸猿的啼叫声还在耳边回响，轻快的小船已经穿过了万重山峦。',
+        note: '此诗为李白流放途中遇赦返回时所作，全诗轻快流畅，充满喜悦之情。',
+        meta: '七言绝句',
+        idioms: [
+          { word: '彩云之间', cn: '形容白帝城高耸入云' },
+          { word: '轻舟已过', cn: '轻快的小船已经驶过' }
+        ],
+        phrases: [
+          { word: '朝辞白帝', cn: '清晨告别白帝城' },
+          { word: '万重山', cn: '重重叠叠的千山万岭' },
+          { word: '猿声啼不住', cn: '猿猴的啼叫声此起彼伏' }
+        ]
+      },
+      {
+        title: '枫桥夜泊',
+        author: '[唐] 张继',
+        lines: ['月落乌啼霜满天，', '江枫渔火对愁眠。', '姑苏城外寒山寺，', '夜半钟声到客船。'],
+        pinyin: 'Yuè luò wū tí shuāng mǎn tiān, jiāng fēng yú huǒ duì chóu mián. Gū sū chéng wài hán shān sì, yè bàn zhōng shēng dào kè chuán.',
+        translation: '月亮落下，乌鸦啼叫，寒霜弥漫天空。面对江边的枫树和渔船的灯火，满怀愁绪难以入眠。姑苏城外那寂寞的寒山寺，半夜的钟声悠悠传到了客船上。',
+        note: '以"夜半钟声"收束全篇，画面感极强，将羁旅之愁融入秋夜景色之中。',
+        meta: '七言绝句',
+        idioms: [
+          { word: '渔火对愁', cn: '与渔船灯火相对，愁绪难眠' },
+          { word: '夜半钟声', cn: '深夜寺庙的钟声，增添寂寥之感' }
+        ],
+        phrases: [
+          { word: '霜满天', cn: '秋霜弥漫空中，寒意逼人' },
+          { word: '江枫', cn: '江边的枫树，秋日萧瑟' },
+          { word: '到客船', cn: '钟声传到旅人的船上' }
+        ]
+      }
+    ];
+
+    // ---- 数据加载 ----
+    async function loadData() {
+      var content = document.getElementById('content');
+      content.innerHTML = '<div class="loading"><div class="loading__spinner"></div><div>正在获取每日诗句…</div></div>';
+      content.style.display = 'block';
+
+      // 尝试从 API 获取
+      var poem = await fetchPoem();
+
+      // 如果 API 失败，从预设中随机取
+      if (!poem) {
+        poem = poemPresets[Math.floor(Math.random() * poemPresets.length)];
+        console.log('使用本地预设数据');
+      }
+
+      renderPage(poem);
+    }
+
+    async function fetchPoem() {
+      // 今日诗词 API
+      var apis = [
+        {
+          name: '今日诗词',
+          url: 'https://v2.jinrishici.com/v1/rest/read',
+          headers: { 'X-User-Token': 'demo' },
+          parse: function (d) {
+            if (!d || !d.origin) return null;
+            var origin = d.origin;
+            var result = {
+              title: origin.title || origin.origin || '',
+              author: origin.dynasty ? origin.author + '（' + origin.dynasty + '）' : origin.author,
+              lines: origin.content || origin.origin ? origin.origin.split(/[，。、；\n]/).filter(Boolean) : [],
+              translation: origin.mean || '',
+              note: origin.note || origin.comment || ''
+            };
+            if (origin.content) {
+              result.lines = origin.content.split(/[，。]/).filter(Boolean);
+            } else if (origin.origin) {
+              result.lines = origin.origin.split(/[，。、]/).filter(Boolean);
+            }
+            return result.lines.length ? result : null;
+          }
+        }
+      ];
+
+      for (var i = 0; i < apis.length; i++) {
+        try {
+          var resp = await fetch(apis[i].url, { headers: apis[i].headers });
+          if (!resp.ok) continue;
+          var data = await resp.json();
+          var result = apis[i].parse(data);
+          if (result && result.lines && result.lines.length) {
+            result.meta = '今日诗词 · API';
+            return result;
+          }
+        } catch (e) {
+          console.warn(apis[i].name + ' API failed:', e.message);
+        }
+      }
+      return null;
+    }
+
+    // ---- 启动 ----
+    loadData();
+  })();
+  </script>
+</body>
+</html>

@@ -13,7 +13,7 @@
   const BREAKPOINT = 768;
   const STORAGE_KEY = 'viewMode';
 
-  // 小试牛刀子页面（page/ 下）
+  // 小试牛刀子页面（page/ 下 + new/ 下）
   const myWorks = [
     { icon: '🔢', name: '校验码计算器', href: 'page/checksun/' },
     { icon: '🐍', name: '贪吃蛇',       href: 'page/snake/' },
@@ -21,6 +21,10 @@
     { icon: '📂', name: '站点浏览器',   href: 'page/finder/' },
     { icon: '🐱', name: '猫图工坊',     href: 'page/catpic/' },
     { icon: '😂', name: '随机笑话',     href: 'page/joke/' },
+    { icon: '🔤', name: '字符编码',     href: 'new/charset/' },
+    { icon: '📖', name: '英语日读',     href: 'new/english/' },
+    { icon: '🏮', name: '中文诗句',     href: 'new/chinese-qwen/' },
+    { icon: '🎨', name: '画画板',       href: 'new/paint/' },
   ];
 
   // 垃圾箱子页面（trash/ 下废弃工具 + page/ 下特殊版本）
