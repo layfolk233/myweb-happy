@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
 
-const PAGE_URL = path.join(__dirname, '..', 'paint', 'index.html');
+const PAGE_URL = path.join(__dirname, '..', 'new', 'paint', 'index.html');
 
 // 辅助函数：获取 canvas 在视口中的位置
 async function getCanvasCenter(page) {

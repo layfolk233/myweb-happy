@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>字符编码查看器</title>
-  <link rel="stylesheet" href="src/css/common.css">
+  <link rel="stylesheet" href="../src/css/common.css">
   <style>
     .charset-container {
       max-width: 900px;
@@ -50,7 +50,7 @@
     .summary-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 16px 32px;
+      gap: 8px;
       padding: 16px 20px;
       background: var(--color-bg-warm);
       border: 1px solid var(--color-border);
@@ -59,10 +59,21 @@
       font-size: 0.85rem;
       color: var(--color-text-light);
     }
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 80px;
+      flex: 1;
+    }
     .summary-item strong {
       color: var(--color-primary);
-      font-size: 1.1rem;
-      margin-right: 4px;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .summary-item span {
+      font-size: 0.75rem;
+      margin-top: 2px;
     }
 
     /* 紧凑编码详情 */
@@ -73,18 +84,15 @@
       margin-bottom: 12px;
       overflow: hidden;
     }
-    .enc-group__header {
+    .enc-group__title {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 12px 18px;
       background: var(--color-bg-warm);
       border-bottom: 1px solid var(--color-border);
-      cursor: pointer;
-      user-select: none;
-      gap: 8px;
     }
-    .enc-group__title {
+    .enc-group__label {
       font-size: 0.95rem;
       font-weight: 700;
       color: var(--color-secondary);
@@ -167,7 +175,7 @@
 
   </div>
 
-  <script src="src/js/nav.js"></script>
+  <script src="../src/js/nav.js"></script>
 
   <script>
   (function () {
