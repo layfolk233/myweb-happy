@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>英语日读 · Daily English</title>
+  <link rel="stylesheet" href="../src/css/common.css">
+  <style>
+    /* ========== 页面特有样式 ========== */
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 40px;
+      position: relative;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+    }
+    .hero__badge {
+      display: inline-block;
+      padding: 6px 18px;
+      background: rgba(129,178,154,0.12);
+      color: var(--color-accent);
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      margin-bottom: 24px;
+    }
+    .hero__title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--color-secondary);
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .hero__desc {
+      font-size: 0.95rem;
+      color: var(--color-text-light);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+
+    /* 主体容器 */
+    .body-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* 加载提示 */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-muted);
+      font-size: 0.95rem;
+    }
+    .loading__spinner {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- 名言卡片（长句） ---- */
+    .quote-card {
+      background: var(--color-card);
+      border-radius: var(--radius-xl);
+      padding: 36px 32px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow var(--duration-normal) var(--ease-out-expo);
+    }
+    .quote-card:hover { box-shadow: var(--shadow-md); }
+    .quote-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+    }
+    .quote-card__icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+      display: block;
+      animation: float 3s ease-in-out infinite;
+    }
+    .quote-card__section {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      margin-bottom: 12px;
+    }
+    .quote-card__text {
+      font-size: 1.15rem;
+      line-height: 1.9;
+      color: var(--color-text);
+      font-weight: 500;
+      font-style: italic;
+      margin-bottom: 16px;
+    }
+    .quote-card__author {
+      font-size: 0.9rem;
+      color: var(--color-primary);
+      font-weight: 600;
+      text-align: right;
+    }
+    .quote-card__author::before {
+      content: '— ';
+    }
+    .quote-card__note {
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: rgba(224,122,95,0.05);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--color-primary-light);
+      font-size: 0.82rem;
+      color: var(--color-text-light);
+      line-height: 1.7;
+    }
+
+    /* ---- 短语 & 单词网格 ---- */
+    .vocab-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .vocab-card {
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      transition: all 0.35s var(--ease-out-expo);
+      position: relative;
+      overflow: hidden;
+    }
+    .vocab-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--accent, var(--color-primary));
+      transition: height 0.25s var(--ease-out-expo);
+    }
+    .vocab-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+    .vocab-card:hover::before { height: 4px; }
+    .vocab-card__type {
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 10px;
+    }
+    .vocab-card__item {
+      font-size: 0.95rem;
+      color: var(--color-text);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .vocab-card__cn {
+      font-size: 0.82rem;
+      color: var(--color-text-light);
+    }
+
+    /* 颜色 */
+    .accent-phrase { --accent: var(--color-accent); }
+    .accent-word   { --accent: var(--color-secondary); }
+
+    /* 刷新按钮 */
+    .refresh-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+
+    /* 错误 */
+    .error-msg {
+      text-align: center;
+      padding: 24px;
+      background: rgba(224,122,95,0.06);
+      border: 1px solid var(--color-primary-light);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-light);
+      font-size: 0.9rem;
+    }
+
+    /* 响应式 */
+    @media (max-width: 640px) {
+      .hero__title { font-size: 1.8rem; }
+      .hero { padding: 50px 16px 30px; }
+      .body-wrap { padding: 0 16px 60px; }
+      .quote-card { padding: 24px 20px; }
+      .quote-card__text { font-size: 1rem; }
+      .vocab-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body data-nav-current="index">
+
+  <section class="hero">
+    <div class="hero__badge">📖 DAILY ENGLISH</div>
+    <h1 class="hero__title">英语日读</h1>
+    <p class="hero__desc">每日精选一句名言、两个实用短语、三个高频单词，让英语融入生活。</p>
+  </section>
+
+  <div class="body-wrap">
+    <div class="loading" id="loading">
+      <div class="loading__spinner"></div>
+      <div>正在获取每日英语内容…</div>
+    </div>
+
+    <div id="content" style="display:none;"></div>
+  </div>
+
+  <script src="../src/js/nav.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ---- 工具函数 ----
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showError(msg) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').innerHTML = '<div class="error-msg">' + escHtml(msg) + '</div>';
+    }
+
+    // ---- 渲染 ----
+    function renderPage(quote, phrases, words) {
+      const html = [];
+
+      // 名言
+      if (quote) {
+        html.push(`
+          <div class="quote-card">
+            <span class="quote-card__icon">💬</span>
+            <div class="quote-card__section">每日名言 · Quote of the Day</div>
+            <div class="quote-card__text">&ldquo;${escHtml(quote.text)}&rdquo;</div>
+            <div class="quote-card__author">${escHtml(quote.author)}</div>
+            ${quote.note ? '<div class="quote-card__note">' + escHtml(quote.note) + '</div>' : ''}
+          </div>`);
+      }
+
+      // 短语
+      html.push('<div class="quote-card__section" style="margin-bottom:14px;">常用短语 · Phrases</div>');
+      html.push('<div class="vocab-grid">');
+      phrases.forEach(function (p, i) {
+        html.push(`
+          <div class="vocab-card accent-phrase">
+            <div class="vocab-card__type">Phrase ${i + 1}</div>
+            <div class="vocab-card__item">${escHtml(p.en)}</div>
+            <div class="vocab-card__cn">${escHtml(p.cn)}</div>
+          </div>`);
+      });
+      html.push('</div>');
+
+      // 单词
+      html.push('<div class="quote-card__section" style="margin-bottom:14px;">高频单词 · Words</div>');
+      html.push('<div class="vocab-grid">');
+      words.forEach(function (w, i) {
+        html.push(`
+          <div class="vocab-card accent-word">
+            <div class="vocab-card__type">Word ${i + 1}</div>
+            <div class="vocab-card__item">${escHtml(w.word)} <span style="color:var(--color-text-muted);font-size:0.8rem;">${w.phonetic || ''}</span> — <span style="font-style:italic;">${escHtml(w.partOfSpeech)}</span></div>
+            <div class="vocab-card__cn">${escHtml(w.definition)}</div>
+            ${w.example ? '<div style="font-size:0.78rem;color:var(--color-text-muted);font-style:italic;margin-top:4px;">' + escHtml(w.example) + '</div>' : ''}
+          </div>`);
+      });
+      html.push('</div>');
+
+      // 刷新按钮
+      html.push(`
+        <div class="refresh-row">
+          <button class="btn btn--primary" id="btnRefresh">🔄 换一批</button>
+        </div>`);
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').innerHTML = html.join('');
+
+      // 绑定刷新按钮
+      document.getElementById('btnRefresh').addEventListener('click', loadData);
+    }
+
+    // ---- 预设内容（备用/降级） ----
+    var presets = [
+      {
+        text: "The only way to do great work is to love what you do.",
+        author: "Steve Jobs",
+        note: "唯一做出伟大工作的方式是热爱你所做的事。"
+      },
+      {
+        text: "In the middle of difficulty lies opportunity.",
+        author: "Albert Einstein",
+        note: "困境之中蕴藏着机遇。"
+      },
+      {
+        text: "It does not matter how slowly you go as long as you do not stop.",
+        author: "Confucius",
+        note: "不怕慢，就怕站。"
+      }
+    ];
+
+    var phrasePresets = [
+      { en: "make sense", cn: "有道理；讲得通" },
+      { en: "take it easy", cn: "放轻松" },
+      { en: "look forward to", cn: "期待" },
+      { en: "get the hang of it", cn: "上手；掌握窍门" },
+      { en: "a piece of cake", cn: "小菜一碟" },
+      { en: "beat around the bush", cn: "拐弯抹角" },
+      { en: "hit the nail on the head", cn: "一针见血" },
+      { en: "the ball is in your court", cn: "轮到你做决定了" }
+    ];
+
+    var wordPresets = [
+      { word: "serendipity", phonetic: "/ˌserənˈdɪpəti/", partOfSpeech: "n.", definition: "机缘巧合；意外发现美好事物的运气", example: "Finding this place was pure serendipity." },
+      { word: "resilient", phonetic: "/rɪˈzɪliənt/", partOfSpeech: "adj.", definition: "有弹性的；坚韧的", example: "She is resilient in the face of challenges." },
+      { word: "eloquent", phonetic: "/ˈeləkwənt/", partOfSpeech: "adj.", definition: "雄辩的；有说服力的", example: "He gave an eloquent speech." },
+      { word: "empathy", phonetic: "/ˈempəθi/", partOfSpeech: "n.", definition: "共情；同理心", example: "She showed great empathy for the victims." },
+      { word: "ephemeral", phonetic: "/ɪˈfemərəl/", partOfSpeech: "adj.", definition: "短暂的；转瞬即逝的", example: "Fame is often ephemeral." }
+    ];
+
+    var presetWords = ['serendipity', 'resilient', 'eloquent'];
+
+    function pick(arr, n) {
+      var result = [];
+      var copy = arr.slice();
+      for (var i = 0; i < n && copy.length; i++) {
+        var idx = Math.floor(Math.random() * copy.length);
+        result.push(copy.splice(idx, 1)[0]);
+      }
+      return result;
+    }
+
+    // ---- 数据加载 ----
+    async function loadData() {
+      var content = document.getElementById('content');
+      content.innerHTML = '<div class="loading"><div class="loading__spinner"></div><div>正在获取每日英语内容…</div></div>';
+      content.style.display = 'block';
+
+      // 获取名言
+      var q = await fetchQuote();
+
+      // 获取3个单词的词典数据
+      var w1 = await fetchDict(presetWords[0] || 'serendipity');
+      var w2 = await fetchDict(presetWords[1] || 'resilient');
+      var w3 = await fetchDict(presetWords[2] || 'eloquent');
+
+      var results = [w1, w2, w3];
+
+      var phrases = pick(phrasePresets, 2);
+      var words = results.map(function (r, i) {
+        return r ? dictToWord(r) : wordPresets[i] || wordPresets[0];
+      });
+      var quote = q || presets[Math.floor(Math.random() * presets.length)];
+
+      renderPage(quote, phrases, words);
+    }
+
+    async function fetchQuote() {
+      // 备选 API 列表
+      var apis = [
+        { url: 'https://zenquotes.io/api/today', parse: function (d) { return d[0] ? { text: d[0].q, author: d[0].a } : null; } },
+        { url: 'https://favqs.com/api/qotd', parse: function (d) { return d.quote ? { text: d.quote.body, author: d.quote.author } : null; } }
+      ];
+
+      for (var i = 0; i < apis.length; i++) {
+        try {
+          var resp = await fetch(apis[i].url);
+          if (!resp.ok) continue;
+          var data = await resp.json();
+          var result = apis[i].parse(data);
+          if (result && result.text) return result;
+        } catch (e) {
+          console.warn('Quote API #' + (i+1) + ' failed:', e);
+        }
+      }
+      return null;
+    }
+
+    async function fetchDict(word) {
+      try {
+        var resp = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + word);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var data = await resp.json();
+        if (data && data[0]) return data[0];
+      } catch (e) {
+        console.warn('Dict API failed for "' + word + '":', e);
+      }
+      return null;
+    }
+
+    function dictToWord(entry) {
+      var word = entry.word;
+      var phonetic = entry.phonetic || '';
+      if (!phonetic && entry.phonetics && entry.phonetics.length) {
+        phonetic = entry.phonetics[0].text || '';
+      }
+      var partOfSpeech = '';
+      var definition = '';
+      var example = '';
+      if (entry.meanings && entry.meanings.length) {
+        var m = entry.meanings[0];
+        partOfSpeech = m.partOfSpeech || '';
+        if (m.definitions && m.definitions.length) {
+          definition = m.definitions[0].definition || '';
+          example = m.definitions[0].example || '';
+        }
+      }
+      return { word: word, phonetic: phonetic, partOfSpeech: partOfSpeech, definition: definition, example: example };
+    }
+
+    // ---- 启动 ----
+    loadData();
+  })();
+  </script>
+</body>
+</html>
