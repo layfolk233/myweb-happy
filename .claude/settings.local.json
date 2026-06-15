@@ -14,7 +14,7 @@
       "matcher": "Write|Edit",
       "hooks": [{
         "type": "command",
-        "command": "cd /e/6Project/1web/webTest-happy && bash tests/push.bat \"chore: auto commit\"",
+        "command": "cd /e/6Project/1web/webTest-happy && cmd /c \"tests\\\\push.bat chore: auto commit\"",
         "timeout": 120
       }]
     }]
