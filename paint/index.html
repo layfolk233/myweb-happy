@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画图</title>
+    <link rel="stylesheet" href="../web-css/common.css">
+    <style>
+        .paint-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: var(--color-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+        }
+
+        .tool-group__label {
+            font-size: 12px;
+            color: var(--color-text-light);
+            white-space: nowrap;
+        }
+
+        .tool-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 14px;
+            border: 2px solid transparent;
+            border-radius: var(--radius-sm);
+            background: var(--color-bg);
+            color: var(--color-text);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s var(--ease-out-expo);
+            user-select: none;
+        }
+
+        .tool-btn:hover {
+            background: var(--color-primary-light);
+            color: var(--color-secondary);
+        }
+
+        .tool-btn.active {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+            color: var(--color-secondary);
+            font-weight: 600;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .color-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--color-border);
+            cursor: pointer;
+            transition: transform 0.15s var(--ease-spring);
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.15);
+        }
+
+        .color-input-hidden {
+            position: absolute;
+            width: 0;
+            height: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .btn-clear {
+            padding: 6px 14px;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-bg);
+            color: var(--color-text-light);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s var(--ease-out-expo);
+        }
+
+        .btn-clear:hover {
+            background: #ff6b6b;
+            border-color: #ff6b6b;
+            color: #fff;
+        }
+
+        .canvas-area {
+            position: relative;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            line-height: 0;
+        }
+
+        #paintCanvas {
+            display: block;
+            background: #ffffff;
+            cursor: crosshair;
+        }
+
+        .pixel-grid-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body data-nav-current="paint">
+    <header class="page-header">
+        <span class="page-header__icon">🎨</span>
+        <h1 class="page-header__title">画图</h1>
+        <p class="page-header__subtitle">10×10 像素画布，左键画笔 / 右键取色。</p>
+    </header>
+
+    <div class="container">
+        <div class="paint-wrapper">
+            <div class="toolbar">
+                <div class="tool-group">
+                    <span class="tool-group__label">工具</span>
+                    <button class="tool-btn active" id="btnBrush" type="button">🖌 画笔</button>
+                    <button class="tool-btn" id="btnEraser" type="button">🧹 橡皮擦</button>
+                </div>
+                <div class="tool-group">
+                    <span class="tool-group__label">左键颜色</span>
+                    <input type="color" id="leftColor" value="#2C2C2C" class="color-input-hidden">
+                    <div class="color-swatch" id="leftSwatch" style="background:#2C2C2C" title="点击选择左键颜色"></div>
+                </div>
+                <div class="tool-group">
+                    <span class="tool-group__label">右键颜色</span>
+                    <input type="color" id="rightColor" value="#E07A5F" class="color-input-hidden">
+                    <div class="color-swatch" id="rightSwatch" style="background:#E07A5F" title="点击选择右键颜色"></div>
+                </div>
+                <div class="tool-group">
+                    <button class="btn-clear" id="btnClear" type="button">清空</button>
+                </div>
+            </div>
+
+            <div class="canvas-area" id="canvasArea">
+                <canvas id="paintCanvas" width="400" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="../web-js/nav.js"></script>
+    <script>(function () {
+        'use strict';
+
+        const GRID = 10;
+        const CELL = 40;
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let tool = 'brush';
+        let isDrawing = false;
+        let lastCell = null;
+
+        function getCellFromEvent(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX / CELL);
+            const y = Math.floor((e.clientY - rect.top) * scaleY / CELL);
+            if (x < 0 || x >= GRID || y < 0 || y >= GRID) return null;
+            return { x, y };
+        }
+
+        function paintCell(cell, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(cell.x * CELL, cell.y * CELL, CELL, CELL);
+            drawGridLines();
+        }
+
+        function eraseCell(cell) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(cell.x * CELL, cell.y * CELL, CELL, CELL);
+            drawGridLines();
+        }
+
+        function drawGridLines() {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+            ctx.lineWidth = 1;
+            for (let i = 1; i < GRID; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * CELL, 0);
+                ctx.lineTo(i * CELL, GRID * CELL);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * CELL);
+                ctx.lineTo(GRID * CELL, i * CELL);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function initCanvas() {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, GRID * CELL, GRID * CELL);
+            drawGridLines();
+        }
+
+        function getActiveColor(e) {
+            return e.button === 2
+                ? document.getElementById('rightColor').value
+                : document.getElementById('leftColor').value;
+        }
+
+        // 左键按下 = 开始绘制
+        canvas.addEventListener('mousedown', function (e) {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            var cell = getCellFromEvent(e);
+            if (!cell) return;
+            isDrawing = true;
+            lastCell = cell;
+            paintCell(cell, document.getElementById('leftColor').value);
+        });
+
+        // 右键按下 = 快速填充当前像素（取右键颜色）
+        canvas.addEventListener('mousedown', function (e) {
+            if (e.button !== 2) return;
+            e.preventDefault();
+            var cell = getCellFromEvent(e);
+            if (!cell) return;
+            paintCell(cell, document.getElementById('rightColor').value);
+        });
+
+        // 拖拽绘制
+        canvas.addEventListener('mousemove', function (e) {
+            if (!isDrawing) return;
+            var cell = getCellFromEvent(e);
+            if (!cell || !lastCell) return;
+            // 只绘制新格子
+            if (cell.x !== lastCell.x || cell.y !== lastCell.y) {
+                paintCell(cell, document.getElementById('leftColor').value);
+                lastCell = cell;
+            }
+        });
+
+        canvas.addEventListener('mouseup', function () { isDrawing = false; lastCell = null; });
+        canvas.addEventListener('mouseleave', function () { isDrawing = false; lastCell = null; });
+
+        // 禁用右键菜单
+        canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+        // 工具切换
+        document.getElementById('btnBrush').addEventListener('click', function () {
+            tool = 'brush';
+            document.getElementById('btnBrush').classList.add('active');
+            document.getElementById('btnEraser').classList.remove('active');
+        });
+
+        document.getElementById('btnEraser').addEventListener('click', function () {
+            tool = 'eraser';
+            document.getElementById('btnEraser').classList.add('active');
+            document.getElementById('btnBrush').classList.remove('active');
+        });
+
+        // 颜色选择器联动
+        document.getElementById('leftColor').addEventListener('input', function () {
+            document.getElementById('leftSwatch').style.background = this.value;
+        });
+
+        document.getElementById('rightColor').addEventListener('input', function () {
+            document.getElementById('rightSwatch').style.background = this.value;
+        });
+
+        // 点击色块弹出选择器
+        document.getElementById('leftSwatch').addEventListener('click', function () {
+            document.getElementById('leftColor').click();
+        });
+
+        document.getElementById('rightSwatch').addEventListener('click', function () {
+            document.getElementById('rightColor').click();
+        });
+
+        // 清空画布
+        document.getElementById('btnClear').addEventListener('click', function () {
+            initCanvas();
+        });
+
+        initCanvas();
+    })();</script>
+</body>
+</html>
