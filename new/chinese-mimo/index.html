@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日古诗 · 诗词学习推荐</title>
+  <link rel="stylesheet" href="../src/css/common.css">
+  <style>
+    /* ========== 页面特有样式 ========== */
+
+    .hero {
+      text-align: center;
+      padding: 80px 24px 40px;
+      position: relative;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+    }
+    .hero__badge {
+      display: inline-block;
+      padding: 6px 18px;
+      background: rgba(129,178,154,0.12);
+      color: var(--color-accent-dark);
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      margin-bottom: 24px;
+    }
+    .hero__title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--color-secondary);
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .hero__desc {
+      font-size: 0.95rem;
+      color: var(--color-text-light);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+    .hero__desc blockquote {
+      margin: 20px 0 0;
+      padding: 0;
+      border: none;
+      font-style: italic;
+      color: var(--color-text-muted);
+      font-size: 0.85rem;
+      line-height: 1.8;
+    }
+    .hero__desc blockquote .attr {
+      font-style: normal;
+      color: var(--color-text-light);
+      font-size: 0.78rem;
+    }
+    .hero__desc .reflect {
+      display: block;
+      margin-top: 12px;
+      font-style: italic;
+      color: var(--color-accent-dark);
+      font-size: 0.85rem;
+    }
+
+    .body-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* 加载提示 */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-muted);
+      font-size: 0.95rem;
+    }
+    .loading__spinner {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 诗句主卡片 */
+    .poem-card {
+      background: var(--color-card);
+      border-radius: var(--radius-xl);
+      padding: 40px 36px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow var(--duration-normal) var(--ease-out-expo);
+    }
+    .poem-card:hover { box-shadow: var(--shadow-md); }
+    .poem-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--color-accent), var(--color-primary), var(--color-accent));
+    }
+    .poem-card__meta {
+      font-size: 0.82rem;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .poem-card__meta .source-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .source-tag--api {
+      background: rgba(129,178,154,0.12);
+      color: var(--color-accent-dark);
+    }
+    .source-tag--local {
+      background: rgba(242,166,141,0.12);
+      color: var(--color-primary-dark);
+    }
+    .poem-card__title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--color-secondary);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .poem-card__dynasty {
+      display: inline-block;
+      padding: 2px 10px;
+      background: var(--color-bg-warm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      color: var(--color-text-light);
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+    .poem-card__author {
+      font-size: 0.95rem;
+      color: var(--color-primary);
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .poem-card__lines {
+      font-size: 1.25rem;
+      line-height: 2.4;
+      color: var(--color-text);
+      text-align: center;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      margin-bottom: 24px;
+    }
+    .poem-card__lines .line {
+      display: block;
+    }
+    .poem-card__lines .line-sep {
+      display: block;
+      height: 4px;
+    }
+
+    /* 翻译 & 注释 */
+    .poem-card__notes {
+      padding: 16px 20px;
+      background: rgba(129,178,154,0.04);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--color-accent-light);
+      font-size: 0.88rem;
+      color: var(--color-text-light);
+      line-height: 1.9;
+      text-align: left;
+      margin-bottom: 12px;
+    }
+    .poem-card__notes:last-child {
+      margin-bottom: 0;
+    }
+    .poem-card__notes-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+
+    /* 生词卡片网格 */
+    .vocab-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .vocab-item {
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      padding: 18px 16px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      transition: all 0.35s var(--ease-out-expo);
+      position: relative;
+      overflow: hidden;
+    }
+    .vocab-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--accent, var(--color-accent));
+      transition: height 0.25s var(--ease-out-expo);
+    }
+    .vocab-item:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+    .vocab-item:hover::before { height: 4px; }
+    .vocab-item__word {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--color-secondary);
+      margin-bottom: 4px;
+    }
+    .vocab-item__pinyin {
+      font-size: 0.78rem;
+      color: var(--color-accent-dark);
+      font-style: italic;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .vocab-item__def {
+      font-size: 0.8rem;
+      color: var(--color-text-light);
+      line-height: 1.5;
+    }
+
+    .accent-vocab { --accent: var(--color-accent); }
+    .accent-phrase { --accent: var(--color-primary); }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      margin-bottom: 14px;
+    }
+
+    /* 按钮行 */
+    .action-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+
+    /* 历史记录 */
+    .history-section {
+      margin-top: 40px;
+    }
+    .history-card {
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.3s var(--ease-out-expo);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .history-card:hover {
+      transform: translateX(4px);
+      box-shadow: var(--shadow-md);
+    }
+    .history-card__num {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--color-border);
+      min-width: 36px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .history-card:hover .history-card__num {
+      color: var(--color-accent);
+    }
+    .history-card__info {
+      flex: 1;
+      min-width: 0;
+    }
+    .history-card__title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--color-secondary);
+      margin-bottom: 2px;
+    }
+    .history-card__author {
+      font-size: 0.78rem;
+      color: var(--color-text-light);
+    }
+    .history-card__arrow {
+      color: var(--color-text-muted);
+      font-size: 0.85rem;
+      flex-shrink: 0;
+      transition: color 0.2s;
+    }
+    .history-card:hover .history-card__arrow {
+      color: var(--color-accent);
+    }
+
+    /* 错误 */
+    .error-msg {
+      text-align: center;
+      padding: 24px;
+      background: rgba(224,122,95,0.06);
+      border: 1px solid var(--color-primary-light);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-light);
+      font-size: 0.9rem;
+    }
+
+    /* 响应式 */
+    @media (max-width: 640px) {
+      .hero__title { font-size: 1.8rem; }
+      .hero { padding: 50px 16px 30px; }
+      .body-wrap { padding: 0 16px 60px; }
+      .poem-card { padding: 28px 20px; }
+      .poem-card__title { font-size: 1.3rem; }
+      .poem-card__lines { font-size: 1.05rem; line-height: 2.2; }
+      .vocab-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .action-row { gap: 8px; }
+    }
+  </style>
+</head>
+<body data-nav-current="index">
+
+  <section class="hero">
+    <div class="hero__badge">📜 DAILY POETRY</div>
+    <h1 class="hero__title">每日古诗</h1>
+    <p class="hero__desc">
+      <blockquote>
+        "熟读唐诗三百首，不会吟诗也会吟。"
+        <br><span class="attr">—— 孙洙《唐诗三百首》序</span>
+      </blockquote>
+      <span class="reflect">一日一首，积少成多，让诗意融入生活。</span>
+    </p>
+  </section>
+
+  <div class="body-wrap">
+    <div class="loading" id="loading">
+      <div class="loading__spinner"></div>
+      <div>正在获取今日诗词…</div>
+    </div>
+    <div id="content" style="display:none;"></div>
+  </div>
+
+  <script src="../src/js/nav.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    /* ============================================================
+       本地预设古诗（10 首）
+       ============================================================ */
+    var poemPresets = [
+      {
+        title: '静夜思',
+        author: '李白',
+        dynasty: '唐',
+        lines: ['床前明月光，', '疑是地上霜。', '举头望明月，', '低头思故乡。'],
+        translation: '明亮的月光洒在床前，让人恍惚以为是地上铺了一层白霜。抬头仰望空中的明月，低头不禁思念起远方的故乡。',
+        note: '全诗语言朴素自然，却将思乡之情表达得深挚动人，是李白最著名的作品之一。短短二十字，意境深远，千古传诵。',
+        vocab: [
+          { word: '疑', pinyin: 'yí', def: '怀疑，好像' },
+          { word: '举头', pinyin: 'jǔ tóu', def: '抬起头' },
+          { word: '故乡', pinyin: 'gù xiāng', def: '家乡，出生地' }
+        ],
+        phrases: [
+          { word: '明月光', def: '月光如水，清澈明亮' },
+          { word: '地上霜', def: '月光如霜，营造清冷氛围' },
+          { word: '思故乡', def: '对家乡和亲人的怀念' }
+        ]
+      },
+      {
+        title: '登鹳雀楼',
+        author: '王之涣',
+        dynasty: '唐',
+        lines: ['白日依山尽，', '黄河入海流。', '欲穷千里目，', '更上一层楼。'],
+        translation: '太阳依傍山峦渐渐下落，黄河向着大海滔滔东流。如果想要看到更远处的景色，就要再登上一层高楼。',
+        note: '前两句写景，气势磅礴；后两句寓理于景，道出"站得高看得远"的人生哲理，是唐诗中哲理诗的典范。',
+        vocab: [
+          { word: '依', pinyin: 'yī', def: '挨着，靠着' },
+          { word: '穷', pinyin: 'qióng', def: '穷尽，走到尽头' },
+          { word: '千里目', pinyin: 'qiān lǐ mù', def: '远大的视野' }
+        ],
+        phrases: [
+          { word: '白日依山', def: '太阳沿着山势缓缓落下' },
+          { word: '黄河入海', def: '大河奔流向海，气势恢宏' },
+          { word: '更上层楼', def: '再提升一个层次' }
+        ]
+      },
+      {
+        title: '春晓',
+        author: '孟浩然',
+        dynasty: '唐',
+        lines: ['春眠不觉晓，', '处处闻啼鸟。', '夜来风雨声，', '花落知多少。'],
+        translation: '春天的夜晚睡得格外香甜，不知不觉天已破晓。到处可以听到鸟儿婉转的啼叫。想起昨夜风雨交加，不知花儿被吹落了多少。',
+        note: '语言清新平易，短短二十字写尽春晨生机与惜春之情，是孟浩然的代表作。',
+        vocab: [
+          { word: '不觉', pinyin: 'bù jué', def: '不知不觉' },
+          { word: '闻', pinyin: 'wén', def: '听到' },
+          { word: '啼鸟', pinyin: 'tí niǎo', def: '鸣叫的鸟儿' }
+        ],
+        phrases: [
+          { word: '春眠不觉', def: '春日贪睡，不知不觉天已亮' },
+          { word: '处处啼鸟', def: '到处鸟鸣声声，春意盎然' },
+          { word: '花落知多少', def: '感叹时光流逝、美好难留' }
+        ]
+      },
+      {
+        title: '望庐山瀑布',
+        author: '李白',
+        dynasty: '唐',
+        lines: ['日照香炉生紫烟，', '遥看瀑布挂前川。', '飞流直下三千尺，', '疑是银河落九天。'],
+        translation: '阳光照在香炉峰上升起紫色的云烟，远远望去瀑布像一条白练挂在山前。飞速奔流的瀑布从三千尺高处直泻而下，让人怀疑是银河从九重天上坠落下来。',
+        note: '"飞流直下三千尺"是李白夸张手法的经典，气势恢宏，想象奇特，将自然景观写得雄伟壮丽。',
+        vocab: [
+          { word: '紫烟', pinyin: 'zǐ yān', def: '瀑布水雾在阳光下呈现的紫色烟霭' },
+          { word: '遥看', pinyin: 'yáo kàn', def: '远远地望去' },
+          { word: '九天', pinyin: 'jiǔ tiān', def: '天空的最高处' }
+        ],
+        phrases: [
+          { word: '飞流直下', def: '水流急速奔腾而下' },
+          { word: '挂前川', def: '瀑布如白练悬挂山间' },
+          { word: '银河落九天', def: '形容瀑布高悬直泻的壮观' }
+        ]
+      },
+      {
+        title: '江雪',
+        author: '柳宗元',
+        dynasty: '唐',
+        lines: ['千山鸟飞绝，', '万径人踪灭。', '孤舟蓑笠翁，', '独钓寒江雪。'],
+        translation: '千山万岭飞鸟绝迹，万条路径无人行走。只有一叶孤舟上披着蓑衣、戴着斗笠的老人，独自在冰天雪地的江面上垂钓。',
+        note: '柳宗元被贬永州后所作，借寒江独钓表达自己的孤高与坚贞。全诗意境空旷，以"绝""灭"写尽天地苍茫。',
+        vocab: [
+          { word: '绝', pinyin: 'jué', def: '消失，没有' },
+          { word: '蓑笠', pinyin: 'suō lì', def: '蓑衣和斗笠' },
+          { word: '孤舟', pinyin: 'gū zhōu', def: '一条孤单的小船' }
+        ],
+        phrases: [
+          { word: '千山鸟绝', def: '群山之中毫无飞鸟踪迹' },
+          { word: '人踪灭', def: '不见人的踪迹，极度寂静' },
+          { word: '独钓寒江', def: '孤独而坚贞地坚守自我' }
+        ]
+      },
+      {
+        title: '游子吟',
+        author: '孟郊',
+        dynasty: '唐',
+        lines: ['慈母手中线，', '游子身上衣。', '临行密密缝，', '意恐迟迟归。', '谁言寸草心，', '报得三春晖。'],
+        translation: '慈祥的母亲手里拿着针线，为即将远行的儿子赶制衣裳。临行前密密地缝着，担心儿子迟迟才能回来。谁说小草的心意，能报答得了春天阳光的恩泽呢？',
+        note: '以朴素的日常场景歌颂母爱，最后两句以比喻升华，千古传诵。"寸草春晖"成为形容母子深情的经典成语。',
+        vocab: [
+          { word: '意恐', pinyin: 'yì kǒng', def: '担心，害怕' },
+          { word: '寸草', pinyin: 'cùn cǎo', def: '小草，比喻子女' },
+          { word: '三春晖', pinyin: 'sān chūn huī', def: '春天阳光，比喻母爱' }
+        ],
+        phrases: [
+          { word: '手中线', def: '母亲手中的针线，承载着无尽牵挂' },
+          { word: '迟迟归', def: '远行的人迟迟才能归来' },
+          { word: '寸草春晖', def: '子女的孝心难以报答父母恩情' }
+        ]
+      },
+      {
+        title: '早发白帝城',
+        author: '李白',
+        dynasty: '唐',
+        lines: ['朝辞白帝彩云间，', '千里江陵一日还。', '两岸猿声啼不住，', '轻舟已过万重山。'],
+        translation: '清晨告别高耸入云间的白帝城，千里之外的江陵一天就可以到达。两岸猿的啼叫声还在耳边回响，轻快的小船已经穿过了万重山峦。',
+        note: '此诗为李白流放途中遇赦返回时所作，全诗轻快流畅，充满喜悦之情，被誉为唐诗七绝之冠。',
+        vocab: [
+          { word: '朝辞', pinyin: 'zhāo cí', def: '清晨告别' },
+          { word: '啼不住', pinyin: 'tí bù zhù', def: '叫声不停' },
+          { word: '万重山', pinyin: 'wàn chóng shān', def: '重重叠叠的山峦' }
+        ],
+        phrases: [
+          { word: '彩云间', def: '形容白帝城高耸入云' },
+          { word: '一日还', def: '形容船行速度之快' },
+          { word: '轻舟已过', def: '轻快的小船已经驶过' }
+        ]
+      },
+      {
+        title: '枫桥夜泊',
+        author: '张继',
+        dynasty: '唐',
+        lines: ['月落乌啼霜满天，', '江枫渔火对愁眠。', '姑苏城外寒山寺，', '夜半钟声到客船。'],
+        translation: '月亮落下，乌鸦啼叫，寒霜弥漫天空。面对江边的枫树和渔船的灯火，满怀愁绪难以入眠。姑苏城外那寂寞的寒山寺，半夜的钟声悠悠传到了客船上。',
+        note: '以"夜半钟声"收束全篇，画面感极强，将羁旅之愁融入秋夜景色之中，意境深远。',
+        vocab: [
+          { word: '乌啼', pinyin: 'wū tí', def: '乌鸦啼叫' },
+          { word: '愁眠', pinyin: 'chóu mián', def: '怀着愁绪难以入眠' },
+          { word: '客船', pinyin: 'kè chuán', def: '旅人乘坐的船' }
+        ],
+        phrases: [
+          { word: '霜满天', def: '秋霜弥漫空中，寒意逼人' },
+          { word: '江枫渔火', def: '江边枫树与渔船灯火' },
+          { word: '夜半钟声', def: '深夜寺庙钟声，增添寂寥' }
+        ]
+      },
+      {
+        title: '相思',
+        author: '王维',
+        dynasty: '唐',
+        lines: ['红豆生南国，', '春来发几枝。', '愿君多采撷，', '此物最相思。'],
+        translation: '红豆生长在温暖的南方，春天到来时又发出多少新枝。希望你多多采摘，因为它最能寄托相思之情。',
+        note: '借红豆表达相思之情，含蓄隽永，语言质朴而情深，是全唐诗中短小精悍的佳作。',
+        vocab: [
+          { word: '红豆', pinyin: 'hóng dòu', def: '相思子，象征思念' },
+          { word: '采撷', pinyin: 'cǎi xié', def: '采摘' },
+          { word: '南国', pinyin: 'nán guó', def: '南方地区' }
+        ],
+        phrases: [
+          { word: '生南国', def: '生长于南方温暖之地' },
+          { word: '发几枝', def: '春天里又长出多少新枝' },
+          { word: '最相思', def: '最能代表思念之情' }
+        ]
+      },
+      {
+        title: '咏鹅',
+        author: '骆宾王',
+        dynasty: '唐',
+        lines: ['鹅，鹅，鹅，', '曲项向天歌。', '白毛浮绿水，', '红掌拨清波。'],
+        translation: '鹅啊鹅，弯着脖子朝天欢唱。洁白的羽毛浮在碧绿的水面上，红红的脚掌在清澈的水中拨动波纹。',
+        note: '相传骆宾王七岁时作此诗，色彩鲜明，画面生动，红白绿相映，堪称天籁。',
+        vocab: [
+          { word: '曲项', pinyin: 'qū xiàng', def: '弯着脖子' },
+          { word: '红掌', pinyin: 'hóng zhǎng', def: '红色的脚掌' },
+          { word: '拨', pinyin: 'bō', def: '划动' }
+        ],
+        phrases: [
+          { word: '向天歌', def: '向着天空放声歌唱' },
+          { word: '白毛浮绿', def: '白鹅浮在碧绿的水面' },
+          { word: '清波', def: '清澈的水中波纹荡漾' }
+        ]
+      }
+    ];
+
+    /* ============================================================
+       工具函数
+       ============================================================ */
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showError(msg) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').innerHTML = '<div class="error-msg">' + escHtml(msg) + '</div>';
+    }
+
+    function getHistory() {
+      try { return JSON.parse(localStorage.getItem('poem_history') || '[]'); } catch(e) { return []; }
+    }
+
+    function saveHistory(poem) {
+      var history = getHistory();
+      var entry = { title: poem.title, author: poem.author, dynasty: poem.dynasty, ts: Date.now() };
+      var exists = history.some(function(h) { return h.title === entry.title && h.author === entry.author; });
+      if (!exists) {
+        history.unshift(entry);
+        if (history.length > 20) history = history.slice(0, 20);
+        localStorage.setItem('poem_history', JSON.stringify(history));
+      }
+    }
+
+    /* ============================================================
+       渲染
+       ============================================================ */
+    function renderPage(poem, source) {
+      var html = [];
+
+      // 诗句主卡片
+      html.push('<div class="poem-card">');
+
+      // 来源标签
+      var tagClass = source === 'api' ? 'source-tag--api' : 'source-tag--local';
+      var tagText = source === 'api' ? '🌐 今日诗词 API' : '📌 本地预设';
+      html.push('<div class="poem-card__meta"><span class="source-tag ' + tagClass + '">' + tagText + '</span></div>');
+
+      // 标题 + 朝代
+      if (poem.title) {
+        html.push('<div class="poem-card__title">' + escHtml(poem.title) + '</div>');
+      }
+      if (poem.dynasty) {
+        html.push('<span class="poem-card__dynasty">' + escHtml(poem.dynasty) + '代</span>');
+      }
+
+      // 作者
+      if (poem.author) {
+        html.push('<div class="poem-card__author">' + escHtml(poem.author) + '</div>');
+      }
+
+      // 诗句
+      if (poem.lines && poem.lines.length) {
+        html.push('<div class="poem-card__lines">');
+        poem.lines.forEach(function(line, i) {
+          if (line.trim() === '') {
+            html.push('<span class="line-sep"></span>');
+          } else {
+            html.push('<span class="line">' + escHtml(line) + '</span>');
+          }
+        });
+        html.push('</div>');
+      }
+
+      // 翻译
+      if (poem.translation) {
+        html.push('<div class="poem-card__notes">');
+        html.push('<div class="poem-card__notes-label">译文</div>');
+        html.push(escHtml(poem.translation));
+        html.push('</div>');
+      }
+
+      // 赏析
+      if (poem.note) {
+        html.push('<div class="poem-card__notes">');
+        html.push('<div class="poem-card__notes-label">赏析</div>');
+        html.push(escHtml(poem.note));
+        html.push('</div>');
+      }
+
+      html.push('</div>');
+
+      // 生词
+      if (poem.vocab && poem.vocab.length) {
+        html.push('<div class="section-label" style="margin-top:24px;">生词注释 · Vocabulary</div>');
+        html.push('<div class="vocab-grid">');
+        poem.vocab.forEach(function(v) {
+          html.push('<div class="vocab-item accent-vocab">');
+          html.push('<div class="vocab-item__word">' + escHtml(v.word) + '</div>');
+          html.push('<div class="vocab-item__pinyin">' + escHtml(v.pinyin) + '</div>');
+          html.push('<div class="vocab-item__def">' + escHtml(v.def) + '</div>');
+          html.push('</div>');
+        });
+        html.push('</div>');
+      }
+
+      // 词组
+      if (poem.phrases && poem.phrases.length) {
+        html.push('<div class="section-label">名句赏析 · Phrases</div>');
+        html.push('<div class="vocab-grid">');
+        poem.phrases.forEach(function(p) {
+          html.push('<div class="vocab-item accent-phrase">');
+          html.push('<div class="vocab-item__word">' + escHtml(p.word) + '</div>');
+          html.push('<div class="vocab-item__def">' + escHtml(p.def) + '</div>');
+          html.push('</div>');
+        });
+        html.push('</div>');
+      }
+
+      // 按钮行
+      html.push('<div class="action-row">');
+      html.push('<button class="btn btn--primary" id="btnRefresh">🔄 换一首</button>');
+      html.push('<button class="btn btn--secondary" id="btnShare">📋 复制全文</button>');
+      html.push('</div>');
+
+      // 历史记录
+      var history = getHistory();
+      if (history.length > 0) {
+        html.push('<div class="history-section">');
+        html.push('<div class="section-label">📜 学习记录 · History</div>');
+        history.forEach(function(h, idx) {
+          html.push('<div class="history-card" data-idx="' + idx + '">');
+          html.push('<div class="history-card__num">' + (idx + 1) + '</div>');
+          html.push('<div class="history-card__info">');
+          html.push('<div class="history-card__title">' + escHtml(h.title) + '</div>');
+          html.push('<div class="history-card__author">' + escHtml(h.dynasty ? h.dynasty + '代 · ' : '') + escHtml(h.author) + '</div>');
+          html.push('</div>');
+          html.push('<div class="history-card__arrow">→</div>');
+          html.push('</div>');
+        });
+        html.push('</div>');
+      }
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').innerHTML = html.join('');
+
+      // 保存历史
+      saveHistory(poem);
+
+      // 绑定事件
+      document.getElementById('btnRefresh').addEventListener('click', loadData);
+      document.getElementById('btnShare').addEventListener('click', function() {
+        var text = poem.title + '\n' + (poem.dynasty ? poem.dynasty + '代 · ' : '') + poem.author + '\n\n' +
+                   poem.lines.join('\n') + '\n\n—— 《' + poem.title + '》';
+        navigator.clipboard.writeText(text).then(function() {
+          var btn = document.getElementById('btnShare');
+          var orig = btn.innerHTML;
+          btn.innerHTML = '✅ 已复制';
+          setTimeout(function() { btn.innerHTML = orig; }, 1500);
+        }).catch(function() {
+          alert('复制失败，请手动复制');
+        });
+      });
+    }
+
+    /* ============================================================
+       API 调用（今日诗词 jinrishici.com）
+       ============================================================ */
+    async function fetchFromAPI() {
+      var apiEndpoints = [
+        {
+          name: 'jinrishici-sentence',
+          url: 'https://v2.jinrishici.com/v1/rest/read',
+          headers: { 'X-User-Token': 'demo' },
+          parse: function(d) {
+            if (!d || !d.origin) return null;
+            var o = d.origin;
+            var lines = [];
+            if (o.content) {
+              lines = o.content.split(/[，。]/).filter(Boolean);
+            } else if (o.origin) {
+              lines = o.origin.split(/[，。]/).filter(Boolean);
+            }
+            if (!lines.length) return null;
+            return {
+              title: o.title || '',
+              author: o.author || '',
+              dynasty: o.dynasty || '',
+              lines: lines,
+              translation: o.mean || '',
+              note: o.comment || '',
+              vocab: [],
+              phrases: []
+            };
+          }
+        },
+        {
+          name: 'jinrishici-random',
+          url: 'https://v2.jinrishici.com/v1/rest/onesentence',
+          headers: { 'X-User-Token': 'demo' },
+          parse: function(d) {
+            if (!d || !d.origin) return null;
+            var o = d.origin;
+            var lines = o.origin ? o.origin.split(/[，。]/).filter(Boolean) : [];
+            if (!lines.length) return null;
+            return {
+              title: o.title || '',
+              author: o.author || '',
+              dynasty: o.dynasty || '',
+              lines: lines,
+              translation: o.mean || '',
+              note: o.comment || '',
+              vocab: [],
+              phrases: []
+            };
+          }
+        }
+      ];
+
+      for (var i = 0; i < apiEndpoints.length; i++) {
+        try {
+          var ctrl = new AbortController();
+          var timer = setTimeout(function() { ctrl.abort(); }, 5000);
+          var resp = await fetch(apiEndpoints[i].url, {
+            headers: apiEndpoints[i].headers,
+            signal: ctrl.signal
+          });
+          clearTimeout(timer);
+          if (!resp.ok) continue;
+          var data = await resp.json();
+          var result = apiEndpoints[i].parse(data);
+          if (result && result.lines && result.lines.length) {
+            return result;
+          }
+        } catch (e) {
+          console.warn(apiEndpoints[i].name + ' failed:', e.message);
+        }
+      }
+      return null;
+    }
+
+    /* ============================================================
+       主逻辑
+       ============================================================ */
+    async function loadData() {
+      var content = document.getElementById('content');
+      content.innerHTML = '<div class="loading"><div class="loading__spinner"></div><div>正在获取今日诗词…</div></div>';
+      content.style.display = 'block';
+
+      // 先尝试 API
+      var poem = null;
+      try {
+        poem = await fetchFromAPI();
+      } catch (e) {
+        console.warn('API call error:', e.message);
+      }
+
+      var source = 'api';
+
+      // API 失败则降级到本地预设
+      if (!poem) {
+        console.log('今日诗词 API 不可用，使用本地预设数据');
+        poem = poemPresets[Math.floor(Math.random() * poemPresets.length)];
+        source = 'local';
+      }
+
+      renderPage(poem, source);
+    }
+
+    // 启动
+    loadData();
+  })();
+  </script>
+</body>
+</html>

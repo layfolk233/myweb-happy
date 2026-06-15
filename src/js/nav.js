@@ -24,6 +24,7 @@
     { icon: '🔤', name: '字符编码',     href: 'new/charset/' },
     { icon: '📖', name: '英语日读',     href: 'new/english/' },
     { icon: '🏮', name: '中文诗句',     href: 'new/chinese-qwen/' },
+    { icon: '📜', name: '每日古诗',     href: 'new/chinese-mimo/' },
     { icon: '🎨', name: '画画板',       href: 'new/paint/' },
   ];
 
