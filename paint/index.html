@@ -229,7 +229,7 @@
                 : document.getElementById('leftColor').value;
         }
 
-        // 左键按下 = 开始绘制
+        // 左键按下 = 开始绘制（画笔）/ 擦除（橡皮擦）
         canvas.addEventListener('mousedown', function (e) {
             if (e.button !== 0) return;
             e.preventDefault();
@@ -237,7 +237,11 @@
             if (!cell) return;
             isDrawing = true;
             lastCell = cell;
-            paintCell(cell, document.getElementById('leftColor').value);
+            if (tool === 'eraser') {
+                eraseCell(cell);
+            } else {
+                paintCell(cell, document.getElementById('leftColor').value);
+            }
         });
 
         // 右键按下 = 快速填充当前像素（取右键颜色）
@@ -254,9 +258,12 @@
             if (!isDrawing) return;
             var cell = getCellFromEvent(e);
             if (!cell || !lastCell) return;
-            // 只绘制新格子
             if (cell.x !== lastCell.x || cell.y !== lastCell.y) {
-                paintCell(cell, document.getElementById('leftColor').value);
+                if (tool === 'eraser') {
+                    eraseCell(cell);
+                } else {
+                    paintCell(cell, document.getElementById('leftColor').value);
+                }
                 lastCell = cell;
             }
         });
