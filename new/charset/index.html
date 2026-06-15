@@ -6,27 +6,79 @@
   <title>字符编码查看器</title>
   <link rel="stylesheet" href="../src/css/common.css">
   <style>
-    /* ---- 页面布局 ---- */
+    /* ========== 页面特有样式 ========== */
+
+    /* Hero 区 — 与首页风格一致 */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 40px;
+      position: relative;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+    }
+    .hero__badge {
+      display: inline-block;
+      padding: 6px 18px;
+      background: rgba(224,122,95,0.1);
+      color: var(--color-primary);
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      margin-bottom: 24px;
+    }
+    .hero__title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--color-secondary);
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .hero__desc {
+      font-size: 0.95rem;
+      color: var(--color-text-light);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+
+    /* 内容区 */
     .charset-container {
       max-width: 800px;
       margin: 0 auto;
       padding: 0 24px 80px;
     }
 
-    /* ---- 输入区 ---- */
-    .input-section {
-      position: relative;
-      margin-bottom: 32px;
+    /* 输入卡片 */
+    .input-card {
+      background: var(--color-card);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      margin-bottom: 24px;
+      transition: box-shadow var(--duration-normal) var(--ease-out-expo);
     }
-    .input-section textarea {
+    .input-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    .input-card textarea {
       font-size: 1rem;
-      padding: 20px 24px;
-      margin-bottom: 16px;
+      padding: 18px 20px;
       resize: vertical;
-      min-height: 80px;
+      min-height: 72px;
       border-radius: var(--radius-lg);
+      margin-bottom: 16px;
     }
-    .input-section textarea::placeholder {
+    .input-card textarea::placeholder {
       color: var(--color-text-muted);
       font-style: italic;
     }
@@ -35,30 +87,11 @@
       gap: 10px;
       flex-wrap: wrap;
     }
-    .btn-test {
-      padding: 10px 28px;
-      font-size: 0.95rem;
-      background: var(--color-bg-warm);
-      color: var(--color-secondary);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-full);
-      cursor: pointer;
-      font-family: var(--font-sans);
-      font-weight: 600;
-      transition: all var(--duration-fast) var(--ease-out-expo);
-    }
-    .btn-test:hover {
-      border-color: var(--color-primary-light);
-      color: var(--color-primary);
-      background: #fff;
-      transform: translateY(-2px);
-    }
-    .btn-test:active { transform: scale(0.96); }
 
-    /* ---- 提示条 ---- */
+    /* 提示条 */
     .api-notice {
       display: none;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
       padding: 14px 20px;
       background: linear-gradient(135deg, rgba(224, 122, 95, 0.06), rgba(242, 204, 143, 0.08));
       border: 1px solid var(--color-primary-light);
@@ -69,26 +102,38 @@
     }
     .api-notice.visible { display: block; animation: fadeInUp 0.4s var(--ease-out-expo) both; }
 
-    /* ---- 统计卡片行 ---- */
+    /* 统计卡片行 — 与首页 page-grid 风格一致 */
     .summary-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 12px;
-      margin-bottom: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
     }
     .summary-card {
       background: var(--color-card);
-      border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
-      padding: 18px 12px;
-      text-align: center;
+      padding: 20px 12px 16px;
       box-shadow: var(--shadow-sm);
-      transition: transform var(--duration-normal) var(--ease-out-expo), box-shadow var(--duration-normal) var(--ease-out-expo);
+      border: 1px solid var(--color-border);
+      text-align: center;
+      transition: all 0.35s var(--ease-out-expo);
+      position: relative;
+      overflow: hidden;
+    }
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--accent, var(--color-primary));
+      transition: height 0.25s var(--ease-out-expo);
     }
     .summary-card:hover {
-      transform: translateY(-3px);
-      box-shadow: var(--shadow-md);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
     }
+    .summary-card:hover::before { height: 5px; }
     .summary-card__number {
       font-size: 1.8rem;
       font-weight: 800;
@@ -99,32 +144,43 @@
     .summary-card__label {
       font-size: 0.75rem;
       color: var(--color-text-muted);
-      margin-top: 6px;
+      margin-top: 8px;
       font-weight: 500;
     }
 
-    /* ---- 编码结果卡片 ---- */
+    /* 编码结果卡片 — 与首页 page-card 风格一致 */
     .results { display: none; }
     .results.visible { display: block; }
 
     .enc-group {
       background: var(--color-card);
-      border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       margin-bottom: 14px;
-      overflow: hidden;
       box-shadow: var(--shadow-sm);
-      transition: transform var(--duration-normal) var(--ease-out-expo), box-shadow var(--duration-normal) var(--ease-out-expo);
+      border: 1px solid var(--color-border);
+      overflow: hidden;
+      transition: all 0.35s var(--ease-out-expo);
+      position: relative;
+    }
+    .enc-group::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--group-accent, var(--color-primary));
+      transition: height 0.25s var(--ease-out-expo);
     }
     .enc-group:hover {
-      box-shadow: var(--shadow-md);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
     }
+    .enc-group:hover::before { height: 4px; }
+
     .enc-group__header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 20px;
-      background: linear-gradient(135deg, rgba(61, 64, 91, 0.03), rgba(224, 122, 95, 0.03));
+      padding: 16px 20px;
       border-bottom: 1px solid var(--color-border);
     }
     .enc-group__badge {
@@ -139,12 +195,12 @@
       flex-shrink: 0;
     }
     .enc-group__name {
-      font-size: 0.95rem;
+      font-size: 1rem;
       font-weight: 700;
       color: var(--color-secondary);
     }
     .enc-group__meta {
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       color: var(--color-text-muted);
       white-space: nowrap;
     }
@@ -178,19 +234,26 @@
       vertical-align: middle;
     }
 
-    /* ---- 测试结果面板 ---- */
+    /* 编码颜色 */
+    .dot-utf8 { background: var(--color-primary); }
+    .dot-utf16 { background: var(--color-accent); }
+    .dot-ascii { background: var(--color-secondary); }
+
+    /* 测试结果面板 */
     .test-panel {
       display: none;
-      margin-top: 20px;
-      padding: 24px;
+      margin-top: 24px;
       background: var(--color-card);
-      border: 1px solid var(--color-border);
       border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-md);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
       font-family: var(--font-sans);
-      font-size: 0.88rem;
+      font-size: 0.9rem;
       line-height: 2;
+      transition: box-shadow var(--duration-normal) var(--ease-out-expo);
     }
+    .test-panel:hover { box-shadow: var(--shadow-md); }
     .test-panel.visible { display: block; animation: fadeInUp 0.5s var(--ease-out-expo) both; }
     .test-panel__title {
       font-size: 1.05rem;
@@ -206,48 +269,53 @@
     .test-panel .fail { color: var(--color-primary); font-weight: 600; }
     .test-panel .skip { color: var(--color-text-muted); }
 
-    /* ---- 编码颜色 ---- */
-    .dot-utf8 { background: var(--color-primary); }
-    .dot-utf16 { background: var(--color-accent); }
-    .dot-ascii { background: var(--color-secondary); }
-
-    /* ---- 响应式 ---- */
+    /* 响应式 */
     @media (max-width: 640px) {
-      .summary-row { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-      .summary-card { padding: 14px 8px; }
+      .hero__title { font-size: 1.8rem; }
+      .hero { padding: 50px 16px 30px; }
+      .charset-container { padding: 0 16px 60px; }
+      .input-card { padding: 20px; }
+      .summary-row { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .summary-card { padding: 16px 8px 12px; }
       .summary-card__number { font-size: 1.4rem; }
       .enc-group__header { flex-direction: column; align-items: flex-start; gap: 6px; }
       .enc-group__body { padding: 12px 14px; }
+      .test-panel { padding: 20px; }
     }
   </style>
 </head>
 <body data-nav-current="index">
 
-  <header class="page-header">
-    <span class="page-header__icon">🔤</span>
-    <h1 class="page-header__title">字符编码查看器</h1>
-    <p class="page-header__subtitle">输入文本，直观查看不同编码下的字节序列与长度对比。</p>
-  </header>
+  <!-- ========== Hero ========== -->
+  <section class="hero">
+    <div class="hero__badge">🔤 CHARACTER ENCODER</div>
+    <h1 class="hero__title">字符编码查看器</h1>
+    <p class="hero__desc">输入文本，直观查看不同编码下的字节序列与长度对比。</p>
+  </section>
 
   <div class="charset-container">
 
-    <div class="input-section">
+    <!-- 输入卡片 -->
+    <div class="input-card">
       <textarea class="input" id="textInput" placeholder="在这里输入文本，查看编码效果…" rows="3"></textarea>
       <div class="btn-row">
         <button class="btn btn--primary btn-encode" id="btnEncode">查看编码</button>
-        <button class="btn-test" id="btnAutoTest">自动测试</button>
+        <button class="btn btn--secondary" id="btnAutoTest">自动测试</button>
       </div>
     </div>
 
+    <!-- 提示条 -->
     <div class="api-notice" id="apiNotice">
       ℹ️ GBK / Big5 / Shift_JIS 等编码无法在浏览器原生获取精确结果，已自动切换为 UTF-8 / UTF-16LE / ASCII 三种可靠编码。
     </div>
 
+    <!-- 统计 + 结果 -->
     <div class="results" id="results">
       <div class="summary-row" id="charSummary"></div>
       <div id="encDetails"></div>
     </div>
 
+    <!-- 测试结果 -->
     <div class="test-panel" id="testPanel"></div>
 
   </div>
@@ -287,19 +355,13 @@
     function escapeHtml(s) {
       return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
-    function countASCIIChars(text) {
-      let count = 0;
-      for (let i = 0; i < text.length; i++) {
-        if (text.charCodeAt(i) <= 127) count++;
-      }
-      return count;
-    }
 
     // ---- 渲染编码组 ----
     const dotClass = { 'UTF-8': 'dot-utf8', 'UTF-16 LE': 'dot-utf16', 'ASCII': 'dot-ascii' };
+    const groupAccent = { 'UTF-8': 'var(--color-primary)', 'UTF-16 LE': 'var(--color-accent)', 'ASCII': 'var(--color-secondary)' };
     function renderEncGroup(name, info, bytes) {
       return `
-        <div class="enc-group">
+        <div class="enc-group" style="--group-accent: ${groupAccent[name] || 'var(--color-primary)'}">
           <div class="enc-group__header">
             <span class="enc-group__badge">
               <span class="enc-group__dot ${dotClass[name] || ''}"></span>
@@ -325,12 +387,14 @@
       const utf16Bytes = encodeUTF16LE(text);
       const asciiBytes = encodeASCII(text);
 
+      const accentColors = ['var(--color-primary)', 'var(--color-accent)', 'var(--color-primary-light)', 'var(--color-secondary)', 'var(--color-accent-light)'];
+
       charSummary.innerHTML = `
-        <div class="summary-card"><div class="summary-card__number">${len}</div><div class="summary-card__label">字符数</div></div>
-        <div class="summary-card"><div class="summary-card__number">${utf8Bytes.length}</div><div class="summary-card__label">UTF-8 字节</div></div>
-        <div class="summary-card"><div class="summary-card__number">${utf16Bytes.length}</div><div class="summary-card__label">UTF-16 字节</div></div>
-        <div class="summary-card"><div class="summary-card__number">${asciiBytes.length}</div><div class="summary-card__label">ASCII 字节</div></div>
-        <div class="summary-card"><div class="summary-card__number">${byteCount}</div><div class="summary-card__label">Blob 验证</div></div>`;
+        <div class="summary-card" style="--accent: ${accentColors[0]}"><div class="summary-card__number">${len}</div><div class="summary-card__label">字符数</div></div>
+        <div class="summary-card" style="--accent: ${accentColors[1]}"><div class="summary-card__number">${utf8Bytes.length}</div><div class="summary-card__label">UTF-8 字节</div></div>
+        <div class="summary-card" style="--accent: ${accentColors[2]}"><div class="summary-card__number">${utf16Bytes.length}</div><div class="summary-card__label">UTF-16 字节</div></div>
+        <div class="summary-card" style="--accent: ${accentColors[3]}"><div class="summary-card__number">${asciiBytes.length}</div><div class="summary-card__label">ASCII 字节</div></div>
+        <div class="summary-card" style="--accent: ${accentColors[4]}"><div class="summary-card__number">${byteCount}</div><div class="summary-card__label">Blob 验证</div></div>`;
 
       encDetails.innerHTML =
         renderEncGroup('UTF-8', '变长编码，1~4 字节/字符，Web 标准', utf8Bytes) +
@@ -365,8 +429,7 @@
         if (!ok) allPassed = false;
       }
 
-      const utf8Match = utf8Bytes.length === blobBytes;
-      addTest(`UTF-8 字节数 ${utf8Bytes.length} = Blob ${blobBytes}`, utf8Match);
+      addTest(`UTF-8 字节数 ${utf8Bytes.length} = Blob ${blobBytes}`, utf8Bytes.length === blobBytes);
 
       const charArr = Array.from(text);
       const expected = charArr.reduce(function (sum, ch) {
@@ -389,12 +452,8 @@
       }
       addTest('ASCII 编码各占 1 字节', ok);
 
-      const rt1 = new TextDecoder('utf-8').decode(utf8Bytes);
-      addTest('UTF-8 编码→解码恢复原文', rt1 === text);
-
-      const rt2 = new TextDecoder('utf-16le').decode(utf16Bytes);
-      addTest('UTF-16LE 编码→解码恢复原文', rt2 === text);
-
+      addTest('UTF-8 编码→解码恢复原文', new TextDecoder('utf-8').decode(utf8Bytes) === text);
+      addTest('UTF-16LE 编码→解码恢复原文', new TextDecoder('utf-16le').decode(utf16Bytes) === text);
       addTest('空字符串编码为 0 字节', encodeUTF8('').length === 0);
 
       const passCount = lines.filter(l => l.includes('<span class="pass">')).length;
