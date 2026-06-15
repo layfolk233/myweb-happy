@@ -8,7 +8,7 @@
   <style>
     /* ========== 页面特有样式 ========== */
 
-    /* Hero 区 — 与首页风格一致 */
+    /* Hero 区 */
     .hero {
       text-align: center;
       padding: 80px 24px 40px;
@@ -50,8 +50,8 @@
       line-height: 1.8;
     }
 
-    /* 内容区 */
-    .charset-container {
+    /* 内容容器 */
+    .charset-body {
       max-width: 800px;
       margin: 0 auto;
       padding: 0 24px 80px;
@@ -70,17 +70,11 @@
     .input-card:hover {
       box-shadow: var(--shadow-md);
     }
-    .input-card textarea {
+    .input-card .input {
       font-size: 1rem;
       padding: 18px 20px;
-      resize: vertical;
-      min-height: 72px;
       border-radius: var(--radius-lg);
       margin-bottom: 16px;
-    }
-    .input-card textarea::placeholder {
-      color: var(--color-text-muted);
-      font-style: italic;
     }
     .btn-row {
       display: flex;
@@ -93,7 +87,7 @@
       display: none;
       margin-bottom: 24px;
       padding: 14px 20px;
-      background: linear-gradient(135deg, rgba(224, 122, 95, 0.06), rgba(242, 204, 143, 0.08));
+      background: linear-gradient(135deg, rgba(224,122,95,0.06), rgba(242,204,143,0.08));
       border: 1px solid var(--color-primary-light);
       border-radius: var(--radius-lg);
       font-size: 0.85rem;
@@ -102,14 +96,14 @@
     }
     .api-notice.visible { display: block; animation: fadeInUp 0.4s var(--ease-out-expo) both; }
 
-    /* 统计卡片行 — 与首页 page-grid 风格一致 */
+    /* 统计卡片 — 复用 common.css 的 .card 风格 */
     .summary-row {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 14px;
       margin-bottom: 24px;
     }
-    .summary-card {
+    .stat-card {
       background: var(--color-card);
       border-radius: var(--radius-lg);
       padding: 20px 12px 16px;
@@ -120,7 +114,7 @@
       position: relative;
       overflow: hidden;
     }
-    .summary-card::before {
+    .stat-card::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
@@ -129,30 +123,30 @@
       background: var(--accent, var(--color-primary));
       transition: height 0.25s var(--ease-out-expo);
     }
-    .summary-card:hover {
+    .stat-card:hover {
       transform: translateY(-4px);
       box-shadow: var(--shadow-lg);
     }
-    .summary-card:hover::before { height: 5px; }
-    .summary-card__number {
+    .stat-card:hover::before { height: 5px; }
+    .stat-card__num {
       font-size: 1.8rem;
       font-weight: 800;
       color: var(--color-primary);
       line-height: 1.2;
       font-variant-numeric: tabular-nums;
     }
-    .summary-card__label {
+    .stat-card__lbl {
       font-size: 0.75rem;
       color: var(--color-text-muted);
       margin-top: 8px;
       font-weight: 500;
     }
 
-    /* 编码结果卡片 — 与首页 page-card 风格一致 */
+    /* 编码结果 */
     .results { display: none; }
     .results.visible { display: block; }
 
-    .enc-group {
+    .enc-block {
       background: var(--color-card);
       border-radius: var(--radius-lg);
       margin-bottom: 14px;
@@ -162,52 +156,50 @@
       transition: all 0.35s var(--ease-out-expo);
       position: relative;
     }
-    .enc-group::before {
+    .enc-block::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 3px;
-      background: var(--group-accent, var(--color-primary));
+      background: var(--bar, var(--color-primary));
       transition: height 0.25s var(--ease-out-expo);
     }
-    .enc-group:hover {
+    .enc-block:hover {
       transform: translateY(-3px);
       box-shadow: var(--shadow-lg);
     }
-    .enc-group:hover::before { height: 4px; }
+    .enc-block:hover::before { height: 4px; }
 
-    .enc-group__header {
+    .enc-block__head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 16px 20px;
       border-bottom: 1px solid var(--color-border);
     }
-    .enc-group__badge {
+    .enc-block__title {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-secondary);
     }
-    .enc-group__dot {
+    .enc-block__dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
       flex-shrink: 0;
     }
-    .enc-group__name {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--color-secondary);
-    }
-    .enc-group__meta {
+    .enc-block__meta {
       font-size: 0.78rem;
       color: var(--color-text-muted);
       white-space: nowrap;
     }
-    .enc-group__body {
+    .enc-block__body {
       padding: 16px 20px;
     }
-    .enc-group__line {
+    .enc-block__row {
       font-family: var(--font-mono);
       font-size: 0.78rem;
       color: var(--color-text);
@@ -219,15 +211,15 @@
       margin-bottom: 8px;
       border: 1px solid var(--color-border);
     }
-    .enc-group__line:last-child { margin-bottom: 0; }
-    .enc-group__line .label {
+    .enc-block__row:last-child { margin-bottom: 0; }
+    .enc-block__row .tag {
       display: inline-block;
       font-size: 0.68rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--color-text-muted);
-      background: rgba(224, 122, 95, 0.08);
+      background: rgba(224,122,95,0.08);
       padding: 2px 8px;
       border-radius: var(--radius-sm);
       margin-right: 8px;
@@ -235,12 +227,12 @@
     }
 
     /* 编码颜色 */
-    .dot-utf8 { background: var(--color-primary); }
-    .dot-utf16 { background: var(--color-accent); }
-    .dot-ascii { background: var(--color-secondary); }
+    .dot-primary { background: var(--color-primary); }
+    .dot-accent  { background: var(--color-accent); }
+    .dot-secondary { background: var(--color-secondary); }
 
-    /* 测试结果面板 */
-    .test-panel {
+    /* 测试结果 */
+    .test-card {
       display: none;
       margin-top: 24px;
       background: var(--color-card);
@@ -248,58 +240,57 @@
       padding: 28px;
       box-shadow: var(--shadow-sm);
       border: 1px solid var(--color-border);
-      font-family: var(--font-sans);
       font-size: 0.9rem;
       line-height: 2;
       transition: box-shadow var(--duration-normal) var(--ease-out-expo);
     }
-    .test-panel:hover { box-shadow: var(--shadow-md); }
-    .test-panel.visible { display: block; animation: fadeInUp 0.5s var(--ease-out-expo) both; }
-    .test-panel__title {
+    .test-card:hover { box-shadow: var(--shadow-md); }
+    .test-card.visible { display: block; animation: fadeInUp 0.5s var(--ease-out-expo) both; }
+    .test-card__title {
       font-size: 1.05rem;
       font-weight: 700;
       margin-bottom: 12px;
     }
-    .test-panel__item {
+    .test-card__item {
       padding: 8px 0;
       border-bottom: 1px solid var(--color-border);
     }
-    .test-panel__item:last-child { border-bottom: none; }
-    .test-panel .pass { color: var(--color-accent-dark); font-weight: 600; }
-    .test-panel .fail { color: var(--color-primary); font-weight: 600; }
-    .test-panel .skip { color: var(--color-text-muted); }
+    .test-card__item:last-child { border-bottom: none; }
+    .test-card .pass { color: var(--color-accent-dark); font-weight: 600; }
+    .test-card .fail { color: var(--color-primary); font-weight: 600; }
+    .test-card .skip { color: var(--color-text-muted); }
 
     /* 响应式 */
     @media (max-width: 640px) {
       .hero__title { font-size: 1.8rem; }
       .hero { padding: 50px 16px 30px; }
-      .charset-container { padding: 0 16px 60px; }
+      .charset-body { padding: 0 16px 60px; }
       .input-card { padding: 20px; }
       .summary-row { grid-template-columns: repeat(3, 1fr); gap: 10px; }
-      .summary-card { padding: 16px 8px 12px; }
-      .summary-card__number { font-size: 1.4rem; }
-      .enc-group__header { flex-direction: column; align-items: flex-start; gap: 6px; }
-      .enc-group__body { padding: 12px 14px; }
-      .test-panel { padding: 20px; }
+      .stat-card { padding: 16px 8px 12px; }
+      .stat-card__num { font-size: 1.4rem; }
+      .enc-block__head { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .enc-block__body { padding: 12px 14px; }
+      .test-card { padding: 20px; }
     }
   </style>
 </head>
 <body data-nav-current="index">
 
-  <!-- ========== Hero ========== -->
+  <!-- Hero -->
   <section class="hero">
     <div class="hero__badge">🔤 CHARACTER ENCODER</div>
     <h1 class="hero__title">字符编码查看器</h1>
     <p class="hero__desc">输入文本，直观查看不同编码下的字节序列与长度对比。</p>
   </section>
 
-  <div class="charset-container">
+  <div class="charset-body">
 
     <!-- 输入卡片 -->
     <div class="input-card">
       <textarea class="input" id="textInput" placeholder="在这里输入文本，查看编码效果…" rows="3"></textarea>
       <div class="btn-row">
-        <button class="btn btn--primary btn-encode" id="btnEncode">查看编码</button>
+        <button class="btn btn--primary" id="btnEncode">查看编码</button>
         <button class="btn btn--secondary" id="btnAutoTest">自动测试</button>
       </div>
     </div>
@@ -316,7 +307,7 @@
     </div>
 
     <!-- 测试结果 -->
-    <div class="test-panel" id="testPanel"></div>
+    <div class="test-card" id="testCard"></div>
 
   </div>
 
@@ -332,7 +323,7 @@
     const results = document.getElementById('results');
     const charSummary = document.getElementById('charSummary');
     const encDetails = document.getElementById('encDetails');
-    const testPanel = document.getElementById('testPanel');
+    const testCard = document.getElementById('testCard');
     const apiNotice = document.getElementById('apiNotice');
 
     // ---- 编码工具 ----
@@ -357,21 +348,21 @@
     }
 
     // ---- 渲染编码组 ----
-    const dotClass = { 'UTF-8': 'dot-utf8', 'UTF-16 LE': 'dot-utf16', 'ASCII': 'dot-ascii' };
-    const groupAccent = { 'UTF-8': 'var(--color-primary)', 'UTF-16 LE': 'var(--color-accent)', 'ASCII': 'var(--color-secondary)' };
-    function renderEncGroup(name, info, bytes) {
+    const dotMap = { 'UTF-8': 'dot-primary', 'UTF-16 LE': 'dot-accent', 'ASCII': 'dot-secondary' };
+    const barMap = { 'UTF-8': 'var(--color-primary)', 'UTF-16 LE': 'var(--color-accent)', 'ASCII': 'var(--color-secondary)' };
+    function renderEnc(name, desc, bytes) {
       return `
-        <div class="enc-group" style="--group-accent: ${groupAccent[name] || 'var(--color-primary)'}">
-          <div class="enc-group__header">
-            <span class="enc-group__badge">
-              <span class="enc-group__dot ${dotClass[name] || ''}"></span>
-              <span class="enc-group__name">${name}</span>
+        <div class="enc-block" style="--bar: ${barMap[name] || 'var(--color-primary)'}">
+          <div class="enc-block__head">
+            <span class="enc-block__title">
+              <span class="enc-block__dot ${dotMap[name] || ''}"></span>
+              ${name}
             </span>
-            <span class="enc-group__meta">${bytes.length} 字节 &middot; ${info}</span>
+            <span class="enc-block__meta">${bytes.length} 字节 &middot; ${desc}</span>
           </div>
-          <div class="enc-group__body">
-            <div class="enc-group__line"><span class="label">HEX</span> ${escapeHtml(bytesToHex(bytes))}</div>
-            <div class="enc-group__line"><span class="label">DEC</span> ${escapeHtml(bytesToDec(bytes))}</div>
+          <div class="enc-block__body">
+            <div class="enc-block__row"><span class="tag">HEX</span> ${escapeHtml(bytesToHex(bytes))}</div>
+            <div class="enc-block__row"><span class="tag">DEC</span> ${escapeHtml(bytesToDec(bytes))}</div>
           </div>
         </div>`;
     }
@@ -382,28 +373,34 @@
       if (!text) return;
 
       const len = text.length;
-      const byteCount = new Blob([text]).size;
-      const utf8Bytes = encodeUTF8(text);
-      const utf16Bytes = encodeUTF16LE(text);
-      const asciiBytes = encodeASCII(text);
+      const blobBytes = new Blob([text]).size;
+      const u8 = encodeUTF8(text);
+      const u16 = encodeUTF16LE(text);
+      const a7 = encodeASCII(text);
 
-      const accentColors = ['var(--color-primary)', 'var(--color-accent)', 'var(--color-primary-light)', 'var(--color-secondary)', 'var(--color-accent-light)'];
+      const accents = [
+        'var(--color-primary)',
+        'var(--color-accent)',
+        'var(--color-primary-light)',
+        'var(--color-secondary)',
+        'var(--color-accent-light)'
+      ];
 
       charSummary.innerHTML = `
-        <div class="summary-card" style="--accent: ${accentColors[0]}"><div class="summary-card__number">${len}</div><div class="summary-card__label">字符数</div></div>
-        <div class="summary-card" style="--accent: ${accentColors[1]}"><div class="summary-card__number">${utf8Bytes.length}</div><div class="summary-card__label">UTF-8 字节</div></div>
-        <div class="summary-card" style="--accent: ${accentColors[2]}"><div class="summary-card__number">${utf16Bytes.length}</div><div class="summary-card__label">UTF-16 字节</div></div>
-        <div class="summary-card" style="--accent: ${accentColors[3]}"><div class="summary-card__number">${asciiBytes.length}</div><div class="summary-card__label">ASCII 字节</div></div>
-        <div class="summary-card" style="--accent: ${accentColors[4]}"><div class="summary-card__number">${byteCount}</div><div class="summary-card__label">Blob 验证</div></div>`;
+        <div class="stat-card" style="--accent:${accents[0]}"><div class="stat-card__num">${len}</div><div class="stat-card__lbl">字符数</div></div>
+        <div class="stat-card" style="--accent:${accents[1]}"><div class="stat-card__num">${u8.length}</div><div class="stat-card__lbl">UTF-8 字节</div></div>
+        <div class="stat-card" style="--accent:${accents[2]}"><div class="stat-card__num">${u16.length}</div><div class="stat-card__lbl">UTF-16 字节</div></div>
+        <div class="stat-card" style="--accent:${accents[3]}"><div class="stat-card__num">${a7.length}</div><div class="stat-card__lbl">ASCII 字节</div></div>
+        <div class="stat-card" style="--accent:${accents[4]}"><div class="stat-card__num">${blobBytes}</div><div class="stat-card__lbl">Blob 验证</div></div>`;
 
       encDetails.innerHTML =
-        renderEncGroup('UTF-8', '变长编码，1~4 字节/字符，Web 标准', utf8Bytes) +
-        renderEncGroup('UTF-16 LE', '固定 2 字节/字符（BMP）或 4 字节（辅助平面）', utf16Bytes) +
-        renderEncGroup('ASCII', '仅 0x00~0x7F，非 ASCII 用 ? 替代', asciiBytes);
+        renderEnc('UTF-8', '变长编码，1~4 字节/字符，Web 标准', u8) +
+        renderEnc('UTF-16 LE', '固定 2 字节/字符（BMP）或 4 字节（辅助平面）', u16) +
+        renderEnc('ASCII', '仅 0x00~0x7F，非 ASCII 用 ? 替代', a7);
 
       results.classList.add('visible');
-      testPanel.classList.remove('visible');
-      testPanel.innerHTML = '';
+      testCard.classList.remove('visible');
+      testCard.innerHTML = '';
       apiNotice.classList.add('visible');
     });
 
@@ -411,13 +408,13 @@
     btnAutoTest.addEventListener('click', function () {
       const text = textInput.value;
       if (!text) {
-        testPanel.innerHTML = '<div class="test-panel__title" style="color:var(--color-primary)">请先输入测试文本</div>';
-        testPanel.classList.add('visible');
+        testCard.innerHTML = '<div class="test-card__title" style="color:var(--color-primary)">请先输入测试文本</div>';
+        testCard.classList.add('visible');
         return;
       }
 
-      const utf8Bytes = encodeUTF8(text);
-      const utf16Bytes = encodeUTF16LE(text);
+      const u8 = encodeUTF8(text);
+      const u16 = encodeUTF16LE(text);
       const blobBytes = new Blob([text]).size;
       let lines = [];
       let allPassed = true;
@@ -425,24 +422,24 @@
       function addTest(desc, ok) {
         const cls = ok ? 'pass' : 'fail';
         const icon = ok ? '✅' : '❌';
-        lines.push(`<div class="test-panel__item"><span class="${cls}">${icon} ${desc}</span></div>`);
+        lines.push(`<div class="test-card__item"><span class="${cls}">${icon} ${desc}</span></div>`);
         if (!ok) allPassed = false;
       }
 
-      addTest(`UTF-8 字节数 ${utf8Bytes.length} = Blob ${blobBytes}`, utf8Bytes.length === blobBytes);
+      addTest(`UTF-8 字节数 ${u8.length} = Blob ${blobBytes}`, u8.length === blobBytes);
 
       const charArr = Array.from(text);
-      const expected = charArr.reduce(function (sum, ch) {
+      const expected = charArr.reduce(function (s, ch) {
         const cp = ch.codePointAt(0);
-        return sum + (cp <= 0xFFFF ? 2 : 4);
+        return s + (cp <= 0xFFFF ? 2 : 4);
       }, 0);
-      addTest(`UTF-16LE 字节数 ${utf16Bytes.length} = 预期 ${expected}`, utf16Bytes.length === expected);
+      addTest(`UTF-16LE 字节数 ${u16.length} = 预期 ${expected}`, u16.length === expected);
 
       let total = 0;
       for (let i = 0; i < text.length; i++) total += new TextEncoder().encode(text[i]).length;
-      addTest('ASCII 单字节逐个编码一致', total === utf8Bytes.length);
+      addTest('ASCII 单字节逐个编码一致', total === u8.length);
 
-      lines.push('<div class="test-panel__item"><span class="skip">ℹ GBK 无原生 API，已跳过</span></div>');
+      lines.push('<div class="test-card__item"><span class="skip">ℹ GBK 无原生 API，已跳过</span></div>');
 
       const asciiEnc = encodeASCII(text);
       let ok = true, j = 0;
@@ -452,8 +449,8 @@
       }
       addTest('ASCII 编码各占 1 字节', ok);
 
-      addTest('UTF-8 编码→解码恢复原文', new TextDecoder('utf-8').decode(utf8Bytes) === text);
-      addTest('UTF-16LE 编码→解码恢复原文', new TextDecoder('utf-16le').decode(utf16Bytes) === text);
+      addTest('UTF-8 编码→解码恢复原文', new TextDecoder('utf-8').decode(u8) === text);
+      addTest('UTF-16LE 编码→解码恢复原文', new TextDecoder('utf-16le').decode(u16) === text);
       addTest('空字符串编码为 0 字节', encodeUTF8('').length === 0);
 
       const passCount = lines.filter(l => l.includes('<span class="pass">')).length;
@@ -461,10 +458,10 @@
       const emoji = allPassed ? '🎉' : '⚠️';
       const statusText = allPassed ? '全部通过' : `${passCount}/${lines.length} 通过`;
 
-      testPanel.innerHTML =
-        `<div class="test-panel__title" style="color:${statusColor}">${emoji} 测试结果: ${statusText}</div>` +
+      testCard.innerHTML =
+        `<div class="test-card__title" style="color:${statusColor}">${emoji} 测试结果: ${statusText}</div>` +
         lines.join('');
-      testPanel.classList.add('visible');
+      testCard.classList.add('visible');
     });
   })();
   </script>
