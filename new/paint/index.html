@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>画图</title>
     <link rel="stylesheet" href="../src/css/common.css">
     <style>
@@ -10,95 +10,113 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 16px;
         }
 
+        /* ── 顶部工具栏 ── */
         .toolbar {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 10px;
             flex-wrap: wrap;
             justify-content: center;
-        }
-
-        .tool-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 14px;
+            padding: 10px 14px;
             background: var(--color-card);
             border: 1px solid var(--color-border);
             border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            width: 100%;
+            max-width: 700px;
         }
 
-        .tool-group__label {
-            font-size: 12px;
-            color: var(--color-text-light);
-            white-space: nowrap;
-        }
-
-        .tool-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 6px 14px;
-            border: 2px solid transparent;
-            border-radius: var(--radius-sm);
-            background: var(--color-bg);
-            color: var(--color-text);
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.15s var(--ease-out-expo);
-            user-select: none;
-        }
-
-        .tool-btn:hover {
-            background: var(--color-primary-light);
-            color: var(--color-secondary);
-        }
-
-        .tool-btn.active {
-            border-color: var(--color-primary);
-            background: var(--color-primary-light);
-            color: var(--color-secondary);
-            font-weight: 600;
-        }
-
-        .color-picker-wrapper {
+        .toolbar__group {
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .color-swatch {
-            width: 28px;
-            height: 28px;
+        .toolbar__sep {
+            width: 1px;
+            height: 24px;
+            background: var(--color-border);
+        }
+
+        .tool-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 12px;
+            border: 2px solid transparent;
             border-radius: var(--radius-sm);
-            border: 2px solid var(--color-border);
+            background: var(--color-bg);
+            color: var(--color-text);
+            font-size: 16px;
             cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.15s var(--ease-out-expo);
+        }
+
+        .tool-btn:hover {
+            background: var(--color-primary-light);
+        }
+
+        .tool-btn.active {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+            font-weight: 600;
+        }
+
+        .color-btn {
+            width: 36px;
+            height: 36px;
+            border: 2px solid var(--color-border);
+            border-radius: 50%;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
             transition: transform 0.15s var(--ease-spring);
         }
 
-        .color-swatch:hover {
+        .color-btn:hover {
             transform: scale(1.15);
         }
 
-        .color-input-hidden {
-            position: absolute;
-            width: 0;
-            height: 0;
-            opacity: 0;
-            pointer-events: none;
+        .size-input {
+            width: 48px;
+            height: 36px;
+            text-align: center;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            color: var(--color-text);
+            background: var(--color-bg);
+            outline: none;
+        }
+
+        .size-input:focus {
+            border-color: var(--color-primary);
+        }
+
+        .size-label {
+            font-size: 13px;
+            color: var(--color-text-light);
+            white-space: nowrap;
         }
 
         .btn-clear {
-            padding: 6px 14px;
+            height: 36px;
+            padding: 0 16px;
             border: 2px solid var(--color-border);
             border-radius: var(--radius-sm);
             background: var(--color-bg);
             color: var(--color-text-light);
             font-size: 13px;
             cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
             transition: all 0.15s var(--ease-out-expo);
         }
 
@@ -108,24 +126,74 @@
             color: #fff;
         }
 
-        .canvas-area {
-            position: relative;
+        /* ── 画布区域 ── */
+        .canvas-wrap {
+            flex-shrink: 0;
+            padding: 12px;
+            background: #ffffff;
+            border: 2px solid var(--color-border);
             border-radius: var(--radius-md);
-            overflow: hidden;
-            box-shadow: var(--shadow-md);
-            line-height: 0;
+            box-shadow: var(--shadow-sm);
         }
 
         #paintCanvas {
             display: block;
             background: #ffffff;
             cursor: crosshair;
+            touch-action: none;
         }
 
-        .pixel-grid-overlay {
-            position: absolute;
+        /* ── 颜色弹窗 ── */
+        .color-overlay {
+            display: none;
+            position: fixed;
             inset: 0;
-            pointer-events: none;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .color-overlay.show {
+            display: flex;
+        }
+
+        .color-picker-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 24px 32px;
+            background: var(--color-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .color-picker-wrap label {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .color-picker-wrap input[type="color"] {
+            width: 80px;
+            height: 50px;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+        }
+
+        .color-picker-wrap .btn-done {
+            padding: 8px 28px;
+            background: var(--color-primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
@@ -133,35 +201,41 @@
     <header class="page-header">
         <span class="page-header__icon">🎨</span>
         <h1 class="page-header__title">画图</h1>
-        <p class="page-header__subtitle">10×10 像素画布，左键画笔 / 右键取色。</p>
+        <p class="page-header__subtitle">点击画布上色，拖拽连线。</p>
     </header>
 
     <div class="container">
         <div class="paint-wrapper">
             <div class="toolbar">
-                <div class="tool-group">
-                    <span class="tool-group__label">工具</span>
-                    <button class="tool-btn active" id="btnBrush" type="button">🖌 画笔</button>
-                    <button class="tool-btn" id="btnEraser" type="button">🧹 橡皮擦</button>
+                <div class="toolbar__group">
+                    <button class="tool-btn active" id="btnBrush" type="button" title="画笔">🖌</button>
+                    <button class="tool-btn" id="btnEraser" type="button" title="橡皮擦">🧹</button>
                 </div>
-                <div class="tool-group">
-                    <span class="tool-group__label">左键颜色</span>
-                    <input type="color" id="leftColor" value="#2C2C2C" class="color-input-hidden">
-                    <div class="color-swatch" id="leftSwatch" style="background:#2C2C2C" title="点击选择左键颜色"></div>
+                <div class="toolbar__sep"></div>
+                <div class="toolbar__group">
+                    <button class="color-btn" id="colorBtn" style="background:#000000" title="设置颜色"></button>
                 </div>
-                <div class="tool-group">
-                    <span class="tool-group__label">右键颜色</span>
-                    <input type="color" id="rightColor" value="#E07A5F" class="color-input-hidden">
-                    <div class="color-swatch" id="rightSwatch" style="background:#E07A5F" title="点击选择右键颜色"></div>
+                <div class="toolbar__sep"></div>
+                <div class="toolbar__group">
+                    <span class="size-label">画布</span>
+                    <input class="size-input" id="sizeInput" type="number" value="10" min="2" max="100" title="画布大小 (2~100)">
                 </div>
-                <div class="tool-group">
-                    <button class="btn-clear" id="btnClear" type="button">清空</button>
-                </div>
+                <div class="toolbar__sep"></div>
+                <button class="btn-clear" id="btnClear" type="button">清空</button>
             </div>
 
-            <div class="canvas-area" id="canvasArea">
-                <canvas id="paintCanvas" width="400" height="400"></canvas>
+            <div class="canvas-wrap" id="canvasWrap">
+                <canvas id="paintCanvas"></canvas>
             </div>
+        </div>
+    </div>
+
+    <!-- 颜色弹窗 -->
+    <div class="color-overlay" id="colorOverlay">
+        <div class="color-picker-wrap">
+            <label>选择颜色</label>
+            <input type="color" id="colorPicker" value="#000000">
+            <button class="btn-done" id="colorDone">确定</button>
         </div>
     </div>
 
@@ -169,148 +243,184 @@
     <script>(function () {
         'use strict';
 
-        const GRID = 10;
-        const CELL = 40;
-        const canvas = document.getElementById('paintCanvas');
-        const ctx = canvas.getContext('2d');
+        var canvas = document.getElementById('paintCanvas');
+        var ctx = canvas.getContext('2d');
+        var colorBtn = document.getElementById('colorBtn');
+        var colorOverlay = document.getElementById('colorOverlay');
+        var colorPicker = document.getElementById('colorPicker');
+        var colorDone = document.getElementById('colorDone');
+        var sizeInput = document.getElementById('sizeInput');
+        var btnClear = document.getElementById('btnClear');
+        var btnBrush = document.getElementById('btnBrush');
+        var btnEraser = document.getElementById('btnEraser');
+        var canvasWrap = document.getElementById('canvasWrap');
 
-        let tool = 'brush';
-        let isDrawing = false;
-        let lastCell = null;
+        var GRID = 10;
+        var cellSize = 0;
+        var color = '#000000';
+        var tool = 'brush';
+        var isDrawing = false;
+        var lastCell = null;
 
-        function getCellFromEvent(e) {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const x = Math.floor((e.clientX - rect.left) * scaleX / CELL);
-            const y = Math.floor((e.clientY - rect.top) * scaleY / CELL);
-            if (x < 0 || x >= GRID || y < 0 || y >= GRID) return null;
-            return { x, y };
+        /* ── 自适应画布尺寸 ── */
+        function calcSize() {
+            var maxW = window.innerWidth - 40;
+            var maxH = window.innerHeight - 220;
+            var maxDim = Math.min(maxW, maxH);
+            cellSize = Math.max(Math.floor(maxDim / GRID), 4);
+            canvas.width = GRID * cellSize;
+            canvas.height = GRID * cellSize;
+            canvas.style.width = canvas.width + 'px';
+            canvas.style.height = canvas.height + 'px';
+            redraw();
         }
 
-        function paintCell(cell, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(cell.x * CELL, cell.y * CELL, CELL, CELL);
-            drawGridLines();
-        }
-
-        function eraseCell(cell) {
+        function redraw() {
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(cell.x * CELL, cell.y * CELL, CELL, CELL);
-            drawGridLines();
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (cellSize >= 16) drawGridLines();
         }
 
         function drawGridLines() {
             ctx.save();
             ctx.strokeStyle = 'rgba(0,0,0,0.08)';
             ctx.lineWidth = 1;
-            for (let i = 1; i < GRID; i++) {
+            for (var i = 1; i < GRID; i++) {
                 ctx.beginPath();
-                ctx.moveTo(i * CELL, 0);
-                ctx.lineTo(i * CELL, GRID * CELL);
+                ctx.moveTo(i * cellSize, 0);
+                ctx.lineTo(i * cellSize, GRID * cellSize);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.moveTo(0, i * CELL);
-                ctx.lineTo(GRID * CELL, i * CELL);
+                ctx.moveTo(0, i * cellSize);
+                ctx.lineTo(GRID * cellSize, i * cellSize);
                 ctx.stroke();
             }
             ctx.restore();
         }
 
-        function initCanvas() {
+        /* ── 坐标计算 ── */
+        function getCell(clientX, clientY) {
+            var rect = canvas.getBoundingClientRect();
+            var x = Math.floor((clientX - rect.left) / rect.width * canvas.width / cellSize);
+            var y = Math.floor((clientY - rect.top) / rect.height * canvas.height / cellSize);
+            if (x < 0 || x >= GRID || y < 0 || y >= GRID) return null;
+            return { x: x, y: y };
+        }
+
+        function paintCell(cell) {
+            ctx.fillStyle = color;
+            ctx.fillRect(cell.x * cellSize, cell.y * cellSize, cellSize, cellSize);
+            if (cellSize >= 16) drawGridLines();
+        }
+
+        function eraseCell(cell) {
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, GRID * CELL, GRID * CELL);
-            drawGridLines();
+            ctx.fillRect(cell.x * cellSize, cell.y * cellSize, cellSize, cellSize);
+            if (cellSize >= 16) drawGridLines();
         }
 
-        function getActiveColor(e) {
-            return e.button === 2
-                ? document.getElementById('rightColor').value
-                : document.getElementById('leftColor').value;
-        }
-
-        // 左键按下 = 开始绘制（画笔）/ 擦除（橡皮擦）
-        canvas.addEventListener('mousedown', function (e) {
-            if (e.button !== 0) return;
-            e.preventDefault();
-            var cell = getCellFromEvent(e);
+        /* ── 输入事件 ── */
+        function handleDown(cell) {
             if (!cell) return;
             isDrawing = true;
             lastCell = cell;
-            if (tool === 'eraser') {
-                eraseCell(cell);
-            } else {
-                paintCell(cell, document.getElementById('leftColor').value);
-            }
-        });
+            if (tool === 'eraser') eraseCell(cell);
+            else paintCell(cell);
+        }
 
-        // 右键按下 = 快速填充当前像素（取右键颜色）
-        canvas.addEventListener('mousedown', function (e) {
-            if (e.button !== 2) return;
-            e.preventDefault();
-            var cell = getCellFromEvent(e);
-            if (!cell) return;
-            paintCell(cell, document.getElementById('rightColor').value);
-        });
-
-        // 拖拽绘制
-        canvas.addEventListener('mousemove', function (e) {
-            if (!isDrawing) return;
-            var cell = getCellFromEvent(e);
-            if (!cell || !lastCell) return;
+        function handleMove(cell) {
+            if (!isDrawing || !cell || !lastCell) return;
             if (cell.x !== lastCell.x || cell.y !== lastCell.y) {
-                if (tool === 'eraser') {
-                    eraseCell(cell);
-                } else {
-                    paintCell(cell, document.getElementById('leftColor').value);
-                }
+                if (tool === 'eraser') eraseCell(cell);
+                else paintCell(cell);
                 lastCell = cell;
             }
+        }
+
+        function handleUp() {
+            isDrawing = false;
+            lastCell = null;
+        }
+
+        canvas.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            handleDown(getCell(e.clientX, e.clientY));
         });
 
-        canvas.addEventListener('mouseup', function () { isDrawing = false; lastCell = null; });
-        canvas.addEventListener('mouseleave', function () { isDrawing = false; lastCell = null; });
+        canvas.addEventListener('mousemove', function (e) {
+            handleMove(getCell(e.clientX, e.clientY));
+        });
 
-        // 禁用右键菜单
+        canvas.addEventListener('mouseup', handleUp);
+        canvas.addEventListener('mouseleave', handleUp);
+
+        // 触摸支持
+        canvas.addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            var t = e.touches[0];
+            handleDown(getCell(t.clientX, t.clientY));
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', function (e) {
+            e.preventDefault();
+            var t = e.touches[0];
+            handleMove(getCell(t.clientX, t.clientY));
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', function (e) {
+            e.preventDefault();
+            handleUp();
+        });
+
+        // 禁止右键菜单
         canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
-        // 工具切换
-        document.getElementById('btnBrush').addEventListener('click', function () {
+        /* ── 工具切换 ── */
+        btnBrush.addEventListener('click', function () {
             tool = 'brush';
-            document.getElementById('btnBrush').classList.add('active');
-            document.getElementById('btnEraser').classList.remove('active');
+            btnBrush.classList.add('active');
+            btnEraser.classList.remove('active');
         });
 
-        document.getElementById('btnEraser').addEventListener('click', function () {
+        btnEraser.addEventListener('click', function () {
             tool = 'eraser';
-            document.getElementById('btnEraser').classList.add('active');
-            document.getElementById('btnBrush').classList.remove('active');
+            btnEraser.classList.add('active');
+            btnBrush.classList.remove('active');
         });
 
-        // 颜色选择器联动
-        document.getElementById('leftColor').addEventListener('input', function () {
-            document.getElementById('leftSwatch').style.background = this.value;
+        /* ── 颜色弹窗 ── */
+        colorBtn.addEventListener('click', function () {
+            colorPicker.value = color;
+            colorOverlay.classList.add('show');
         });
 
-        document.getElementById('rightColor').addEventListener('input', function () {
-            document.getElementById('rightSwatch').style.background = this.value;
+        colorDone.addEventListener('click', function () {
+            color = colorPicker.value;
+            colorBtn.style.background = color;
+            colorOverlay.classList.remove('show');
         });
 
-        // 点击色块弹出选择器
-        document.getElementById('leftSwatch').addEventListener('click', function () {
-            document.getElementById('leftColor').click();
+        colorOverlay.addEventListener('click', function (e) {
+            if (e.target === colorOverlay) colorOverlay.classList.remove('show');
         });
 
-        document.getElementById('rightSwatch').addEventListener('click', function () {
-            document.getElementById('rightColor').click();
+        /* ── 画布大小 ── */
+        sizeInput.addEventListener('change', function () {
+            var v = parseInt(this.value, 10);
+            if (isNaN(v) || v < 2) v = 2;
+            if (v > 100) v = 100;
+            GRID = v;
+            calcSize();
         });
 
-        // 清空画布
-        document.getElementById('btnClear').addEventListener('click', function () {
-            initCanvas();
-        });
+        /* ── 清空 ── */
+        btnClear.addEventListener('click', function () { redraw(); });
 
-        initCanvas();
+        /* ── 响应窗口 ── */
+        window.addEventListener('resize', calcSize);
+
+        calcSize();
+        colorBtn.style.background = color;
     })();</script>
 </body>
 </html>
