@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>字符编码查看器</title>
+  <link rel="stylesheet" href="src/css/common.css">
+  <style>
+    .charset-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .input-section {
+      margin-bottom: 32px;
+    }
+    .input-section .input {
+      font-size: 1rem;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      resize: vertical;
+      min-height: 80px;
+    }
+    .btn-encode {
+      padding: 10px 28px;
+      font-size: 1rem;
+    }
+    .results { display: none; }
+    .results.visible { display: block; }
+    .enc-group {
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      margin-bottom: 16px;
+    }
+    .enc-group__title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--color-secondary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .enc-group__info {
+      font-size: 0.85rem;
+      color: var(--color-text-light);
+      margin-bottom: 12px;
+    }
+    .hex-display {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--color-text);
+      background: var(--color-bg-warm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      word-break: break-all;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .char-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .summary-card {
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      text-align: center;
+    }
+    .summary-card__value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--color-primary);
+      margin-bottom: 4px;
+    }
+    .summary-card__label {
+      font-size: 0.82rem;
+      color: var(--color-text-light);
+    }
+  </style>
+</head>
+<body data-nav-current="index">
+
+  <header class="page-header">
+    <span class="page-header__icon">🔤</span>
+    <h1 class="page-header__title">字符编码查看器</h1>
+    <p class="page-header__subtitle">输入文本，查看不同编码下的字节序列。</p>
+  </header>
+
+  <div class="charset-container">
+
+    <div class="input-section">
+      <textarea class="input" id="textInput" placeholder="在这里输入文本…" rows="3"></textarea>
+      <button class="btn btn--primary btn-encode" id="btnEncode">查看编码</button>
+    </div>
+
+    <div class="results" id="results">
+      <!-- 字符统计 -->
+      <div class="char-summary" id="charSummary"></div>
+      <!-- 编码详情 -->
+      <div id="encDetails"></div>
+    </div>
+
+  </div>
+
+  <script src="src/js/nav.js"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    const textInput = document.getElementById('textInput');
+    const btnEncode = document.getElementById('btnEncode');
+    const results = document.getElementById('results');
+    const charSummary = document.getElementById('charSummary');
+    const encDetails = document.getElementById('encDetails');
+
+    // ---- UTF-16LE 编码（原生支持）----
+    function encodeUTF16LE(str) {
+      const encoder = new TextEncoder('utf-16le');
+      return encoder.encode(str);
+    }
+
+    // ---- UTF-8 编码（原生支持）----
+    function encodeUTF8(str) {
+      const encoder = new TextEncoder('utf-8');
+      return encoder.encode(str);
+    }
+
+    // ---- ASCII ----
+    function encodeASCII(str) {
+      const bytes = [];
+      for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        bytes.push(code <= 127 ? code : null); // 超出 ASCII 范围记为 null
+      }
+      return bytes;
+    }
+
+    // ---- GBK 近似模拟 ----
+    // 原理：CJK 字符按 Unicode 码点近似映射到 GBK 编码区域
+    function encodeGBK(str) {
+      const bytes = [];
+      for (let i = 0; i < str.length; i++) {
+        const cp = str.codePointAt(i);
+        if (cp <= 0x7F) {
+          // ASCII 字符：单字节相同
+          bytes.push(cp);
+        } else if (cp >= 0x4E00 && cp <= 0x9FFF) {
+          // CJK 统一汉字：GBK 从 0xB0A1 开始，Unicode 从 0x4E00 开始
+          // 近似偏移映射
+          const offset = cp - 0x4E00;
+          const high = 0xB0 + (offset / 94) | 0;
+          const low = (offset % 94);
+          bytes.push(Math.min(high, 0xF9));
+          bytes.push(0xA1 + low);
+          if (cp > 0xFFFF) i++; // 跳过 surrogate
+        } else if (cp >= 0x3000 && cp <= 0x303F) {
+          // CJK 符号
+          const offset = cp - 0x3000;
+          bytes.push(0xB0);
+          bytes.push(0xA1 + offset);
+        } else if (cp >= 0xAC00 && cp <= 0xD7A3) {
+          // 韩文字母
+          const offset = cp - 0xAC00;
+          bytes.push(0xB9 + (offset / 588) | 0);
+          bytes.push(0xA1 + (offset % 588));
+        } else if (cp >= 0x0080 && cp <= 0x00FF) {
+          // Latin-1 补充：近似为 Latin-1 单字节
+          bytes.push(cp);
+        } else {
+          // 其他：用 UTF-8 编码模拟（实际 GBK 无法表示这些字符，用 ? 替代）
+          bytes.push(0x3F);
+          if (cp > 0xFFFF) i++;
+        }
+      }
+      return bytes;
+    }
+
+    // ---- 工具函数 ----
+    function bytesToHex(bytes, len) {
+      return bytes.slice(0, len || bytes.length).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+    }
+
+    function bytesToString(bytes, len) {
+      return bytes.slice(0, len || bytes.length).join(', ');
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ---- 主逻辑 ----
+    btnEncode.addEventListener('click', function () {
+      const text = textInput.value;
+      if (!text) return;
+
+      const len = text.length;
+      const byteCount = new Blob([text]).size;
+
+      // 字符统计
+      const utf8Bytes = encodeUTF8(text);
+      const utf16Bytes = encodeUTF16LE(text);
+      const asciiBytes = encodeASCII(text);
+      const gbkBytes = encodeGBK(text);
+      const asciiOnly = asciiBytes.filter(b => b !== null);
+
+      charSummary.innerHTML = `
+        <div class="summary-card">
+          <div class="summary-card__value">${len}</div>
+          <div class="summary-card__label">JS 字符数</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card__value">${utf8Bytes.length}</div>
+          <div class="summary-card__label">UTF-8 字节数</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card__value">${utf16Bytes.length}</div>
+          <div class="summary-card__label">UTF-16 字节数</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card__value">${gbkBytes.length}</div>
+          <div class="summary-card__label">GBK 字节数（近似）</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card__value">${asciiOnly.length}</div>
+          <div class="summary-card__label">ASCII 字节数</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card__value">${byteCount}</div>
+          <div class="summary-card__label">Blob 实际字节数</div>
+        </div>
+      `;
+
+      // 编码详情
+      const maxBytes = Math.max(utf8Bytes.length, utf16Bytes.length, gbkBytes.length, asciiBytes.length);
+
+      encDetails.innerHTML = `
+        <!-- UTF-8 -->
+        <div class="enc-group">
+          <div class="enc-group__title">UTF-8</div>
+          <div class="enc-group__info">${utf8Bytes.length} 字节 — 变长编码，1~4 字节/字符</div>
+          <div class="hex-display">${escapeHtml(bytesToHex(utf8Bytes))}</div>
+          <div class="hex-display" style="margin-top:8px;color:var(--color-text-light);font-size:0.75rem;">
+            十进制: ${escapeHtml(bytesToString(utf8Bytes))}
+          </div>
+        </div>
+
+        <!-- UTF-16LE -->
+        <div class="enc-group">
+          <div class="enc-group__title">UTF-16 LE (Unicode)</div>
+          <div class="enc-group__info">${utf16Bytes.length} 字节 — 固定 2 字节/字符（BMP）或 4 字节（辅助平面）</div>
+          <div class="hex-display">${escapeHtml(bytesToHex(utf16Bytes))}</div>
+          <div class="hex-display" style="margin-top:8px;color:var(--color-text-light);font-size:0.75rem;">
+            十进制: ${escapeHtml(bytesToString(utf16Bytes))}
+          </div>
+        </div>
+
+        <!-- GBK -->
+        <div class="enc-group">
+          <div class="enc-group__title">GBK（近似模拟）</div>
+          <div class="enc-group__info">${gbkBytes.length} 字节 — 双字节编码，CJK 字符 ~ 2 字节/字符</div>
+          <div class="hex-display">${escapeHtml(bytesToHex(gbkBytes))}</div>
+          <div class="hex-display" style="margin-top:8px;color:var(--color-text-light);font-size:0.75rem;">
+            十进制: ${escapeHtml(bytesToString(gbkBytes))}
+          </div>
+        </div>
+
+        <!-- ASCII -->
+        <div class="enc-group">
+          <div class="enc-group__title">ASCII</div>
+          <div class="enc-group__info">${asciiOnly.length} / ${len} 字符可编码 — 仅 0x00~0x7F，非 ASCII 字符以 ? (0x3F) 替代</div>
+          <div class="hex-display">${escapeHtml(bytesToHex(asciiBytes, maxBytes))}</div>
+          <div class="hex-display" style="margin-top:8px;color:var(--color-text-light);font-size:0.75rem;">
+            十进制: ${escapeHtml(bytesToString(asciiBytes, maxBytes))}
+          </div>
+        </div>
+      `;
+
+      results.classList.add('visible');
+    });
+  })();
+  </script>
+</body>
+</html>
