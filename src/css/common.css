@@ -106,6 +106,7 @@ body::before {
 /* ---- 页面偏移（避免 fixed 菜单遮挡内容） ---- */
 body.has-pc-header { padding-top: 60px; }
 body.has-mobile-nav { padding-bottom: 72px; }
+body.has-hamburger { padding-top: 60px; }
 
 /* ---- PC 顶部菜单栏 ---- */
 .site-header {
@@ -305,6 +306,160 @@ body.has-mobile-nav { padding-bottom: 72px; }
   box-shadow: var(--shadow-sm);
 }
 
+/* ---- 汉堡按钮 ---- */
+.site-header__hamburger {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  cursor: pointer;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--ease-out-expo);
+  color: var(--color-text);
+}
+.site-header__hamburger:hover {
+  background: var(--color-bg-warm);
+  border-color: var(--color-primary-light);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---- 汉堡弹出面板 ---- */
+.hamburger-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 320px;
+  max-width: 85vw;
+  z-index: 999;
+  background: var(--color-card);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(100%);
+  transition: transform 0.35s var(--ease-out-expo);
+  overflow-y: auto;
+  padding: 8px 8px 80px;
+}
+.hamburger-panel.open {
+  transform: translateX(0);
+}
+.hamburger-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  position: sticky;
+  top: 0;
+  background: var(--color-card);
+  z-index: 1;
+  border-bottom: 1px solid var(--color-border);
+}
+.hamburger-panel__title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+.hamburger-panel__close {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--color-bg-warm);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+  transition: background var(--duration-fast);
+}
+.hamburger-panel__close:hover {
+  background: var(--color-border);
+}
+.hamburger-panel__body {
+  padding: 8px 0;
+}
+.hamburger-panel__section {
+  margin-bottom: 8px;
+}
+.hamburger-panel__section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 12px 20px 4px;
+}
+.hamburger-panel__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px 12px;
+}
+.hamburger-panel__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background var(--duration-fast);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+.hamburger-panel__item:hover {
+  background: var(--color-bg-warm);
+  color: var(--color-primary);
+}
+.hamburger-panel__item:active {
+  background: var(--color-bg-warm);
+}
+.hamburger-panel__icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+.hamburger-panel__name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+/* 子面板 */
+.hamburger-panel__sub {
+  border-top: 1px solid var(--color-border);
+  padding-top: 8px;
+}
+.hamburger-panel__sub-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px 8px;
+  position: sticky;
+  top: 0;
+  background: var(--color-card);
+  z-index: 1;
+}
+.hamburger-panel__back {
+  border: none;
+  background: var(--color-bg-warm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-family: inherit;
+  transition: background var(--duration-fast);
+}
+.hamburger-panel__back:hover {
+  background: var(--color-border);
+}
+
 /* ---- 手机底部标签栏 ---- */
 .mobile-nav {
   position: fixed;
@@ -443,21 +598,31 @@ body.has-mobile-nav { padding-bottom: 72px; }
 body.has-pc-header .site-header { display: flex; }
 body.has-pc-header .mobile-nav { display: none; }
 body.has-pc-header .works-panel { display: none; }
+body.has-pc-header .hamburger-panel { display: none; }
 body.has-pc-header .works-overlay { display: none; }
 /* 手机模式：底部栏可见，顶部栏隐藏 */
 body.has-mobile-nav .site-header { display: none; }
 body.has-mobile-nav .mobile-nav { display: flex; }
+body.has-mobile-nav .works-panel { display: none; }
+body.has-mobile-nav .hamburger-panel { display: none; }
+body.has-mobile-nav .works-overlay { display: none; }
+/* 汉堡模式：顶部栏可见（仅logo+汉堡按钮），底部栏隐藏 */
+body.has-hamburger .site-header { display: flex; }
+body.has-hamburger .mobile-nav { display: none; }
+/* 汉堡面板在 PC 模式下显示，手机模式下不显示（用底部标签栏） */
+body.has-hamburger.has-pc-header .hamburger-panel { display: block; }
 
 /* 响应式默认：宽屏默认 PC 模式，窄屏默认手机模式 */
 @media (min-width: 768px) {
-  body:not(.has-pc-header):not(.has-mobile-nav) .site-header { display: flex; }
-  body:not(.has-pc-header):not(.has-mobile-nav) .mobile-nav,
-  body:not(.has-pc-header):not(.has-mobile-nav) .works-panel,
-  body:not(.has-pc-header):not(.has-mobile-nav) .works-overlay { display: none; }
+  body:not(.has-pc-header):not(.has-mobile-nav):not(.has-hamburger) .site-header { display: flex; }
+  body:not(.has-pc-header):not(.has-mobile-nav):not(.has-hamburger) .mobile-nav,
+  body:not(.has-pc-header):not(.has-mobile-nav):not(.has-hamburger) .works-panel,
+  body:not(.has-pc-header):not(.has-mobile-nav):not(.has-hamburger) .hamburger-panel,
+  body:not(.has-pc-header):not(.has-mobile-nav):not(.has-hamburger) .works-overlay { display: none; }
 }
 @media (max-width: 767px) {
-  body:not(.has-pc-header):not(.has-mobile-nav) .site-header { display: none; }
-  body:not(.has-pc-header):not(.has-mobile-nav) .mobile-nav { display: flex; }
+  body:not(.has-pc-header):not(.has-mobile-nav):not(.has-hamburger) .site-header { display: none; }
+  body:not(.has-pc-header):not(.has-mobile-nav):not(.has-hamburger) .mobile-nav { display: flex; }
 }
 
 /* 页面标题区域 */

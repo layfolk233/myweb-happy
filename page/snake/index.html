@@ -203,6 +203,48 @@
             .overlay-score { font-size: 40px; }
         }
 
+        /* 触屏方向按钮 */
+        .dpad {
+            display: none;
+            grid-template-areas:
+                ". up ."
+                "left . right"
+                ". down .";
+            grid-template-columns: repeat(3, 64px);
+            grid-template-rows: repeat(3, 64px);
+            gap: 6px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+        .dpad-btn {
+            width: 64px; height: 64px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--accent);
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            transition: background 0.1s, transform 0.1s;
+        }
+        .dpad-btn:active {
+            background: var(--accent-dim);
+            transform: scale(0.92);
+        }
+        .dpad-btn.up    { grid-area: up; }
+        .dpad-btn.down  { grid-area: down; }
+        .dpad-btn.left  { grid-area: left; }
+        .dpad-btn.right { grid-area: right; }
+
+        @media (max-width: 560px) {
+            .dpad { display: grid; }
+            .hint-keys { display: none; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
         }
@@ -268,6 +310,14 @@
                     <div class="speed-dot"></div>
                 </div>
             </div>
+        </div>
+
+        <!-- 触屏方向按钮 -->
+        <div class="dpad" id="dpad">
+            <button class="dpad-btn up" data-dir="up" aria-label="向上"><i class="fas fa-arrow-up"></i></button>
+            <button class="dpad-btn left" data-dir="left" aria-label="向左"><i class="fas fa-arrow-left"></i></button>
+            <button class="dpad-btn right" data-dir="right" aria-label="向右"><i class="fas fa-arrow-right"></i></button>
+            <button class="dpad-btn down" data-dir="down" aria-label="向下"><i class="fas fa-arrow-down"></i></button>
         </div>
     </div>
 
@@ -580,6 +630,35 @@
                 else if (dy < 0 && direction.y !== 1) nextDirection = { x: 0, y: -1 };
             }
         }, { passive: false });
+
+        // 触屏方向按钮
+        const dpadBtns = document.querySelectorAll('.dpad-btn');
+        const dirMap = {
+            up:    { x: 0, y: -1 },
+            down:  { x: 0, y: 1 },
+            left:  { x: -1, y: 0 },
+            right: { x: 1, y: 0 },
+        };
+        dpadBtns.forEach(function (btn) {
+            const dir = dirMap[btn.getAttribute('data-dir')];
+            if (!dir) return;
+            // 同时支持 touch 和 click
+            btn.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                if (!isPlaying) return;
+                if (direction.x !== -dir.x || direction.y !== -dir.y) {
+                    nextDirection = dir;
+                }
+            }, { passive: false });
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isPlaying) return;
+                if (direction.x !== -dir.x || direction.y !== -dir.y) {
+                    nextDirection = dir;
+                }
+            });
+        });
 
         // 初始渲染
         ctx.fillStyle = COLOR_BG;
