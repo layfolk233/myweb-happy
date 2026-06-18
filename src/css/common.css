@@ -344,6 +344,17 @@ body.has-hamburger { padding-top: 60px; }
 .hamburger-panel.open {
   transform: translateX(0);
 }
+/* 手机端：从底部弹出（仅 has-hamburger 且无 has-mobile-nav 时生效） */
+body.has-hamburger:not(.has-mobile-nav) .hamburger-panel {
+  right: auto;
+  bottom: auto;
+  top: auto;
+  left: 0;
+  width: 100%;
+  max-width: 100%;
+  transform: translateY(100%);
+  transition: transform 0.35s var(--ease-out-expo);
+}
 /* 手机端：从底部弹出 */
 body.has-hamburger.has-mobile-nav .hamburger-panel {
   right: auto;
@@ -508,6 +519,9 @@ body.has-hamburger.has-mobile-nav .hamburger-panel.open {
 .mobile-nav__item.active {
   color: var(--color-primary);
   font-weight: 700;
+  background: rgba(224,122,95,0.08);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
 }
 .mobile-nav__icon {
   font-size: 1.4rem;
@@ -623,9 +637,10 @@ body.has-mobile-nav .works-overlay { display: none; }
 /* 汉堡模式：顶部栏可见（仅logo+汉堡按钮），底部栏隐藏 */
 body.has-hamburger .site-header { display: flex; }
 body.has-hamburger .mobile-nav { display: none; }
-/* 汉堡面板：PC 模式右侧滑出，手机模式底部弹出 */
+/* 汉堡面板：PC 模式右侧滑出 */
 body.has-hamburger.has-pc-header .hamburger-panel { display: block; }
-body.has-hamburger.has-mobile-nav .hamburger-panel {
+/* 汉堡面板：手机模式底部弹出（仅 has-hamburger，无 has-mobile-nav） */
+body.has-hamburger:not(.has-mobile-nav) .hamburger-panel {
   display: block;
   position: fixed;
   bottom: 0; left: 0; right: 0;
@@ -635,6 +650,9 @@ body.has-hamburger.has-mobile-nav .hamburger-panel {
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   max-height: 75vh;
   padding: 8px 8px calc(64px + 8px + env(safe-area-inset-bottom, 0px));
+}
+body.has-hamburger:not(.has-mobile-nav) .hamburger-panel.open {
+  transform: translateY(0);
 }
 
 /* 响应式默认：宽屏默认 PC 模式，窄屏默认手机模式 */
