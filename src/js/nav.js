@@ -80,19 +80,21 @@
   const urlDepth = urlSegs.length;
   const isSubPage = urlDepth > 0;
 
-  // 计算 base 路径：origin + 子目录前缀
-  const baseUrl = window.location.origin + (window.location.pathname.replace(/\/+$/, '').split('/')[0] === '' ? '/' : '/' + urlSegs.slice(0, -urlDepth).join('/') + (urlDepth > 0 ? '/' : ''));
-  // 更简单的方式：取 origin 后的子目录部分
-  const rootPath = '/' + urlSegs.slice(0, -urlDepth).join('/') + (urlDepth > 0 ? '/' : '');
-  const baseHref = window.location.origin + rootPath;
+  // 找项目根目录路径
+  // 假设项目根目录是 URL 的第一段（如 /myweb-happy/page/snake/ → /myweb-happy/）
+  // 根路径 / → /
+  const repoRoot = urlSegs.length > 0
+    ? '/' + urlSegs[0] + '/'
+    : '/';
+  const baseOrigin = window.location.origin + repoRoot;
 
   // 仅在根目录首页才新标签页打开子页面
   const isIndex = !isSubPage;
   const blankAttr = isIndex ? ' target="_blank" rel="noopener"' : '';
 
   function resolveHref(href) {
-    if (href === '' || href === './') return baseHref;
-    return baseHref + href;
+    if (href === '' || href === './') return baseOrigin;
+    return baseOrigin + href;
   }
 
   // ============================================================
