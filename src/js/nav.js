@@ -201,6 +201,10 @@
         <span class="mobile-nav__icon">💬</span>
         <span class="mobile-nav__label">留言广场</span>
       </a>
+      <button class="mobile-nav__item" id="mobileWorksBtn" aria-label="小试牛刀">
+        <span class="mobile-nav__icon">🛠️</span>
+        <span class="mobile-nav__label">小试牛刀</span>
+      </button>
     `;
   }
 
