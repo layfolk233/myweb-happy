@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小试牛刀 · 作品合集</title>
+  <link rel="stylesheet" href="../src/css/common.css">
+  <style>
+    /* ========== 页面特有样式 ========== */
+    .page-header { padding-bottom: 0; }
+
+    .works-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+    }
+    .works-card {
+      background: var(--color-card);
+      border-radius: var(--radius-lg);
+      padding: 24px 18px 18px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border);
+      text-decoration: none;
+      color: var(--color-text);
+      transition: all 0.35s var(--ease-out-expo);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+    }
+    .works-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--accent, var(--color-primary));
+      transition: height 0.25s var(--ease-out-expo);
+    }
+    .works-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .works-card:hover::before { height: 5px; }
+    .works-card__icon {
+      font-size: 2.4rem;
+      margin-bottom: 14px;
+      display: block;
+      transition: transform 0.35s var(--ease-spring);
+    }
+    .works-card:hover .works-card__icon {
+      transform: scale(1.1) rotate(-4deg);
+    }
+    .works-card__title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--color-secondary);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    .works-card__desc {
+      font-size: 0.82rem;
+      color: var(--color-text-light);
+      line-height: 1.5;
+      flex: 1;
+    }
+    .works-card__arrow {
+      margin-top: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      transition: gap 0.3s var(--ease-out-expo);
+    }
+    .works-card:hover .works-card__arrow { gap: 8px; }
+
+    /* 分组标签 */
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 32px 24px 8px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 640px) {
+      .works-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 0 12px;
+      }
+      .works-card { padding: 18px 12px 14px; }
+      .works-card__icon { font-size: 2rem; margin-bottom: 10px; }
+      .works-card__title { font-size: 0.92rem; }
+      .works-card__desc { font-size: 0.75rem; }
+      .section-label { padding: 24px 12px 4px; }
+    }
+  </style>
+</head>
+<body data-nav-current="index">
+
+  <!-- ========== 页面头部 ========== -->
+  <header class="page-header">
+    <span class="page-header__icon">🛠️</span>
+    <h1 class="page-header__title">小试牛刀</h1>
+    <p class="page-header__subtitle">
+      手工打造的小工具和趣味项目，每一行代码都是亲手写的。
+    </p>
+  </header>
+
+  <!-- ========== 作品卡片 ========== -->
+  <main class="container">
+
+    <div class="section-label">小工具</div>
+    <div class="works-grid">
+
+      <a href="../page/checksun/" class="works-card fade-in" style="--accent: var(--color-primary)" target="_blank" rel="noopener" style="animation-delay: 0.05s">
+        <span class="works-card__icon">🔢</span>
+        <h2 class="works-card__title">校验码计算器</h2>
+        <p class="works-card__desc">8位累加和补码校验</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+      <a href="../page/snake/" class="works-card fade-in" style="--accent: var(--color-accent)" target="_blank" rel="noopener" style="animation-delay: 0.10s">
+        <span class="works-card__icon">🐍</span>
+        <h2 class="works-card__title">贪吃蛇</h2>
+        <p class="works-card__desc">经典贪吃蛇游戏</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+      <a href="../page/xmas/" class="works-card fade-in" style="--accent: var(--color-primary-light)" target="_blank" rel="noopener" style="animation-delay: 0.15s">
+        <span class="works-card__icon">🎄</span>
+        <h2 class="works-card__title">圣诞树</h2>
+        <p class="works-card__desc">Canvas 圣诞树动画</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+      <a href="../page/finder/" class="works-card fade-in" style="--accent: var(--color-secondary)" target="_blank" rel="noopener" style="animation-delay: 0.20s">
+        <span class="works-card__icon">📂</span>
+        <h2 class="works-card__title">站点浏览器</h2>
+        <p class="works-card__desc">HTML 站点双模式扫描</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+      <a href="../page/catpic/" class="works-card fade-in" style="--accent: var(--color-primary-light)" target="_blank" rel="noopener" style="animation-delay: 0.25s">
+        <span class="works-card__icon">🐱</span>
+        <h2 class="works-card__title">猫图工坊</h2>
+        <p class="works-card__desc">The Cat API 随机猫咪</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+      <a href="../page/joke/" class="works-card fade-in" style="--accent: var(--color-accent)" target="_blank" rel="noopener" style="animation-delay: 0.30s">
+        <span class="works-card__icon">😂</span>
+        <h2 class="works-card__title">随机笑话</h2>
+        <p class="works-card__desc">JokeAPI 双语笑话</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+    </div>
+
+    <div class="section-label">语言学习</div>
+    <div class="works-grid">
+
+      <a href="../new/charset/" class="works-card fade-in" style="--accent: var(--color-primary-light)" target="_blank" rel="noopener" style="animation-delay: 0.35s">
+        <span class="works-card__icon">🔤</span>
+        <h2 class="works-card__title">字符编码</h2>
+        <p class="works-card__desc">UTF-8 / UTF-16 / ASCII 字节可视化</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+      <a href="../new/english/" class="works-card fade-in" style="--accent: var(--color-accent)" target="_blank" rel="noopener" style="animation-delay: 0.40s">
+        <span class="works-card__icon">📖</span>
+        <h2 class="works-card__title">英语日读</h2>
+        <p class="works-card__desc">每日名言、短语、单词</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+      <a href="../new/chinese-qwen/" class="works-card fade-in" style="--accent: var(--color-primary)" target="_blank" rel="noopener" style="animation-delay: 0.45s">
+        <span class="works-card__icon">🏮</span>
+        <h2 class="works-card__title">中文诗句</h2>
+        <p class="works-card__desc">每日古诗 + 四字词 + 日常词组</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+      <a href="../new/chinese-mimo/" class="works-card fade-in" style="--accent: var(--color-accent)" target="_blank" rel="noopener" style="animation-delay: 0.50s">
+        <span class="works-card__icon">📜</span>
+        <h2 class="works-card__title">每日古诗</h2>
+        <p class="works-card__desc">今日诗词 API + 本地预设</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+      <a href="../new/paint/" class="works-card fade-in" style="--accent: var(--color-secondary)" target="_blank" rel="noopener" style="animation-delay: 0.55s">
+        <span class="works-card__icon">🎨</span>
+        <h2 class="works-card__title">画画板</h2>
+        <p class="works-card__desc">Canvas 自由涂鸦画板</p>
+        <span class="works-card__arrow">→</span>
+      </a>
+
+    </div>
+
+  </main>
+
+  <!-- ========== 导航组件 ========== -->
+  <script src="../src/js/nav.js"></script>
+</body>
+</html>

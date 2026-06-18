@@ -17,7 +17,7 @@
   const STORAGE_KEY = 'viewMode';
 
   // 保留菜单栏的页面（白名单）
-  const MENU_PAGES = ['index', 'hub', 'guestbook'];
+  const MENU_PAGES = ['index', 'hub', 'guestbook', 'works'];
 
   // 小试牛刀子页面（page/ 下 + new/ 下）
   const myWorks = [
@@ -55,9 +55,8 @@
       { icon: '🏠', name: '首页',       href: '' },
       { icon: '🪟', name: '精选推荐',   href: 'menu/hub/' },
       { icon: '💬', name: '留言广场',   href: 'menu/guestbook/' },
-      { icon: '🛠️', name: '小试牛刀',   href: '#' },
+      { icon: '🛠️', name: '小试牛刀',   href: 'menu/works/' },
     ]},
-    { label: '小试牛刀', items: myWorks },
     { label: '垃圾箱', items: trashBin },
   ];
 
@@ -69,7 +68,7 @@
     const path = window.location.pathname;
     const segs = path.replace(/\/+$/, '').split('/').filter(Boolean);
     const last = segs.length > 0 ? segs[segs.length - 1] : 'index';
-    const allIds = ['index', 'hub', 'guestbook'];
+    const allIds = ['index', 'hub', 'guestbook', 'works'];
     if (allIds.indexOf(last) !== -1) currentPage = last;
   }
   currentPage = currentPage || 'index';
@@ -98,6 +97,22 @@
   }
 
   // ============================================================
+  //  导航高亮
+  //  根据当前 URL 判断高亮哪个菜单项
+  // ============================================================
+  let navCurrent = currentPage; // 默认高亮白名单页
+  if (!navCurrent) {
+    // 非白名单页面：根据 URL 路径推断属于哪个菜单
+    if (urlSegs.indexOf('page') !== -1 || urlSegs.indexOf('new') !== -1) navCurrent = 'index'; // 小试牛刀子页面
+    else if (urlSegs.indexOf('menu') !== -1) {
+      if (urlSegs.indexOf('hub') !== -1) navCurrent = 'hub';
+      else if (urlSegs.indexOf('guestbook') !== -1) navCurrent = 'guestbook';
+      else if (urlSegs.indexOf('works') !== -1) navCurrent = 'works';
+    }
+    else navCurrent = 'index';
+  }
+
+  // ============================================================
   //  模式管理
   // ============================================================
   function detectMode() {
@@ -107,9 +122,6 @@
   }
 
   let viewMode = detectMode();
-  let dropdownOpen = false;
-  let trashDropdownOpen = false;
-  let mobilePanelOpen = false;
   let hamburgerOpen = false;
 
   function saveMode(mode) {
@@ -138,40 +150,15 @@
 
   if (MENU_PAGES.includes(currentPage)) {
     // 白名单页面：完整菜单栏
-    // 顺序：首页 - 精选推荐 - 留言广场 - 小试牛刀（下拉）
+    // 顺序：首页 - 精选推荐 - 留言广场 - 小试牛刀（指向作品合集页）
     pcHeader.innerHTML = `
       <div class="site-header__inner">
         <a href="${resolveHref('')}" class="site-header__logo">🏠</a>
         <nav class="site-header__nav">
-          <a href="${resolveHref('')}" class="site-header__item ${currentPage === 'index' ? 'active' : ''}">🏠 首页</a>
-          <a href="${resolveHref('menu/hub/')}" class="site-header__item ${currentPage === 'hub' ? 'active' : ''}">🪟 精选推荐</a>
-          <a href="${resolveHref('menu/guestbook/')}" class="site-header__item ${currentPage === 'guestbook' ? 'active' : ''}">💬 留言广场</a>
-          <!-- 小试牛刀（下拉菜单） -->
-          <div class="site-header__dropdown" id="worksDropdown">
-            <button class="site-header__item site-header__trigger ${currentPage === 'index' ? 'active' : ''}" id="worksTrigger" aria-haspopup="true" aria-expanded="false">
-              🛠️ 小试牛刀 ▾
-            </button>
-            <div class="site-header__dropdown-menu" id="worksMenu" role="menu">
-              ${myWorks.map(w => `
-                <a href="${resolveHref(w.href)}" class="site-header__dropdown-item" role="menuitem"${blankAttr}>
-                  <span class="site-header__dropdown-icon">${w.icon}</span> ${w.name}
-                </a>
-              `).join('')}
-              <div class="site-header__dropdown-sep"></div>
-              <div class="site-header__sub-dropdown" id="trashDropdown">
-                <button class="site-header__dropdown-item site-header__sub-trigger" id="trashTrigger">
-                  <span class="site-header__dropdown-icon">🗑️</span> 垃圾箱 ▸
-                </button>
-                <div class="site-header__sub-menu" id="trashMenu">
-                  ${trashBin.map(t => `
-                    <a href="${resolveHref(t.href)}" class="site-header__dropdown-item site-header__dropdown-item--sm"${blankAttr}>
-                      <span class="site-header__dropdown-icon">${t.icon}</span> ${t.name}
-                    </a>
-                  `).join('')}
-                </div>
-              </div>
-            </div>
-          </div>
+          <a href="${resolveHref('')}" class="site-header__item ${navCurrent === 'index' ? 'active' : ''}">🏠 首页</a>
+          <a href="${resolveHref('menu/hub/')}" class="site-header__item ${navCurrent === 'hub' ? 'active' : ''}">🪟 精选推荐</a>
+          <a href="${resolveHref('menu/guestbook/')}" class="site-header__item ${navCurrent === 'guestbook' ? 'active' : ''}">💬 留言广场</a>
+          <a href="${resolveHref('menu/works/')}" class="site-header__item ${navCurrent === 'works' ? 'active' : ''}">🛠️ 小试牛刀</a>
         </nav>
         <button class="site-header__toggle" id="toggleBtn" title="切换到手机版" aria-label="切换PC/手机版">📱</button>
       </div>
@@ -196,22 +183,22 @@
 
   if (MENU_PAGES.includes(currentPage)) {
     mobileNav.innerHTML = `
-      <a href="${resolveHref('')}" class="mobile-nav__item ${currentPage === 'index' ? 'active' : ''}">
+      <a href="${resolveHref('')}" class="mobile-nav__item ${navCurrent === 'index' ? 'active' : ''}">
         <span class="mobile-nav__icon">🏠</span>
         <span class="mobile-nav__label">首页</span>
       </a>
-      <a href="${resolveHref('menu/hub/')}" class="mobile-nav__item ${currentPage === 'hub' ? 'active' : ''}">
+      <a href="${resolveHref('menu/hub/')}" class="mobile-nav__item ${navCurrent === 'hub' ? 'active' : ''}">
         <span class="mobile-nav__icon">🪟</span>
         <span class="mobile-nav__label">精选推荐</span>
       </a>
-      <a href="${resolveHref('menu/guestbook/')}" class="mobile-nav__item ${currentPage === 'guestbook' ? 'active' : ''}">
+      <a href="${resolveHref('menu/guestbook/')}" class="mobile-nav__item ${navCurrent === 'guestbook' ? 'active' : ''}">
         <span class="mobile-nav__icon">💬</span>
         <span class="mobile-nav__label">留言广场</span>
       </a>
-      <button class="mobile-nav__item" id="mobileWorksBtn" aria-label="小试牛刀">
+      <a href="${resolveHref('menu/works/')}" class="mobile-nav__item ${navCurrent === 'works' ? 'active' : ''}">
         <span class="mobile-nav__icon">🛠️</span>
         <span class="mobile-nav__label">小试牛刀</span>
-      </button>
+      </a>
     `;
   }
 
@@ -264,46 +251,15 @@
         <div class="hamburger-panel__section">
           <div class="hamburger-panel__section-label">${s.label}</div>
           <div class="hamburger-panel__grid">
-            ${s.items.map(item => {
-              // 小试牛刀项点击后关闭面板并打开子面板
-              if (item.href === '#') {
-                return `<button class="hamburger-panel__item hamburger-panel__item--arrow" data-target="subWorks" aria-label="小试牛刀">
-                  <span class="hamburger-panel__icon">${item.icon}</span>
-                  <span class="hamburger-panel__name">${item.name}</span>
-                </button>`;
-              }
-              return `<a href="${resolveHref(item.href)}" class="hamburger-panel__item"${blankAttr}>
+            ${s.items.map(item => `
+              <a href="${resolveHref(item.href)}" class="hamburger-panel__item"${blankAttr}>
                 <span class="hamburger-panel__icon">${item.icon}</span>
                 <span class="hamburger-panel__name">${item.name}</span>
-              </a>`;
-            }).join('')}
+              </a>
+            `).join('')}
           </div>
         </div>
       `).join('')}
-      <!-- 小试牛刀子面板（默认隐藏） -->
-      <div class="hamburger-panel__sub" id="subWorks" style="display:none;">
-        <div class="hamburger-panel__sub-header">
-          <button class="hamburger-panel__back" id="subWorksBack" aria-label="返回">← 返回</button>
-          <span class="hamburger-panel__title">🛠️ 小试牛刀</span>
-        </div>
-        <div class="hamburger-panel__grid">
-          ${myWorks.map(w => `
-            <a href="${resolveHref(w.href)}" class="hamburger-panel__item"${blankAttr}>
-              <span class="hamburger-panel__icon">${w.icon}</span>
-              <span class="hamburger-panel__name">${w.name}</span>
-            </a>
-          `).join('')}
-        </div>
-        <div class="hamburger-panel__section-label">🗑️ 垃圾箱</div>
-        <div class="hamburger-panel__grid">
-          ${trashBin.map(t => `
-            <a href="${resolveHref(t.href)}" class="hamburger-panel__item"${blankAttr}>
-              <span class="hamburger-panel__icon">${t.icon}</span>
-              <span class="hamburger-panel__name">${t.name}</span>
-            </a>
-          `).join('')}
-        </div>
-      </div>
     </div>
   `;
 
@@ -325,17 +281,8 @@
   //  事件绑定
   // ============================================================
   const toggleBtn = document.getElementById('toggleBtn');
-  const worksTrigger = document.getElementById('worksTrigger');
-  const worksDropdown = document.getElementById('worksDropdown');
-  const trashTrigger = document.getElementById('trashTrigger');
-  const trashDropdown = document.getElementById('trashDropdown');
-  const trashMenu = document.getElementById('trashMenu');
-  const mobileWorksBtn = document.getElementById('mobileWorksBtn');
-  const worksPanelClose = document.getElementById('worksPanelClose');
   const hamburgerBtn = document.getElementById('hamburgerBtn');
   const hamburgerPanelClose = document.getElementById('hamburgerPanelClose');
-  const subWorks = document.getElementById('subWorks');
-  const subWorksBack = document.getElementById('subWorksBack');
 
   // ---- 切换按钮 ----
   toggleBtn.addEventListener('click', function () {
@@ -343,96 +290,12 @@
     applyMode();
   });
 
-  // ---- PC "小试牛刀" 下拉菜单 ----
-  function openDropdown() {
-    dropdownOpen = true;
-    worksDropdown.classList.add('open');
-    worksTrigger.setAttribute('aria-expanded', 'true');
-  }
-  function closeDropdown() {
-    dropdownOpen = false;
-    worksDropdown.classList.remove('open');
-    worksTrigger.setAttribute('aria-expanded', 'false');
-    closeTrashDropdown();
-  }
-
-  worksTrigger.addEventListener('click', function (e) {
-    e.stopPropagation();
-    dropdownOpen ? closeDropdown() : openDropdown();
-  });
-
-  worksTrigger.addEventListener('mouseenter', function () {
-    if (!dropdownOpen) openDropdown();
-  });
-
-  worksDropdown.addEventListener('mouseleave', function () {
-    setTimeout(function () {
-      if (!worksDropdown.matches(':hover')) closeDropdown();
-    }, 100);
-  });
-
-  // ---- 垃圾箱子菜单 ----
-  function openTrashDropdown() {
-    trashDropdownOpen = true;
-    trashDropdown.classList.add('open');
-  }
-  function closeTrashDropdown() {
-    trashDropdownOpen = false;
-    trashDropdown.classList.remove('open');
-  }
-
-  trashTrigger.addEventListener('click', function (e) {
-    e.stopPropagation();
-    trashDropdownOpen ? closeTrashDropdown() : openTrashDropdown();
-  });
-
-  trashTrigger.addEventListener('mouseenter', function () {
-    if (!trashDropdownOpen) openTrashDropdown();
-  });
-
-  trashDropdown.addEventListener('mouseleave', function () {
-    setTimeout(function () {
-      if (!trashDropdown.matches(':hover')) closeTrashDropdown();
-    }, 100);
-  });
-
-  // 点击菜单外关闭
-  document.addEventListener('click', function (e) {
-    if (dropdownOpen && !worksDropdown.contains(e.target)) closeDropdown();
-  });
-
   // ESC 关闭
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      if (dropdownOpen) closeDropdown();
-      if (mobilePanelOpen) closeWorksPanel();
       if (hamburgerOpen) closeHamburger();
     }
   });
-
-  // ---- 手机弹出面板 ----
-  function openWorksPanel() {
-    mobilePanelOpen = true;
-    mobilePanel.classList.add('open');
-    overlay.classList.add('visible');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeWorksPanel() {
-    mobilePanelOpen = false;
-    mobilePanel.classList.remove('open');
-    overlay.classList.remove('visible');
-    document.body.style.overflow = '';
-  }
-
-  if (mobileWorksBtn) {
-    mobileWorksBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      mobilePanelOpen ? closeWorksPanel() : openWorksPanel();
-    });
-  }
-
-  worksPanelClose.addEventListener('click', closeWorksPanel);
-  overlay.addEventListener('click', closeWorksPanel);
 
   // ---- 汉堡菜单 ----
   function openHamburger() {
@@ -444,8 +307,6 @@
   function closeHamburger() {
     hamburgerOpen = false;
     hamburgerPanel.classList.remove('open');
-    // 关闭子面板
-    if (subWorks) subWorks.style.display = 'none';
     overlay.classList.remove('visible');
     document.body.style.overflow = '';
   }
@@ -455,17 +316,4 @@
   }
   hamburgerPanelClose.addEventListener('click', closeHamburger);
   overlay.addEventListener('click', closeHamburger);
-
-  // 小试牛刀子面板切换
-  if (subWorks) {
-    const subArrowBtns = hamburgerPanel.querySelectorAll('.hamburger-panel__item--arrow');
-    subArrowBtns.forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        subWorks.style.display = 'block';
-      });
-    });
-    subWorksBack.addEventListener('click', function () {
-      subWorks.style.display = 'none';
-    });
-  }
 })();
