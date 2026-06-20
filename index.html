@@ -65,10 +65,13 @@
       color: var(--color-text-light);
       max-width: 600px;
       margin: 0 auto;
-      line-height: 2.2;
+      display: flex;
+      flex-direction: column;
+      gap: 72px;
+      line-height: 1.8;
     }
     .hero__desc blockquote {
-      margin: 0 0 72px 0;
+      margin: 0;
       padding: 0;
       border: none;
       font-style: italic;
@@ -83,7 +86,6 @@
     }
     .hero__desc .reflect {
       display: block;
-      margin-top: 72px;
       font-style: italic;
       color: var(--color-primary);
       font-size: 0.95rem;
@@ -104,9 +106,8 @@
     @media (max-width: 640px) {
       .hero { padding: 80px 16px 50px; }
       .hero__title { font-size: 2.2rem; }
-      .hero__desc { font-size: 0.88rem; line-height: 2; }
-      .hero__desc blockquote { margin-bottom: 56px; }
-      .hero__desc .reflect { margin-top: 56px; font-size: 0.88rem; }
+      .hero__desc { font-size: 0.88rem; gap: 56px; }
+      .hero__desc .reflect { font-size: 0.88rem; }
     }
   </style>
 </head>
