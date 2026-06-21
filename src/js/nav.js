@@ -77,42 +77,32 @@
   }
   currentPage = currentPage || 'index';
 
-  // 路径计算 — 使用 URL API 确保解析正确
-  const urlPath = window.location.pathname;
-  const urlSegs = urlPath.replace(/\/+$/, '').split('/').filter(Boolean);
-  const urlDepth = urlSegs.length;
-
-  // 导航链接的根目录：取 URL 第一段作为项目前缀
-  // / → / ；/myweb-happy/menu/hub/ → /myweb-happy/
-  const navRoot = urlDepth > 0 ? '/' + urlSegs[0] + '/' : '/';
-
+  // 导航链接的根目录 — 用 URL API 正确解析相对路径
+  const rootOrigin = window.location.origin + '/';
   function resolveHref(href) {
-    if (href === '' || href === './') return navRoot;
+    if (href === '' || href === './') return rootOrigin;
     // 用 URL API 正确解析相对路径
     try {
-      return new URL(href, window.location.origin + navRoot).href;
+      return new URL(href, rootOrigin).href;
     } catch {
       // 兜底
-      return navRoot + href;
+      return href.startsWith('/') ? href : '/' + href;
     }
+  }
+
+  // 真正的首页检测 — 排除 data-nav-current 为 "index" 的子页
+  function isRootIndex() {
+    return currentPage === 'index' && window.location.pathname.split('/').filter(Boolean).length === 0;
   }
 
   // ============================================================
   //  导航高亮
   //  根据当前 URL 判断高亮哪个菜单项
   // ============================================================
-  let navCurrent = currentPage; // 默认高亮白名单页
-  if (!navCurrent) {
-    // 非白名单页面：根据 URL 路径推断属于哪个菜单
-    if (window.location.pathname.split('/').indexOf('page') !== -1 || window.location.pathname.split('/').indexOf('new') !== -1) navCurrent = 'index'; // 小试牛刀子页面
-    else if (window.location.pathname.split('/').indexOf('menu') !== -1) {
-      const segs = window.location.pathname.split('/');
-      if (segs.indexOf('hub') !== -1) navCurrent = 'hub';
-      else if (segs.indexOf('guestbook') !== -1) navCurrent = 'guestbook';
-      else if (segs.indexOf('works') !== -1) navCurrent = 'works';
-    }
-    else navCurrent = 'index';
-  }
+  let navCurrent = isRootIndex() ? 'index' : 'index'; // 非菜单页高亮首页
+  if (currentPage === 'hub') navCurrent = 'hub';
+  else if (currentPage === 'guestbook') navCurrent = 'guestbook';
+  else if (currentPage === 'works') navCurrent = 'works';
 
   // ============================================================
   //  模式管理
@@ -253,33 +243,13 @@
   })();
 
   // ============================================================
-  //  构建汉堡弹出面板（非白名单页面用）
+  //  注入 DOM
   // ============================================================
-  const hamburgerPanel = document.createElement('div');
-  hamburgerPanel.className = 'hamburger-panel';
-  hamburgerPanel.id = 'hamburgerPanel';
-  hamburgerPanel.setAttribute('aria-label', '导航菜单');
-  hamburgerPanel.innerHTML = `
-    <div class="hamburger-panel__header">
-      <span class="hamburger-panel__title">🧭 导航</span>
-      <button class="hamburger-panel__close" id="hamburgerPanelClose" aria-label="关闭">✕</button>
-    </div>
-    <div class="hamburger-panel__body">
-      ${hamburgerSections.map(s => `
-        <div class="hamburger-panel__section">
-          <div class="hamburger-panel__section-label">${s.label}</div>
-          <div class="hamburger-panel__grid">
-            ${s.items.map(item => `
-              <a href="${resolveHref(item.href)}" class="hamburger-panel__item">
-                <span class="hamburger-panel__icon">${item.icon}</span>
-                <span class="hamburger-panel__name">${item.name}</span>
-              </a>
-            `).join('')}
-          </div>
-        </div>
-      `).join('')}
-    </div>
-  `;
+  if (pcHeader.innerHTML) {
+    document.body.appendChild(pcHeader);
+  }
+  document.body.appendChild(mobileNav);
+  document.body.appendChild(mobilePanel);
 
   // ============================================================
   //  事件绑定
