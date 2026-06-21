@@ -77,29 +77,27 @@
   }
   currentPage = currentPage || 'index';
 
-  // 导航链接的根目录 — 用 URL API 正确解析相对路径
-  const rootOrigin = window.location.origin + '/';
-  function resolveHref(href) {
-    if (href === '' || href === './') return rootOrigin;
-    // 用 URL API 正确解析相对路径
-    try {
-      return new URL(href, rootOrigin).href;
-    } catch {
-      // 兜底
-      return href.startsWith('/') ? href : '/' + href;
-    }
+  // 计算项目根路径 — 判断是否存在 repo 前缀
+  // GitHub Pages: /myweb-happy/page/joke/  → hasPrefix=true → projectRoot="/myweb-happy/"
+  // localhost: http://localhost:8080/menu/hub/ → hasPrefix=false → projectRoot="/"
+  let projectRoot = '/';
+  const pathParts = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+  if (pathParts.length > 0 && !MENU_PAGES.includes(pathParts[0])) {
+    // 第一个段不是菜单页名，说明有 repo 前缀（如 myweb-happy）
+    projectRoot = '/' + pathParts[0] + '/';
   }
 
-  // 真正的首页检测 — 排除 data-nav-current 为 "index" 的子页
-  function isRootIndex() {
-    return currentPage === 'index' && window.location.pathname.split('/').filter(Boolean).length === 0;
+  function resolveHref(href) {
+    if (href === '' || href === './') return projectRoot;
+    // href 都是不带前导 / 的相对路径（如 "page/checksun/"、"menu/hub/"）
+    // 用字符串拼接最可靠
+    return projectRoot + href;
   }
 
   // ============================================================
   //  导航高亮
-  //  根据当前 URL 判断高亮哪个菜单项
   // ============================================================
-  let navCurrent = isRootIndex() ? 'index' : 'index'; // 非菜单页高亮首页
+  let navCurrent = 'index';
   if (currentPage === 'hub') navCurrent = 'hub';
   else if (currentPage === 'guestbook') navCurrent = 'guestbook';
   else if (currentPage === 'works') navCurrent = 'works';
