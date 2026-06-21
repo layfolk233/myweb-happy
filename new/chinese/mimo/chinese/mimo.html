@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日一诗 · 咏月怀远</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=ZCOOL+XiaoWei&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ink: #2c2c2c;
+    --ink-light: #5a5a5a;
+    --ink-faint: #9a9a9a;
+    --rice: #f5f0e8;
+    --rice-dark: #e8e0d0;
+    --accent: #8b4513;
+    --accent-light: #a0522d;
+    --gold: #b8860b;
+    --gold-light: #d4a84b;
+    --seal-red: #c0392b;
+    --watercolor: rgba(139, 69, 19, 0.06);
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+    background: var(--rice);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── 纸纹底纹 ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 28px,
+        rgba(139, 69, 19, 0.018) 28px,
+        rgba(139, 69, 19, 0.018) 29px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── 水墨渲染装饰 ── */
+  .ink-wash {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.035;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .ink-wash.a { width: 500px; height: 500px; top: -120px; right: -100px; background: #5c4033; }
+  .ink-wash.b { width: 400px; height: 400px; bottom: -80px; left: -60px; background: #8b7355; }
+  .ink-wash.c { width: 300px; height: 300px; top: 40%; left: 60%; background: #6b5b4b; }
+
+  /* ── 顶部导航栏 ── */
+  .top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 clamp(1.5rem, 5vw, 4rem);
+    height: 56px;
+    background: rgba(245, 240, 232, 0.85);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border-bottom: 1px solid rgba(139, 69, 19, 0.08);
+    transition: box-shadow 0.3s;
+  }
+  .top-bar.scrolled { box-shadow: 0 1px 12px rgba(0,0,0,0.04); }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .brand-icon {
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .brand-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--ink-light);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+  .nav-links a {
+    text-decoration: none;
+    color: var(--ink-faint);
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    transition: color 0.2s;
+    position: relative;
+  }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--accent);
+    transition: width 0.25s ease;
+  }
+  .nav-links a:hover::after { width: 100%; }
+
+  /* ── 主内容区 ── */
+  .main {
+    position: relative;
+    z-index: 1;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 100px clamp(1.5rem, 5vw, 4rem) 80px;
+  }
+
+  /* ── 日期标识 ── */
+  .date-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 48px;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: fadeUp 0.6s 0.2s forwards;
+  }
+  .date-line {
+    width: 40px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold));
+  }
+  .date-text {
+    font-size: 0.78rem;
+    letter-spacing: 0.25em;
+    color: var(--gold);
+    font-weight: 400;
+  }
+
+  /* ── 诗歌卡片区 ── */
+  .poem-card {
+    position: relative;
+    background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3));
+    border: 1px solid rgba(139, 69, 19, 0.08);
+    border-radius: 16px;
+    padding: clamp(2.5rem, 6vw, 4rem) clamp(2rem, 5vw, 3.5rem);
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.02),
+      0 8px 32px rgba(139, 69, 19, 0.04);
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeUp 0.7s 0.4s forwards;
+  }
+
+  /* 卡片左上角印章装饰 */
+  .seal {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--seal-red);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(-8deg);
+    opacity: 0.55;
+  }
+  .seal-text {
+    font-family: 'ZCOOL XiaoWei', 'KaiTi', serif;
+    color: var(--seal-red);
+    font-size: 16px;
+    line-height: 1;
+    writing-mode: vertical-rl;
+    letter-spacing: 2px;
+  }
+
+  /* 朝代标签 */
+  .dynasty-tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: var(--accent-light);
+    border: 1px solid rgba(139, 69, 19, 0.2);
+    border-radius: 4px;
+    padding: 3px 12px;
+    margin-bottom: 20px;
+    font-weight: 400;
+  }
+
+  /* 诗题 */
+  .poem-title {
+    font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 8px;
+    line-height: 1.3;
+    letter-spacing: 0.08em;
+  }
+
+  /* 作者 */
+  .poem-author {
+    font-size: 0.88rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.15em;
+    margin-bottom: 36px;
+    font-weight: 300;
+  }
+  .poem-author span { color: var(--accent); font-weight: 400; }
+
+  /* 分割线 */
+  .divider {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    margin-bottom: 32px;
+  }
+
+  /* 诗文正文 */
+  .poem-body {
+    font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+    line-height: 2.2;
+    color: var(--ink);
+    letter-spacing: 0.12em;
+    font-weight: 300;
+    max-width: 520px;
+  }
+  .poem-body .line {
+    display: block;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  /* 诗文注释 */
+  .poem-annotation {
+    margin-top: 36px;
+    padding-top: 24px;
+    border-top: 1px dashed rgba(139, 69, 19, 0.12);
+  }
+  .annotation-title {
+    font-size: 0.76rem;
+    color: var(--gold);
+    letter-spacing: 0.2em;
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .annotation-text {
+    font-size: 0.84rem;
+    line-height: 1.9;
+    color: var(--ink-light);
+    font-weight: 300;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── 赏析区 ── */
+  .appreciation {
+    margin-top: 40px;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeUp 0.7s 0.9s forwards;
+  }
+  .appreciation-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .appreciation-icon {
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--gold);
+  }
+  .appreciation-title {
+    font-size: 0.82rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    font-weight: 500;
+  }
+  .appreciation-text {
+    font-size: 0.88rem;
+    line-height: 2;
+    color: var(--ink-light);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    padding-left: 1px;
+  }
+
+  /* ── 底部信息 ── */
+  .footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(139, 69, 19, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    opacity: 0;
+    animation: fadeUp 0.6s 1.1s forwards;
+  }
+  .footer-left {
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.15em;
+  }
+  .footer-right {
+    display: flex;
+    gap: 16px;
+  }
+  .footer-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(139, 69, 19, 0.12);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: transparent;
+    color: var(--ink-faint);
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  .footer-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(139, 69, 19, 0.04);
+  }
+
+  /* ── 背景装饰元素 ── */
+  .bg-char {
+    position: fixed;
+    font-family: 'ZCOOL XiaoWei', 'Noto Serif SC', serif;
+    color: rgba(139, 69, 19, 0.025);
+    font-size: 180px;
+    font-weight: 700;
+    pointer-events: none;
+    z-index: 0;
+    user-select: none;
+  }
+  .bg-char.c1 { top: 15%; left: -20px; transform: rotate(-5deg); }
+  .bg-char.c2 { bottom: 10%; right: -10px; transform: rotate(8deg); font-size: 140px; }
+
+  /* ── 动画 ── */
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .line-anim {
+    animation: lineReveal 0.5s forwards;
+  }
+  @keyframes lineReveal {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── 响应式 ── */
+  @media (max-width: 640px) {
+    .nav-links { display: none; }
+    .poem-card { padding: 2rem 1.5rem; }
+    .seal { width: 40px; height: 40px; top: 16px; right: 16px; }
+    .seal-text { font-size: 13px; }
+    .bg-char { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- 水墨渲染 -->
+<div class="ink-wash a"></div>
+<div class="ink-wash b"></div>
+<div class="ink-wash c"></div>
+
+<!-- 背景大字 -->
+<div class="bg-char c1">诗</div>
+<div class="bg-char c2">月</div>
+
+<!-- 导航栏 -->
+<nav class="top-bar" id="topBar">
+  <a href="#" class="brand">
+    <div class="brand-icon">诗</div>
+    <span class="brand-text">每日一诗</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#">首页</a></li>
+    <li><a href="#">诗库</a></li>
+    <li><a href="#">收藏</a></li>
+    <li><a href="#">关于</a></li>
+  </ul>
+</nav>
+
+<!-- 主内容 -->
+<main class="main">
+
+  <!-- 日期 -->
+  <div class="date-badge">
+    <div class="date-line"></div>
+    <span class="date-text" id="dateText"></span>
+  </div>
+
+  <!-- 诗歌卡片 -->
+  <article class="poem-card">
+    <!-- 印章 -->
+    <div class="seal">
+      <span class="seal-text">诗韵</span>
+    </div>
+
+    <!-- 朝代 -->
+    <span class="dynasty-tag">唐</span>
+
+    <!-- 题目 -->
+    <h1 class="poem-title">静夜思</h1>
+
+    <!-- 作者 -->
+    <p class="poem-author">〔<span>唐</span>〕 李白</p>
+
+    <!-- 分割 -->
+    <div class="divider"></div>
+
+    <!-- 诗文 -->
+    <div class="poem-body" id="poemBody">
+      <span class="line">床前明月光，</span>
+      <span class="line">疑是地上霜。</span>
+      <span class="line">举头望明月，</span>
+      <span class="line">低头思故乡。</span>
+    </div>
+
+    <!-- 注释 -->
+    <div class="poem-annotation">
+      <div class="annotation-title">注 释</div>
+      <p class="annotation-text">
+        疑：好像。举头：抬头。此诗以明白如话的语言道出了远客思乡之情，意蕴深长，耐人寻味。
+      </p>
+    </div>
+  </article>
+
+  <!-- 赏析 -->
+  <section class="appreciation">
+    <div class="appreciation-header">
+      <div class="appreciation-icon">✦</div>
+      <span class="appreciation-title">赏 析</span>
+    </div>
+    <p class="appreciation-text">
+      这首诗写的是在寂静的月夜思念家乡的感受。诗的前两句，是写诗人在作客他乡的特定环境中一刹那间所产生的错觉。一个"疑"字，生动地表达了诗人睡梦初醒，迷离恍惚中将照射在床前的清冷月光误作铺在地面的浓霜。后两句通过动作神态的刻画，深化思乡之情。"望"字照应了前句的"疑"字，表明诗人已从迷蒙转为清醒，他翘首凝望着明月，不禁想起了此刻故乡也正挂在这轮明月之下。全诗以明白如话的语言雕琢出明静醉人的秋夜的意境，以清新自然的笔触，抒写了丰富深挚的感情。
+    </p>
+  </section>
+
+  <!-- 底部 -->
+  <footer class="footer">
+    <span class="footer-left">每日一诗 · 品味经典</span>
+    <div class="footer-right">
+      <button class="footer-btn" title="收藏" onclick="this.style.color='var(--seal-red)';this.style.borderColor='var(--seal-red)'">♡</button>
+      <button class="footer-btn" title="分享" onclick="navigator.share&&navigator.share({title:document.title,text:'每日一诗'})">↗</button>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+  // 日期显示
+  const dateEl = document.getElementById('dateText');
+  const now = new Date();
+  const weekDays = ['日','一','二','三','四','五','六'];
+  dateEl.textContent = `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日 · 星期${weekDays[now.getDay()]}`;
+
+  // 诗文逐行显现
+  window.addEventListener('load', () => {
+    const lines = document.querySelectorAll('#poemBody .line');
+    lines.forEach((line, i) => {
+      line.style.animationDelay = `${0.8 + i * 0.25}s`;
+      line.classList.add('line-anim');
+    });
+  });
+
+  // 导航栏滚动效果
+  const topBar = document.getElementById('topBar');
+  window.addEventListener('scroll', () => {
+    topBar.classList.toggle('scrolled', window.scrollY > 10);
+  });
+</script>
+
+</body>
+</html>

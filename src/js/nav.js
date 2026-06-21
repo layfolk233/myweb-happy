@@ -73,9 +73,17 @@
   }
   currentPage = currentPage || 'index';
 
-  // 路径计算 — 使用相对路径，兼容本地和部署
+  // 路径计算 — 绝对路径，兼容本地/部署/子目录
+  const urlPath = window.location.pathname;
+  const urlSegs = urlPath.replace(/\/+$/, '').split('/').filter(Boolean);
+  const urlDepth = urlSegs.length;
+
+  // 找项目根目录路径
+  const repoRoot = urlDepth > 0 ? '/' + urlSegs[0] + '/' : '/';
+
   function resolveHref(href) {
-    return href === '' || href === './' ? './' : href;
+    if (href === '' || href === './') return window.location.origin + repoRoot;
+    return window.location.origin + repoRoot + href;
   }
 
   // ============================================================
