@@ -1,22 +1,32 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
+
     "allow": [
       "PowerShell(New-Item -ItemType Directory -Force -Path \"e:\\\\6Project\\\\1web\\\\webTest\\\\data\")",
       "PowerShell(Copy-Item \"e:\\\\6Project\\\\1web\\\\webTest\\\\userData.json\" \"e:\\\\6Project\\\\1web\\\\webTest\\\\data\\\\userData.json\")",
       "PowerShell(New-Item -ItemType Directory -Force -Path \"e:\\\\6Project\\\\1web\\\\webTest\\\\probe\")",
       "Bash(E:/6Project/1web/webTest-happy/tests/push.bat)",
       "Bash(npx --yes serve ./ -p 8888 --no-range --no-dotfiles)",
-      "Bash(curl http://localhost:8888/new/charset/index.html)"
+      "Bash(curl http://localhost:8888/new/charset/index.html)",
+      "Bash(xargs grep -l \"Talk is cheap\")",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   },
   "hooks": {
-    "PostToolUse": [{
-      "matcher": "Write|Edit",
-      "hooks": [{
-        "type": "command",
-        "command": "cd /e/6Project/1web/webTest-happy && cmd /c \"tests\\\\push.bat chore: auto commit\"",
-        "timeout": 120
-      }]
-    }]
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /e/6Project/1web/webTest-happy && cmd /c \"tests\\\\push.bat chore: auto commit\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
   }
 }

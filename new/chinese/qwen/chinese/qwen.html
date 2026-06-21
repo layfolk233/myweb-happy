@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日一诗 — 诗趣</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>詩</text></svg>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400&display=swap');
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --ink: #2c2420;
+      --ink-light: #6b5e55;
+      --ink-faint: #a89a90;
+      --paper: #faf8f4;
+      --paper-deep: #f3efe8;
+      --accent: #8b4513;
+      --accent-soft: #c4956a;
+      --red: #c4362a;
+      --red-soft: #e8a09a;
+      --font-serif: 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
+      --font-sans: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+    }
+
+    html { font-size: 18px; scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-serif);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Background texture ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(196,149,106,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(139,69,19,0.03) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Navigation ── */
+    .nav {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+    }
+    .nav-brand {
+      font-size: 1.1rem; font-weight: 600; letter-spacing: 0.15em;
+      color: var(--ink); text-decoration: none;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .nav-brand .seal {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.6rem; height: 1.6rem;
+      background: var(--red); color: #fff;
+      font-size: 0.7rem; font-weight: 700;
+      border-radius: 3px; letter-spacing: 0;
+      line-height: 1;
+    }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      font-family: var(--font-sans); font-size: 0.78rem; font-weight: 300;
+      color: var(--ink-light); text-decoration: none; letter-spacing: 0.08em;
+      transition: color 0.3s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+
+    /* ── Main card ── */
+    .main {
+      position: relative; z-index: 1;
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 1rem 2rem 3rem;
+    }
+
+    .card {
+      width: 100%; max-width: 580px;
+      background: var(--paper);
+      border: 1px solid rgba(168,154,144,0.2);
+      border-radius: 6px;
+      padding: 3.5rem 3rem 3rem;
+      position: relative;
+      box-shadow:
+        0 1px 3px rgba(44,36,32,0.04),
+        0 8px 40px rgba(44,36,32,0.06);
+      animation: cardIn 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Decorative corner marks */
+    .card::before, .card::after {
+      content: ''; position: absolute; width: 24px; height: 24px;
+      border-color: var(--ink-faint); border-style: solid; opacity: 0.3;
+    }
+    .card::before {
+      top: 16px; left: 16px;
+      border-width: 1px 0 0 1px;
+    }
+    .card::after {
+      bottom: 16px; right: 16px;
+      border-width: 0 1px 1px 0;
+    }
+
+    /* ── Date badge ── */
+    .date-badge {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .date-badge .label {
+      font-family: var(--font-sans); font-size: 0.65rem; font-weight: 400;
+      letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 0.3rem;
+    }
+    .date-badge .day {
+      font-size: 2rem; font-weight: 300; color: var(--ink);
+      line-height: 1.2;
+    }
+    .date-badge .lunar {
+      font-family: var(--font-sans); font-size: 0.68rem;
+      color: var(--ink-faint); font-weight: 300;
+      margin-top: 0.15rem;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0.8rem; margin: 1.8rem 0;
+      color: var(--ink-faint); font-size: 0.6rem; opacity: 0.5;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--ink-faint), transparent);
+      opacity: 0.2;
+    }
+
+    /* ── Poem ── */
+    .poem { animation: fadeUp 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+    .poem-title {
+      text-align: center;
+      font-size: 1.2rem; font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--ink);
+      margin-bottom: 0.3rem;
+    }
+    .poem-author-line {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--ink-light);
+      font-weight: 300;
+      margin-bottom: 2rem;
+      letter-spacing: 0.05em;
+    }
+    .poem-author-line .dynasty {
+      display: inline-block;
+      font-size: 0.65rem;
+      color: var(--ink-faint);
+      background: var(--paper-deep);
+      padding: 0.1rem 0.5rem;
+      border-radius: 2px;
+      margin-right: 0.4rem;
+      letter-spacing: 0.05em;
+    }
+
+    .poem-body {
+      text-align: center;
+      line-height: 2.4;
+      font-size: 1.05rem;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      color: var(--ink);
+    }
+    .poem-body .line {
+      display: block;
+      transition: color 0.3s;
+    }
+
+    /* ── Annotation ── */
+    .annotation {
+      margin-top: 2.2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(168,154,144,0.15);
+      animation: fadeUp 0.8s 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .annotation-label {
+      font-family: var(--font-sans); font-size: 0.62rem;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--ink-faint); margin-bottom: 0.7rem;
+      text-align: center;
+    }
+    .annotation-body {
+      font-family: var(--font-sans);
+      font-size: 0.72rem; font-weight: 300;
+      line-height: 1.9; color: var(--ink-light);
+      text-align: center;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+
+    /* ── Seal stamp ── */
+    .seal-stamp {
+      text-align: center;
+      margin-top: 2rem;
+      animation: fadeUp 0.8s 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .seal-stamp mark {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 2rem; height: 2rem;
+      border: 2px solid var(--red); color: var(--red);
+      font-size: 0.6rem; font-weight: 700;
+      border-radius: 4px; letter-spacing: 0.05em;
+      opacity: 0.7;
+      transform: rotate(-3deg);
+      line-height: 1.1;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      position: relative; z-index: 1;
+      text-align: center;
+      padding: 1.5rem 2rem;
+      font-family: var(--font-sans);
+      font-size: 0.6rem; font-weight: 300;
+      color: var(--ink-faint);
+      letter-spacing: 0.1em;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      html { font-size: 16px; }
+      .nav { padding: 1rem 1.5rem; }
+      .nav-links { gap: 1.2rem; }
+      .card { padding: 2.5rem 2rem 2rem; }
+      .main { padding: 0.5rem 1rem 2rem; }
+    }
+
+    /* ── Hover ripple on poem lines ── */
+    .poem-body .line:hover { color: var(--accent); cursor: default; }
+
+    /* ── Season indicator ── */
+    .season {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.8s 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .season .icon {
+      font-size: 1.3rem;
+      display: block;
+      margin-bottom: 0.2rem;
+      opacity: 0.7;
+    }
+    .season .name {
+      font-family: var(--font-sans);
+      font-size: 0.65rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.15em;
+      font-weight: 300;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="../index.html" class="nav-brand">
+      <span class="seal">诗</span>
+      诗趣
+    </a>
+    <div class="nav-links">
+      <a href="#">每日一诗</a>
+      <a href="#">诗人谱</a>
+      <a href="#">诗词库</a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <article class="card" id="poem-card">
+      <!-- Rendered by JS -->
+    </article>
+  </main>
+
+  <footer class="footer">
+    诗趣 · 日诵一诗
+  </footer>
+
+<script>
+// ── Poem data (demo: one fixed poem) ──
+const POEM = {
+  title: '静夜思',
+  dynasty: '唐',
+  author: '李白',
+  seasonal: '秋夜',
+  seasonalIcon: '月',
+  content: [
+    '床前明月光，',
+    '疑是地上霜。',
+    '举头望明月，',
+    '低头思故乡。',
+  ],
+  note: '此诗写秋夜旅思，语言清浅而意境深远。月光如霜，望月思乡，千古游子同声一泣。'
+};
+
+// ── Render ──
+function render() {
+  const now = new Date();
+  const year  = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day   = String(now.getDate()).padStart(2, '0');
+  const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+  const weekDay = weekDays[now.getDay()];
+
+  const lines = POEM.content.map(l => `<span class="line">${l}</span>`).join('\n    ');
+
+  document.getElementById('poem-card').innerHTML = `
+    <div class="date-badge">
+      <div class="label">${year} 年 ${month} 月 ${day} 日 · 星期${weekDay}</div>
+      <div class="day">${month}.${day}</div>
+    </div>
+
+    <div class="season">
+      <span class="icon">${POEM.seasonalIcon}</span>
+      <span class="name">${POEM.seasonal}读</span>
+    </div>
+
+    <div class="poem">
+      <div class="poem-title">${POEM.title}</div>
+      <div class="poem-author-line">
+        [${POEM.dynasty}]
+        ${POEM.author}
+      </div>
+
+      <div class="poem-body">
+        ${lines}
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="annotation">
+      <div class="annotation-label">赏析</div>
+      <div class="annotation-body">${POEM.note}</div>
+    </div>
+
+    <div class="seal-stamp">
+      <mark>诗趣</mark>
+    </div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>

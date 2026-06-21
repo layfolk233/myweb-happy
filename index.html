@@ -13,13 +13,19 @@
       position: relative;
       overflow: hidden;
     }
-    /* 科技背景：深色渐变 + 网格 */
     .hero {
+      background: linear-gradient(180deg, rgba(61,64,91,0.02) 0%, rgba(61,64,91,0.06) 100%);
+      background-blend-mode: normal;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
       background:
-        linear-gradient(180deg, rgba(61,64,91,0.02) 0%, rgba(61,64,91,0.06) 100%),
         repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(61,64,91,0.04) 59px, rgba(61,64,91,0.04) 60px),
         repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(61,64,91,0.04) 59px, rgba(61,64,91,0.04) 60px);
-      background-blend-mode: normal, multiply, multiply;
     }
     .hero::before {
       content: '';
@@ -67,11 +73,11 @@
       margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 72px;
+      //gap: 20px;
       line-height: 1.8;
     }
     .hero__desc blockquote {
-      margin: 0;
+      //margin: 0 0 80px;
       padding: 0;
       border: none;
       font-style: italic;
@@ -86,10 +92,21 @@
     }
     .hero__desc .reflect {
       display: block;
+	  margin-top: 2.5rem; /* 上方间隔 1.5 倍字体大小 */
+	  //padding-top: 1.5rem;
       font-style: italic;
       color: var(--color-primary);
       font-size: 0.95rem;
       font-weight: 500;
+    }
+
+    /* 分隔线 */
+    .hero__divider {
+      width: 48px;
+      height: 1px;
+      margin: 0 auto;
+      background: linear-gradient(90deg, transparent, var(--color-primary-light), transparent);
+      opacity: 0.5;
     }
 
     /* 装饰 */
@@ -116,13 +133,14 @@
   <!-- ========== Hero ========== -->
   <section class="hero">
     <h1 class="hero__title">Show me the project<span class="year">—— 2026</span></h1>
-    <p class="hero__desc">
+    <div class="hero__desc">
       <blockquote>
         "Talk is cheap. Show me the code."
         <br><span class="attr">—— Linus Torvalds, 2000</span>
       </blockquote>
+      <div class="hero__divider"></div>
       <span class="reflect">当AI让代码变得唾手可得，<br>我们的注意力该放在何处？</span>
-    </p>
+    </div>
   </section>
 
   <!-- ========== 导航组件 ========== -->

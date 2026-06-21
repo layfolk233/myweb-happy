@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日一诗 · 山居秋暝</title>
+<style>
+/* ═══════════════════════════════════════
+   每日一诗 — 新中式雅致排版
+   ═══════════════════════════════════════ */
+
+/* ── Reset & Base ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --paper:       #f6f2ea;
+  --paper-dark:  #ede8dc;
+  --ink:         #2c2c2c;
+  --ink-light:   #5a5a5a;
+  --ink-faint:   #9a9a9a;
+  --cinnabar:    #c23a2e;
+  --cinnabar-dk: #a02e23;
+  --jade:        #4a7c6f;
+  --jade-light:  #5d9a8a;
+  --gold:        #b8963e;
+  --gold-light:  #d4b96a;
+  --font-serif:  "Noto Serif SC", "Source Han Serif SC", "STSong", "SimSun", serif;
+  --font-sans:   "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-hand:   "KaiTi", "STKaiti", "AR PL UKai CN", serif;
+}
+
+@font-face {
+  font-family: "Local Serif";
+  src: local("Noto Serif SC"), local("Source Han Serif SC"), local("STSong"), local("SimSun");
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-serif);
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Paper texture overlay ── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(180,160,130,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse at 80% 20%, rgba(180,160,130,0.04) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Layout ── */
+.page {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 3rem 1.5rem;
+}
+
+.container {
+  max-width: 720px;
+  width: 100%;
+}
+
+/* ── Header: Date & Title ── */
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+  animation: fadeDown 1s ease both;
+}
+
+.header__season {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--jade);
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.header__title {
+  font-size: 0.85rem;
+  letter-spacing: 0.25em;
+  color: var(--ink-faint);
+  font-weight: 400;
+  margin-bottom: 1.25rem;
+}
+
+.header__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--ink-light);
+  letter-spacing: 0.08em;
+}
+
+.header__date::before,
+.header__date::after {
+  content: "";
+  width: 2.5rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--ink-faint));
+}
+
+.header__date::after {
+  background: linear-gradient(90deg, var(--ink-faint), transparent);
+}
+
+.header__lunar {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+/* ── Divider ── */
+.divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 2.5rem 0;
+  animation: fadeIn 1.5s 0.4s ease both;
+}
+
+.divider__line {
+  width: 4rem;
+  height: 1px;
+  background: var(--ink-faint);
+  opacity: 0.3;
+}
+
+.divider__mark {
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--ink-faint);
+  transform: rotate(45deg);
+  opacity: 0.4;
+}
+
+/* ── Poem Card ── */
+.poem-card {
+  background: linear-gradient(165deg, #faf8f3 0%, var(--paper-dark) 100%);
+  border: 1px solid rgba(0,0,0,0.04);
+  border-radius: 4px;
+  padding: 3.5rem 3rem 3rem;
+  position: relative;
+  box-shadow:
+    0 2px 20px rgba(0,0,0,0.03),
+    0 8px 40px rgba(0,0,0,0.02);
+  animation: fadeUp 1s 0.2s ease both;
+}
+
+/* Corner ornaments */
+.poem-card::before,
+.poem-card::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: var(--ink-faint);
+  border-style: solid;
+  opacity: 0.15;
+}
+.poem-card::before {
+  top: 12px; left: 12px;
+  border-width: 1px 0 0 1px;
+}
+.poem-card::after {
+  bottom: 12px; right: 12px;
+  border-width: 0 1px 1px 0;
+}
+
+/* ── Poem Meta ── */
+.poem__meta {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  position: relative;
+}
+
+.poem__dynasty {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  color: var(--jade);
+  background: rgba(74,124,111,0.06);
+  padding: 0.25rem 1rem;
+  border-radius: 2px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.poem__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.poem__author {
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  letter-spacing: 0.15em;
+  font-weight: 400;
+}
+
+/* ── Poem Body (vertical-style layout) ── */
+.poem__body {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.poem__line {
+  font-family: var(--font-hand);
+  font-size: 1.35rem;
+  line-height: 2.4;
+  color: var(--ink);
+  letter-spacing: 0.15em;
+  opacity: 0;
+  animation: inkReveal 0.8s ease forwards;
+}
+
+.poem__line:nth-child(1) { animation-delay: 0.6s; }
+.poem__line:nth-child(2) { animation-delay: 0.8s; }
+.poem__line:nth-child(3) { animation-delay: 1.0s; }
+.poem__line:nth-child(4) { animation-delay: 1.2s; }
+
+/* ── Seal (印章) ── */
+.seal {
+  display: inline-block;
+  margin-top: 2rem;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--cinnabar);
+  border-radius: 3px;
+  line-height: 1;
+  font-size: 0.75rem;
+  color: var(--cinnabar);
+  text-align: center;
+  padding: 4px;
+  transform: rotate(-3deg);
+  opacity: 0;
+  animation: sealStamp 0.4s 1.6s ease forwards;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.1;
+}
+
+/* ── Annotation Section ── */
+.annotation {
+  margin-top: 3rem;
+  animation: fadeUp 1s 1.8s ease both;
+}
+
+.annotation__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.annotation__icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.4;
+}
+
+.annotation__title {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.annotation__divider {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--ink-faint), transparent);
+  opacity: 0.15;
+}
+
+.annotation__content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.annotation__item {
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--paper-dark);
+  transition: border-color 0.3s ease;
+}
+
+.annotation__item:hover {
+  border-left-color: var(--jade-light);
+}
+
+.annotation__term {
+  font-family: var(--font-hand);
+  font-size: 1rem;
+  color: var(--ink);
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.08em;
+}
+
+.annotation__desc {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  line-height: 1.8;
+  color: var(--ink-light);
+  letter-spacing: 0.03em;
+}
+
+/* ── Appreciation Section ── */
+.appreciation {
+  margin-top: 2.5rem;
+  padding: 2rem 2.25rem;
+  background: rgba(74,124,111,0.03);
+  border-radius: 3px;
+  border: 1px solid rgba(74,124,111,0.06);
+  animation: fadeUp 1s 2.2s ease both;
+}
+
+.appreciation__title {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  color: var(--jade);
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.appreciation__title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--jade-light), transparent);
+  opacity: 0.2;
+}
+
+.appreciation__text {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  line-height: 2;
+  color: var(--ink-light);
+  letter-spacing: 0.03em;
+  text-align: justify;
+}
+
+/* ── Footer ── */
+.footer {
+  margin-top: 4rem;
+  text-align: center;
+  animation: fadeIn 1s 2.6s ease both;
+}
+
+.footer__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+  opacity: 0.5;
+}
+
+.footer__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+
+/* ── Animations ── */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes inkReveal {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes sealStamp {
+  0%   { opacity: 0; transform: rotate(-3deg) scale(1.8); }
+  60%  { opacity: 0.85; transform: rotate(-3deg) scale(0.95); }
+  100% { opacity: 0.7; transform: rotate(-3deg) scale(1); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .page { padding: 2rem 1rem; }
+  .poem-card { padding: 2.5rem 1.75rem 2rem; }
+  .poem__title { font-size: 1.45rem; }
+  .poem__line { font-size: 1.15rem; line-height: 2.2; }
+  .annotation__content { gap: 1.25rem; }
+  .appreciation { padding: 1.5rem 1.5rem; }
+}
+
+/* ── Print ── */
+@media print {
+  body::before { display: none; }
+  .poem__line, .seal, .annotation, .appreciation, .footer {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="container">
+
+    <!-- Header -->
+    <header class="header">
+      <p class="header__season">每日一诗</p>
+      <p class="header__title">Daily Poetry</p>
+      <div class="header__date">
+        <span id="dateDisplay"></span>
+        <span class="header__lunar" id="lunarDisplay"></span>
+      </div>
+    </header>
+
+    <!-- Divider -->
+    <div class="divider">
+      <span class="divider__line"></span>
+      <span class="divider__mark"></span>
+      <span class="divider__line"></span>
+    </div>
+
+    <!-- Poem Card -->
+    <article class="poem-card">
+      <div class="poem__meta">
+        <span class="poem__dynasty">唐</span>
+        <h1 class="poem__title">山居秋暝</h1>
+        <p class="poem__author">王维</p>
+      </div>
+
+      <div class="poem__body">
+        <p class="poem__line">空山新雨后，天气晚来秋。</p>
+        <p class="poem__line">明月松间照，清泉石上流。</p>
+        <p class="poem__line">竹喧归浣女，莲动下渔舟。</p>
+        <p class="poem__line">随意春芳歇，王孙自可留。</p>
+      </div>
+
+      <div style="text-align:center;">
+        <span class="seal">维</span>
+      </div>
+    </article>
+
+    <!-- Annotation -->
+    <section class="annotation">
+      <div class="annotation__header">
+        <svg class="annotation__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span class="annotation__title">注释</span>
+        <span class="annotation__divider"></span>
+      </div>
+      <div class="annotation__content">
+        <div class="annotation__item">
+          <p class="annotation__term">新雨</p>
+          <p class="annotation__desc">刚下过的雨。此处指秋雨初霁，山间空气清新。</p>
+        </div>
+        <div class="annotation__item">
+          <p class="annotation__term">暝</p>
+          <p class="annotation__desc">日落时分，天色将晚。点明"秋暝"之题。</p>
+        </div>
+        <div class="annotation__item">
+          <p class="annotation__term">浣女</p>
+          <p class="annotation__desc">洗衣的女子。竹林中的喧笑声，是洗衣女子归来。</p>
+        </div>
+        <div class="annotation__item">
+          <p class="annotation__term">王孙</p>
+          <p class="annotation__desc">原指贵族子弟，此处为诗人自指。化用《楚辞·招隐士》"王孙兮归来，山中兮不可久留"之意，反其用法。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Appreciation -->
+    <section class="appreciation">
+      <p class="appreciation__title">赏析</p>
+      <p class="appreciation__text">
+        此诗为王维隐居辋川时期的代表作，被誉为"诗中有画"的典范。全诗以清新自然的笔触，描绘了秋雨初晴后傍晚时分山村的旖旎风光。首联总写环境之清幽，颔联"明月松间照，清泉石上流"一静一动、一视一听，勾勒出空山月夜的澄明之境；颈联由景及人，浣女渔舟为画面增添了生活气息；尾联借《楚辞》典故，抒发了诗人寄情山水、超然物外的情怀。整首诗意境空灵，音律和谐，堪称唐人五律之极品。
+      </p>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span class="footer__brand">
+        <span>agnes</span>
+        <span class="footer__dot"></span>
+        <span>每日一诗</span>
+      </span>
+    </footer>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  // Display today's date in elegant format
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  const weekday = weekdays[now.getDay()];
+
+  document.getElementById('dateDisplay').textContent =
+    `${year} 年 ${month} 月 ${day} 日 · 星期${weekday}`;
+
+  // Simple lunar calendar approximation (for demo purposes)
+  // In production, use a proper lunar calendar library
+  const lunarMonths = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+  const lunarDays = [
+    '', '初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
+    '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+    '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'
+  ];
+  // Approximate lunar date mapping (simplified for demo)
+  const lunarBase = [0,31,59,90,120,151,181,212,243,273,304,334]; // cumulative days
+  const lunarOffset = 12; // rough offset for approximation
+  const dayOfYear = lunarBase[month - 1] + day;
+  const approxLunarDay = dayOfYear - lunarOffset;
+  if (approxLunarDay > 0 && approxLunarDay <= 30) {
+    const lunarMonthIdx = Math.floor((approxLunarDay - 1) / 28) % 12;
+    const lunarDayVal = ((approxLunarDay - 1) % 28) + 1;
+    document.getElementById('lunarDisplay').textContent =
+      `农历${lunarMonths[lunarMonthIdx]}月${lunarDays[lunarDayVal]}`;
+  }
+})();
+</script>
+
+</body>
+</html>

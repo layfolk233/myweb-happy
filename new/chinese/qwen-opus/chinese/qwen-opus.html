@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>山居秋暝 — 每日一诗</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.85em' font-size='80'>朙</text></svg>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400;600&family=Noto+Sans+SC:wght@100;300;400&display=swap');
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --sky: #eae8e4;
+      --sky-deep: #ddd9d3;
+      --ink: #1a1a1a;
+      --ink-wash: #3a3a3a;
+      --ink-faint: #8a8580;
+      --ink-whisper: #b0aba5;
+      --gold: #b8963e;
+      --gold-soft: #d4be82;
+      --font-serif: 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
+      --font-sans: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+    }
+
+    html { font-size: 17px; scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-serif);
+      background: var(--sky);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Ink-wash texture ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 120% 60% at 50% 0%, rgba(255,255,255,0.5) 0%, transparent 70%),
+        radial-gradient(ellipse 80% 50% at 20% 90%, rgba(180,175,168,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 85% 70%, rgba(160,155,148,0.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Top nav ── */
+    .top-bar {
+      position: relative; z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 3rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+      color: var(--ink);
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.8rem;
+      height: 1.8rem;
+      border: 1.5px solid var(--ink-faint);
+      border-radius: 50%;
+      font-family: var(--font-serif);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      color: var(--ink-faint);
+    }
+
+    .brand-name {
+      font-size: 0.85rem;
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      color: var(--ink-wash);
+    }
+
+    .top-nav {
+      display: flex;
+      gap: 2.5rem;
+      list-style: none;
+    }
+
+    .top-nav a {
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      color: var(--ink-faint);
+      text-decoration: none;
+      transition: color 0.4s ease;
+      position: relative;
+    }
+
+    .top-nav a::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--gold);
+      transition: width 0.4s ease;
+    }
+
+    .top-nav a:hover { color: var(--ink); }
+    .top-nav a:hover::after { width: 100%; }
+
+    /* ── Hero area ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 2rem 4rem;
+    }
+
+    /* ── Vertical title ── */
+    .poem-aside {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      position: absolute;
+      right: -4rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.85rem;
+      font-weight: 200;
+      letter-spacing: 0.5em;
+      color: var(--ink-whisper);
+      opacity: 0.4;
+      line-height: 2.2;
+      user-select: none;
+    }
+
+    /* ── Date line ── */
+    .date-line {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      opacity: 0;
+      animation: gentleUp 1s 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .date-line .full {
+      font-family: var(--font-sans);
+      font-size: 0.62rem;
+      font-weight: 300;
+      letter-spacing: 0.22em;
+      color: var(--ink-faint);
+    }
+
+    .date-line .circled {
+      display: inline-block;
+      margin: 0 0.6rem;
+      padding: 0.15rem 0.55rem;
+      border: 1px solid var(--ink-whisper);
+      border-radius: 50%;
+      width: 2.2rem;
+      text-align: center;
+      font-family: var(--font-serif);
+      font-size: 0.7rem;
+      font-weight: 300;
+      color: var(--ink-faint);
+      opacity: 0.5;
+      vertical-align: middle;
+    }
+
+    /* ── Mountain divider ── */
+    .mountain-rule {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 3rem;
+      opacity: 0;
+      animation: gentleUp 1s 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .mountain-rule .line {
+      width: 50px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--ink-whisper));
+    }
+
+    .mountain-rule .line:last-child {
+      background: linear-gradient(90deg, var(--ink-whisper), transparent);
+    }
+
+    .mountain-rule .peak {
+      font-size: 1rem;
+      color: var(--ink-whisper);
+      opacity: 0.35;
+    }
+
+    /* ── Poem container ── */
+    .poem-wrap {
+      position: relative;
+      text-align: center;
+      max-width: 420px;
+      opacity: 0;
+      animation: gentleUp 1s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .poem-title {
+      font-size: 1.5rem;
+      font-weight: 400;
+      letter-spacing: 0.35em;
+      color: var(--ink);
+      margin-bottom: 0.6rem;
+    }
+
+    .poem-attr {
+      font-family: var(--font-sans);
+      font-size: 0.65rem;
+      font-weight: 300;
+      color: var(--ink-faint);
+      letter-spacing: 0.15em;
+      margin-bottom: 2.8rem;
+    }
+
+    .poem-attr .dot {
+      display: inline-block;
+      margin: 0 0.5rem;
+      opacity: 0.3;
+    }
+
+    .poem-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      line-height: 2.6;
+    }
+
+    .poem-body .verse {
+      font-size: 1.15rem;
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      color: var(--ink-wash);
+      transition: color 0.5s ease, letter-spacing 0.5s ease;
+      cursor: default;
+    }
+
+    .poem-body .verse:hover {
+      color: var(--ink);
+      letter-spacing: 0.3em;
+    }
+
+    /* ── Gold accent dot ── */
+    .poem-wrap::after {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 4px;
+      background: var(--gold);
+      border-radius: 50%;
+      margin: 3rem auto 0;
+      opacity: 0;
+      animation: gentleUp 1s 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* ── Bottom section ── */
+    .bottom {
+      position: relative; z-index: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 5rem;
+      padding: 0 2rem 3rem;
+      max-width: 700px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── Note ── */
+    .note {
+      flex: 1;
+      max-width: 340px;
+      opacity: 0;
+      animation: gentleUp 1s 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .note-label {
+      font-family: var(--font-sans);
+      font-size: 0.58rem;
+      font-weight: 400;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--ink-whisper);
+      margin-bottom: 0.8rem;
+    }
+
+    .note-text {
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      font-weight: 300;
+      line-height: 2;
+      color: var(--ink-faint);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Seal ── */
+    .seal {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      animation: gentleUp 1s 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .seal-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      width: 2.8rem;
+      padding: 0.45rem 0.5rem;
+      border: 1.5px solid var(--gold-soft);
+      border-radius: 3px;
+      opacity: 0.55;
+      transform: rotate(1deg);
+    }
+
+    .seal-box span {
+      font-family: var(--font-serif);
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--gold);
+      line-height: 1.3;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 1.5rem 2rem 2rem;
+      font-family: var(--font-sans);
+      font-size: 0.55rem;
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      color: var(--ink-whisper);
+    }
+
+    /* ── Animations ── */
+    @keyframes gentleUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 860px) {
+      .poem-aside { display: none; }
+      .bottom { gap: 2.5rem; }
+    }
+
+    @media (max-width: 600px) {
+      html { font-size: 15px; }
+      .top-bar { padding: 1rem 1.5rem; }
+      .top-nav { gap: 1.5rem; }
+      .hero { padding: 1rem 1.2rem 3rem; }
+      .poem-title { font-size: 1.3rem; letter-spacing: 0.25em; }
+      .poem-body .verse { font-size: 1.05rem; }
+      .bottom { flex-direction: column; align-items: center; gap: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-bar">
+    <a href="#" class="brand">
+      <span class="brand-mark">朙</span>
+      <span class="brand-name">月读</span>
+    </a>
+    <ul class="top-nav">
+      <li><a href="#">每日一诗</a></li>
+      <li><a href="#">诗人</a></li>
+      <li><a href="#">选辑</a></li>
+    </ul>
+  </header>
+
+  <section class="hero">
+
+    <aside class="poem-aside">空山新雨后天气晚来秋</aside>
+
+    <div class="date-line" id="date-line"></div>
+
+    <div class="mountain-rule">
+      <span class="line"></span>
+      <span class="peak">&#9825;</span>
+      <span class="line"></span>
+    </div>
+
+    <div class="poem-wrap" id="poem-wrap"></div>
+
+  </section>
+
+  <div class="bottom">
+    <div class="note">
+      <div class="note-label">赏析</div>
+      <div class="note-text" id="note-text"></div>
+    </div>
+    <div class="seal">
+      <div class="seal-box">
+        <span>月读</span>
+        <span>一诗</span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    月读 · 日得一诗
+  </footer>
+
+<script>
+const POEM = {
+  title: '山居秋暝',
+  dynasty: '唐',
+  author: '王维',
+  content: [
+    '空山新雨后，天气晚来秋。',
+    '明月松间照，清泉石上流。',
+    '竹喧归浣女，莲动下渔舟。',
+    '随意春芳歇，王孙自可留。'
+  ],
+  note: '此诗为王维山水诗代表作。首联点明时节与气候，颔联以"明月""清泉"勾勒空山澄澈之境，颈联由景及人，浣女渔舟增添生气。尾联以楚辞句意翻进，写归隐之志。全诗诗中有画，动静相生，空明而有余韵。'
+};
+
+const MONTHS = ['一','二','三','四','五','六','七','八','九','十','冬','腊'];
+const DAYS    = ['日','一','二','三','四','五','六'];
+
+function render() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = MONTHS[now.getMonth()];
+  const d = now.getDate();
+  const wk = DAYS[now.getDay()];
+
+  document.getElementById('date-line').innerHTML =
+    `${y} 年 <span class="circled">${m}月</span> ${d} 日 · 星期${wk}`;
+
+  const lines = POEM.content.map(v => `<span class="verse">${v}</span>`).join('');
+
+  document.getElementById('poem-wrap').innerHTML = `
+    <h1 class="poem-title">${POEM.title}</h1>
+    <div class="poem-attr">
+      [${POEM.dynasty}]<span class="dot">·</span>${POEM.author}
+    </div>
+    <div class="poem-body">${lines}</div>
+  `;
+
+  document.getElementById('note-text').textContent = POEM.note;
+}
+
+render();
+</script>
+</body>
+</html>

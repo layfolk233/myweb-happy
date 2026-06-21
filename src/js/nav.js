@@ -73,27 +73,9 @@
   }
   currentPage = currentPage || 'index';
 
-  // 路径计算 — 用 baseURL 兼容子目录部署（如 /myweb-happy/）
-  const urlPath = window.location.pathname;
-  const urlSegs = urlPath.replace(/\/+$/, '').split('/').filter(Boolean);
-  const urlDepth = urlSegs.length;
-  const isSubPage = urlDepth > 0;
-
-  // 找项目根目录路径
-  // 假设项目根目录是 URL 的第一段（如 /myweb-happy/page/snake/ → /myweb-happy/）
-  // 根路径 / → /
-  const repoRoot = urlSegs.length > 0
-    ? '/' + urlSegs[0] + '/'
-    : '/';
-  const baseOrigin = window.location.origin + repoRoot;
-
-  // 仅在根目录首页才新标签页打开子页面
-  const isIndex = !isSubPage;
-  const blankAttr = isIndex ? ' target="_blank" rel="noopener"' : '';
-
+  // 路径计算 — 使用相对路径，兼容本地和部署
   function resolveHref(href) {
-    if (href === '' || href === './') return baseOrigin;
-    return baseOrigin + href;
+    return href === '' || href === './' ? './' : href;
   }
 
   // ============================================================
@@ -103,11 +85,12 @@
   let navCurrent = currentPage; // 默认高亮白名单页
   if (!navCurrent) {
     // 非白名单页面：根据 URL 路径推断属于哪个菜单
-    if (urlSegs.indexOf('page') !== -1 || urlSegs.indexOf('new') !== -1) navCurrent = 'index'; // 小试牛刀子页面
-    else if (urlSegs.indexOf('menu') !== -1) {
-      if (urlSegs.indexOf('hub') !== -1) navCurrent = 'hub';
-      else if (urlSegs.indexOf('guestbook') !== -1) navCurrent = 'guestbook';
-      else if (urlSegs.indexOf('works') !== -1) navCurrent = 'works';
+    if (window.location.pathname.split('/').indexOf('page') !== -1 || window.location.pathname.split('/').indexOf('new') !== -1) navCurrent = 'index'; // 小试牛刀子页面
+    else if (window.location.pathname.split('/').indexOf('menu') !== -1) {
+      const segs = window.location.pathname.split('/');
+      if (segs.indexOf('hub') !== -1) navCurrent = 'hub';
+      else if (segs.indexOf('guestbook') !== -1) navCurrent = 'guestbook';
+      else if (segs.indexOf('works') !== -1) navCurrent = 'works';
     }
     else navCurrent = 'index';
   }
@@ -153,21 +136,20 @@
     // 顺序：首页 - 精选推荐 - 留言广场 - 小试牛刀（指向作品合集页）
     pcHeader.innerHTML = `
       <div class="site-header__inner">
-        <a href="${resolveHref('')}" class="site-header__logo">🏠</a>
         <nav class="site-header__nav">
-          <a href="${resolveHref('')}" class="site-header__item ${navCurrent === 'index' ? 'active' : ''}">🏠 首页</a>
-          <a href="${resolveHref('menu/hub/')}" class="site-header__item ${navCurrent === 'hub' ? 'active' : ''}">🪟 精选推荐</a>
-          <a href="${resolveHref('menu/guestbook/')}" class="site-header__item ${navCurrent === 'guestbook' ? 'active' : ''}">💬 留言广场</a>
-          <a href="${resolveHref('menu/works/')}" class="site-header__item ${navCurrent === 'works' ? 'active' : ''}">🛠️ 小试牛刀</a>
+          <a href="${resolveHref('')}" class="site-header__item ${navCurrent === 'index' ? 'active' : ''}">首页</a>
+          <a href="${resolveHref('menu/hub/')}" class="site-header__item ${navCurrent === 'hub' ? 'active' : ''}">精选推荐</a>
+          <a href="${resolveHref('menu/guestbook/')}" class="site-header__item ${navCurrent === 'guestbook' ? 'active' : ''}">留言广场</a>
+          <a href="${resolveHref('menu/works/')}" class="site-header__item ${navCurrent === 'works' ? 'active' : ''}">小试牛刀</a>
         </nav>
         <button class="site-header__toggle" id="toggleBtn" title="切换到手机版" aria-label="切换PC/手机版">📱</button>
       </div>
     `;
   } else {
-    // 非白名单页面：只有 logo + 汉堡按钮
+    // 非白名单页面：只有文字品牌 + 汉堡按钮
     pcHeader.innerHTML = `
       <div class="site-header__inner">
-        <a href="${resolveHref('')}" class="site-header__logo">🏠</a>
+        <span class="site-header__brand">Show me the project</span>
         <button class="site-header__hamburger" id="hamburgerBtn" aria-label="打开菜单" title="打开菜单">☰</button>
         <button class="site-header__toggle" id="toggleBtn" title="切换到手机版" aria-label="切换PC/手机版">📱</button>
       </div>
@@ -184,19 +166,15 @@
   if (MENU_PAGES.includes(currentPage)) {
     mobileNav.innerHTML = `
       <a href="${resolveHref('')}" class="mobile-nav__item ${navCurrent === 'index' ? 'active' : ''}">
-        <span class="mobile-nav__icon">🏠</span>
         <span class="mobile-nav__label">首页</span>
       </a>
       <a href="${resolveHref('menu/hub/')}" class="mobile-nav__item ${navCurrent === 'hub' ? 'active' : ''}">
-        <span class="mobile-nav__icon">🪟</span>
         <span class="mobile-nav__label">精选推荐</span>
       </a>
       <a href="${resolveHref('menu/guestbook/')}" class="mobile-nav__item ${navCurrent === 'guestbook' ? 'active' : ''}">
-        <span class="mobile-nav__icon">💬</span>
         <span class="mobile-nav__label">留言广场</span>
       </a>
       <a href="${resolveHref('menu/works/')}" class="mobile-nav__item ${navCurrent === 'works' ? 'active' : ''}">
-        <span class="mobile-nav__icon">🛠️</span>
         <span class="mobile-nav__label">小试牛刀</span>
       </a>
     `;
@@ -217,7 +195,7 @@
     <div class="works-panel__section-label">小工具</div>
     <div class="works-panel__grid">
       ${myWorks.map(w => `
-        <a href="${resolveHref(w.href)}" class="works-panel__item"${blankAttr}>
+        <a href="${resolveHref(w.href)}" class="works-panel__item">
           <span class="works-panel__icon">${w.icon}</span>
           <span class="works-panel__name">${w.name}</span>
         </a>
@@ -226,7 +204,7 @@
     <div class="works-panel__section-label">🗑️ 垃圾箱</div>
     <div class="works-panel__grid">
       ${trashBin.map(t => `
-        <a href="${resolveHref(t.href)}" class="works-panel__item"${blankAttr}>
+        <a href="${resolveHref(t.href)}" class="works-panel__item">
           <span class="works-panel__icon">${t.icon}</span>
           <span class="works-panel__name">${t.name}</span>
         </a>
@@ -252,7 +230,7 @@
           <div class="hamburger-panel__section-label">${s.label}</div>
           <div class="hamburger-panel__grid">
             ${s.items.map(item => `
-              <a href="${resolveHref(item.href)}" class="hamburger-panel__item"${blankAttr}>
+              <a href="${resolveHref(item.href)}" class="hamburger-panel__item">
                 <span class="hamburger-panel__icon">${item.icon}</span>
                 <span class="hamburger-panel__name">${item.name}</span>
               </a>
