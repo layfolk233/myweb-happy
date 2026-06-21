@@ -12,7 +12,14 @@
       "Bash(git commit *)",
       "Bash(git push *)",
       "Bash(git ls-remote *)",
-      "Bash(curl -s \"https://raw.githubusercontent.com/layfolk233/myweb-happy/main/.gitmodules\")"
+      "Bash(curl -s \"https://raw.githubusercontent.com/layfolk233/myweb-happy/main/.gitmodules\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/layfolk233/myweb-happy/main/src/js/nav.js\")",
+      "Bash(curl -sI \"https://layfolk233.github.io/myweb-happy/src/js/nav.js\")",
+      "Bash(curl -s \"https://layfolk233.github.io/myweb-happy/src/js/nav.js\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/layfolk233/myweb-happy/main/menu/hub/index.html\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/layfolk233/myweb-happy/main/menu/works/index.html\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/layfolk233/myweb-happy/main/menu/guestbook/index.html\")",
+      "Bash(curl -s \"https://layfolk233.github.io/myweb-happy/menu/hub/index.html\")"
     ],
     "defaultMode": "bypassPermissions"
   },
