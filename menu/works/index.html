@@ -92,8 +92,55 @@
       margin: 0 auto;
     }
 
+    /* 合并后的单个 grid */
+    .works-grid--merged {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* 可展开分区 */
+    .collapse-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    .collapse-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 12px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text);
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .collapse-btn:hover { background: var(--color-bg-warm); }
+    .collapse-btn .chevron {
+      display: inline-block;
+      transition: transform 0.3s var(--ease-out-expo);
+      font-size: 0.7rem;
+    }
+    .collapse-btn.open .chevron { transform: rotate(90deg); }
+    .collapse-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s var(--ease-out-expo);
+    }
+    .collapse-body.open { max-height: 2000px; }
+    .collapse-body .works-grid--merged { padding-top: 16px; }
+
     @media (max-width: 640px) {
-      .works-grid {
+      .works-grid,
+      .works-grid--merged {
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
         padding: 0 12px;
@@ -103,6 +150,8 @@
       .works-card__title { font-size: 0.92rem; }
       .works-card__desc { font-size: 0.75rem; }
       .section-label { padding: 24px 12px 4px; }
+      .collapse-section { padding: 0 12px 60px; }
+      .collapse-btn { padding: 10px 14px; font-size: 0.82rem; }
     }
   </style>
 </head>
@@ -120,55 +169,50 @@
   <!-- ========== 作品卡片 ========== -->
   <main class="container">
 
-    <div class="section-label">小工具</div>
+    <div class="section-label">小工具 · 语言学习</div>
     <div class="works-grid">
 
-      <a href="../page/checksun/" class="works-card fade-in" style="--accent: var(--color-primary)" target="_blank" rel="noopener" style="animation-delay: 0.05s">
+      <a href="../../../page/checksun/" class="works-card fade-in" style="--accent: var(--color-primary)" target="_blank" rel="noopener" style="animation-delay: 0.05s">
         <span class="works-card__icon">🔢</span>
         <h2 class="works-card__title">校验码计算器</h2>
         <p class="works-card__desc">8位累加和补码校验</p>
         <span class="works-card__arrow">→</span>
       </a>
 
-      <a href="../page/snake/" class="works-card fade-in" style="--accent: var(--color-accent)" target="_blank" rel="noopener" style="animation-delay: 0.10s">
+      <a href="../../page/snake/" class="works-card fade-in" style="--accent: var(--color-accent)" target="_blank" rel="noopener" style="animation-delay: 0.10s">
         <span class="works-card__icon">🐍</span>
         <h2 class="works-card__title">贪吃蛇</h2>
         <p class="works-card__desc">经典贪吃蛇游戏</p>
         <span class="works-card__arrow">→</span>
       </a>
 
-      <a href="../page/xmas/" class="works-card fade-in" style="--accent: var(--color-primary-light)" target="_blank" rel="noopener" style="animation-delay: 0.15s">
-        <span class="works-card__icon">🎄</span>
-        <h2 class="works-card__title">圣诞树</h2>
-        <p class="works-card__desc">Canvas 圣诞树动画</p>
-        <span class="works-card__arrow">→</span>
-      </a>
-
-      <a href="../page/finder/" class="works-card fade-in" style="--accent: var(--color-secondary)" target="_blank" rel="noopener" style="animation-delay: 0.20s">
+      <a href="../../page/finder/" class="works-card fade-in" style="--accent: var(--color-secondary)" target="_blank" rel="noopener" style="animation-delay: 0.15s">
         <span class="works-card__icon">📂</span>
         <h2 class="works-card__title">站点浏览器</h2>
         <p class="works-card__desc">HTML 站点双模式扫描</p>
         <span class="works-card__arrow">→</span>
       </a>
 
-      <a href="../page/catpic/" class="works-card fade-in" style="--accent: var(--color-primary-light)" target="_blank" rel="noopener" style="animation-delay: 0.25s">
+      <a href="../../page/catpic/" class="works-card fade-in" style="--accent: var(--color-primary-light)" target="_blank" rel="noopener" style="animation-delay: 0.20s">
         <span class="works-card__icon">🐱</span>
         <h2 class="works-card__title">猫图工坊</h2>
         <p class="works-card__desc">The Cat API 随机猫咪</p>
         <span class="works-card__arrow">→</span>
       </a>
 
-      <a href="../page/joke/" class="works-card fade-in" style="--accent: var(--color-accent)" target="_blank" rel="noopener" style="animation-delay: 0.30s">
+      <a href="../../page/joke/" class="works-card fade-in" style="--accent: var(--color-accent)" target="_blank" rel="noopener" style="animation-delay: 0.25s">
         <span class="works-card__icon">😂</span>
         <h2 class="works-card__title">随机笑话</h2>
         <p class="works-card__desc">JokeAPI 双语笑话</p>
         <span class="works-card__arrow">→</span>
       </a>
 
-    </div>
-
-    <div class="section-label">语言学习</div>
-    <div class="works-grid">
+      <a href="../../page/xmas/" class="works-card fade-in" style="--accent: var(--color-primary-light)" target="_blank" rel="noopener" style="animation-delay: 0.30s">
+        <span class="works-card__icon">🎄</span>
+        <h2 class="works-card__title">圣诞树</h2>
+        <p class="works-card__desc">Canvas 圣诞树动画</p>
+        <span class="works-card__arrow">→</span>
+      </a>
 
       <a href="../new/charset/" class="works-card fade-in" style="--accent: var(--color-primary-light)" target="_blank" rel="noopener" style="animation-delay: 0.35s">
         <span class="works-card__icon">🔤</span>
@@ -207,7 +251,68 @@
 
     </div>
 
+    <div class="collapse-section">
+      <button class="collapse-btn" id="collapseOthersBtn">
+        <span class="chevron">›</span>
+        <span>其他（5）</span>
+      </button>
+      <div class="collapse-body" id="collapseOthersBody">
+        <div class="works-grid">
+
+          <a href="../../page/xmas/1.html" class="works-card fade-in" style="--accent: var(--color-primary)" target="_blank" rel="noopener">
+            <span class="works-card__icon">🎄</span>
+            <h2 class="works-card__title">圣诞树 v1</h2>
+            <p class="works-card__desc">Canvas 圣诞树动画（gasp过期）</p>
+            <span class="works-card__arrow">→</span>
+          </a>
+
+          <a href="../../page/xmas/2.html" class="works-card fade-in" style="--accent: var(--color-primary)" target="_blank" rel="noopener">
+            <span class="works-card__icon">🎄</span>
+            <h2 class="works-card__title">圣诞树 v2</h2>
+            <p class="works-card__desc">Canvas 圣诞树动画（优化发送人）</p>
+            <span class="works-card__arrow">→</span>
+          </a>
+
+          <a href="../../page/xmas/3.html" class="works-card fade-in" style="--accent: var(--color-primary)" target="_blank" rel="noopener">
+            <span class="works-card__icon">🎄</span>
+            <h2 class="works-card__title">圣诞树 v3</h2>
+            <p class="works-card__desc">Canvas 圣诞树动画（优化发送人）</p>
+            <span class="works-card__arrow">→</span>
+          </a>
+
+          <a href="../../page/finder/01.html" class="works-card fade-in" style="--accent: var(--color-secondary)" target="_blank" rel="noopener">
+            <span class="works-card__icon">📂</span>
+            <h2 class="works-card__title">站点浏览器 v1</h2>
+            <p class="works-card__desc">HTML 站点扫描（首版）</p>
+            <span class="works-card__arrow">→</span>
+          </a>
+
+          <a href="../../page/finder/02.html" class="works-card fade-in" style="--accent: var(--color-secondary)" target="_blank" rel="noopener">
+            <span class="works-card__icon">📂</span>
+            <h2 class="works-card__title">站点浏览器 v2</h2>
+            <p class="works-card__desc">HTML 站点扫描（优化版）</p>
+            <span class="works-card__arrow">→</span>
+          </a>
+
+        </div>
+      </div>
+    </div>
+
   </main>
+
+  <script>
+    (function () {
+      'use strict';
+      var btn = document.getElementById('collapseOthersBtn');
+      var body = document.getElementById('collapseOthersBody');
+      if (btn && body) {
+        btn.addEventListener('click', function () {
+          var isOpen = body.classList.toggle('open');
+          btn.classList.toggle('open', isOpen);
+        });
+      }
+    })();
+  </script>
 
   <!-- ========== 导航组件 ========== -->
   <script src="../../src/js/nav.js"></script>

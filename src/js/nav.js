@@ -23,10 +23,10 @@
   const myWorks = [
     { icon: '🔢', name: '校验码计算器', href: 'page/checksun/' },
     { icon: '🐍', name: '贪吃蛇',       href: 'page/snake/' },
-    { icon: '🎄', name: '圣诞树',       href: 'page/xmas/' },
     { icon: '📂', name: '站点浏览器',   href: 'page/finder/' },
     { icon: '🐱', name: '猫图工坊',     href: 'page/catpic/' },
     { icon: '😂', name: '随机笑话',     href: 'page/joke/' },
+    { icon: '🎄', name: '圣诞树',       href: 'page/xmas/' },
     { icon: '🔤', name: '字符编码',     href: 'new/charset/' },
     { icon: '📖', name: '英语日读',     href: 'new/english/' },
     { icon: '🏮', name: '中文诗句',     href: 'new/chinese-qwen/' },
@@ -34,13 +34,17 @@
     { icon: '🎨', name: '画画板',       href: 'new/paint/' },
   ];
 
-  // 垃圾箱子页面
-  const trashBin = [
+  // 其他（特殊版本 HTML）
+  const othersWorks = [
     { icon: '🎄', name: '圣诞树 v1', href: 'page/xmas/1.html' },
     { icon: '🎄', name: '圣诞树 v2', href: 'page/xmas/2.html' },
     { icon: '🎄', name: '圣诞树 v3', href: 'page/xmas/3.html' },
     { icon: '📂', name: '站点浏览器 v1', href: 'page/finder/01.html' },
     { icon: '📂', name: '站点浏览器 v2', href: 'page/finder/02.html' },
+  ];
+
+  // 垃圾箱子页面
+  const trashBin = [
     { icon: '🐈', name: '猫咪乐园',    href: 'trash/catpark/' },
     { icon: '✦', name: '猫咪梦境',    href: 'trash/catdream/' },
     { icon: '🔍', name: '网站探测',    href: 'trash/probe/' },
@@ -161,14 +165,8 @@
       </div>
     `;
   } else {
-    // 非白名单页面：只有文字品牌 + 汉堡按钮
-    pcHeader.innerHTML = `
-      <div class="site-header__inner">
-        <span class="site-header__brand">Show me the project</span>
-        <button class="site-header__hamburger" id="hamburgerBtn" aria-label="打开菜单" title="打开菜单">☰</button>
-        <button class="site-header__toggle" id="toggleBtn" title="切换到手机版" aria-label="切换PC/手机版">📱</button>
-      </div>
-    `;
+    // 非白名单页面：无菜单栏
+    pcHeader.innerHTML = '';
   }
 
   // ============================================================
@@ -207,12 +205,24 @@
       <span class="works-panel__title">🛠️ 小试牛刀</span>
       <button class="works-panel__close" id="worksPanelClose" aria-label="关闭">✕</button>
     </div>
-    <div class="works-panel__section-label">小工具</div>
+    <div class="works-panel__section-label">小工具 · 语言学习</div>
     <div class="works-panel__grid">
       ${myWorks.map(w => `
         <a href="${resolveHref(w.href)}" class="works-panel__item">
           <span class="works-panel__icon">${w.icon}</span>
           <span class="works-panel__name">${w.name}</span>
+        </a>
+      `).join('')}
+    </div>
+    <div class="works-panel__section-label" id="othersSectionLabel" style="cursor:pointer; user-select:none; padding: 16px 8px 8px;">
+      <span id="othersChevron" style="display:inline-block; transition:transform 0.3s; margin-right:4px;">›</span>
+      其他（${othersWorks.length}）
+    </div>
+    <div class="works-panel__grid" id="othersPanelGrid" style="max-height:0; overflow:hidden; transition:max-height 0.35s var(--ease-out-expo);">
+      ${othersWorks.map(o => `
+        <a href="${resolveHref(o.href)}" class="works-panel__item">
+          <span class="works-panel__icon">${o.icon}</span>
+          <span class="works-panel__name">${o.name}</span>
         </a>
       `).join('')}
     </div>
@@ -226,6 +236,21 @@
       `).join('')}
     </div>
   `;
+
+  // 手机面板“其他”展开收起
+  (function () {
+    var label = document.getElementById('othersSectionLabel');
+    var grid = document.getElementById('othersPanelGrid');
+    var chevron = document.getElementById('othersChevron');
+    if (label && grid) {
+      var open = false;
+      label.addEventListener('click', function () {
+        open = !open;
+        grid.style.maxHeight = open ? '500px' : '0';
+        if (chevron) chevron.style.transform = open ? 'rotate(90deg)' : '';
+      });
+    }
+  })();
 
   // ============================================================
   //  构建汉堡弹出面板（非白名单页面用）
@@ -256,57 +281,14 @@
     </div>
   `;
 
-  // 遮罩层
-  const overlay = document.createElement('div');
-  overlay.className = 'works-overlay';
-  overlay.id = 'worksOverlay';
-
-  // ============================================================
-  //  注入 DOM
-  // ============================================================
-  document.body.appendChild(pcHeader);
-  document.body.appendChild(mobileNav);
-  document.body.appendChild(mobilePanel);
-  document.body.appendChild(hamburgerPanel);
-  document.body.appendChild(overlay);
-
   // ============================================================
   //  事件绑定
   // ============================================================
   const toggleBtn = document.getElementById('toggleBtn');
-  const hamburgerBtn = document.getElementById('hamburgerBtn');
-  const hamburgerPanelClose = document.getElementById('hamburgerPanelClose');
 
   // ---- 切换按钮 ----
   toggleBtn.addEventListener('click', function () {
     saveMode(viewMode === 'pc' ? 'mobile' : 'pc');
     applyMode();
   });
-
-  // ESC 关闭
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-      if (hamburgerOpen) closeHamburger();
-    }
-  });
-
-  // ---- 汉堡菜单 ----
-  function openHamburger() {
-    hamburgerOpen = true;
-    hamburgerPanel.classList.add('open');
-    overlay.classList.add('visible');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeHamburger() {
-    hamburgerOpen = false;
-    hamburgerPanel.classList.remove('open');
-    overlay.classList.remove('visible');
-    document.body.style.overflow = '';
-  }
-
-  if (hamburgerBtn) {
-    hamburgerBtn.addEventListener('click', openHamburger);
-  }
-  hamburgerPanelClose.addEventListener('click', closeHamburger);
-  overlay.addEventListener('click', closeHamburger);
 })();
