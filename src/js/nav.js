@@ -73,17 +73,24 @@
   }
   currentPage = currentPage || 'index';
 
-  // 路径计算 — 绝对路径，兼容本地/部署/子目录
+  // 路径计算 — 使用 URL API 确保解析正确
   const urlPath = window.location.pathname;
   const urlSegs = urlPath.replace(/\/+$/, '').split('/').filter(Boolean);
   const urlDepth = urlSegs.length;
 
-  // 找项目根目录路径
-  const repoRoot = urlDepth > 0 ? '/' + urlSegs[0] + '/' : '/';
+  // 导航链接的根目录：取 URL 第一段作为项目前缀
+  // / → / ；/myweb-happy/menu/hub/ → /myweb-happy/
+  const navRoot = urlDepth > 0 ? '/' + urlSegs[0] + '/' : '/';
 
   function resolveHref(href) {
-    if (href === '' || href === './') return window.location.origin + repoRoot;
-    return window.location.origin + repoRoot + href;
+    if (href === '' || href === './') return navRoot;
+    // 用 URL API 正确解析相对路径
+    try {
+      return new URL(href, window.location.origin + navRoot).href;
+    } catch {
+      // 兜底
+      return navRoot + href;
+    }
   }
 
   // ============================================================
