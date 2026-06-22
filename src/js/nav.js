@@ -77,6 +77,10 @@
   }
   currentPage = currentPage || 'index';
 
+  // 检测是否为子页面路径（检查路径段是否为 "page" 或 "new"）
+  const pageSegs = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+  const isSubPage = pageSegs.some(s => s === 'page' || s === 'new');
+
   // 计算项目根路径 — 判断是否存在 repo 前缀
   // GitHub Pages: /myweb-happy/page/joke/  → hasPrefix=true → projectRoot="/myweb-happy/"
   // localhost: http://localhost:8080/menu/hub/ → hasPrefix=false → projectRoot="/"
@@ -121,7 +125,7 @@
 
   function applyMode() {
     const isPC = viewMode === 'pc';
-    const showMenu = MENU_PAGES.includes(currentPage);
+    const showMenu = MENU_PAGES.includes(currentPage) && !isSubPage;
     document.body.classList.toggle('has-pc-header', isPC && showMenu);
     document.body.classList.toggle('has-mobile-nav', !isPC && showMenu);
     document.body.classList.toggle('has-hamburger', !showMenu);
@@ -131,6 +135,8 @@
     }
   }
 
+  const isMenuPage = MENU_PAGES.includes(currentPage) && !isSubPage;
+
   // ============================================================
   //  构建 PC 顶部菜单栏（仅白名单页面）
   // ============================================================
@@ -138,7 +144,7 @@
   pcHeader.className = 'site-header';
   pcHeader.setAttribute('aria-label', '主导航');
 
-  if (MENU_PAGES.includes(currentPage)) {
+  if (isMenuPage) {
     // 白名单页面：完整菜单栏
     // 顺序：首页 - 精选推荐 - 留言广场 - 小试牛刀（指向作品合集页）
     pcHeader.innerHTML = `
@@ -164,7 +170,7 @@
   mobileNav.className = 'mobile-nav';
   mobileNav.setAttribute('aria-label', '底部导航');
 
-  if (MENU_PAGES.includes(currentPage)) {
+  if (isMenuPage) {
     mobileNav.innerHTML = `
       <a href="${resolveHref('')}" class="mobile-nav__item ${navCurrent === 'index' ? 'active' : ''}">
         <span class="mobile-nav__label">首页</span>
@@ -255,8 +261,10 @@
   const toggleBtn = document.getElementById('toggleBtn');
 
   // ---- 切换按钮 ----
-  toggleBtn.addEventListener('click', function () {
-    saveMode(viewMode === 'pc' ? 'mobile' : 'pc');
-    applyMode();
-  });
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function () {
+      saveMode(viewMode === 'pc' ? 'mobile' : 'pc');
+      applyMode();
+    });
+  }
 })();
