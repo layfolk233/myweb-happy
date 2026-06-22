@@ -77,19 +77,26 @@
   }
   currentPage = currentPage || 'index';
 
-  // 检测是否为子页面路径（检查路径段是否为 "page" 或 "new"）
-  const pageSegs = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
-  const isSubPage = pageSegs.some(s => s === 'page' || s === 'new');
+  // 检测是否为子页面路径
+  const isSubPage = false; // 未使用，保留占位
 
-  // 计算项目根路径 — 判断是否存在 repo 前缀
-  // GitHub Pages: /myweb-happy/page/joke/  → hasPrefix=true → projectRoot="/myweb-happy/"
-  // localhost: http://localhost:8080/menu/hub/ → hasPrefix=false → projectRoot="/"
-  let projectRoot = '/';
+  // 计算项目根路径 — 扫描 path 段，找到已知应用路径关键词
+  // 它们前面的段就是 repo 前缀（GitHub Pages 才有，localhost 没有）
   const pathParts = window.location.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
-  if (pathParts.length > 0 && !MENU_PAGES.includes(pathParts[0])) {
-    // 第一个段不是菜单页名，说明有 repo 前缀（如 myweb-happy）
-    projectRoot = '/' + pathParts[0] + '/';
+  // 已知应用路径关键词
+  const KNOWN = ['page', 'new', 'menu', 'trash'];
+  let prefix = '';
+  for (let i = 0; i < pathParts.length; i++) {
+    if (KNOWN.includes(pathParts[i])) {
+      if (i > 0) prefix = pathParts.slice(0, i).join('/');
+      break;
+    }
   }
+  // /myweb-happy/menu/hub/  → prefix="myweb-happy" → projectRoot="/myweb-happy/"
+  // /menu/hub/             → prefix=""             → projectRoot="/"
+  // /myweb-happy/page/joke/ → prefix="myweb-happy" → projectRoot="/myweb-happy/"
+  // /page/joke/            → prefix=""             → projectRoot="/"
+  let projectRoot = prefix ? '/' + prefix + '/' : '/';
 
   function resolveHref(href) {
     if (href === '' || href === './') return projectRoot;
