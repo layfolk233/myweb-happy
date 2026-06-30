@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画图++</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #f0f7ff;
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: #333;
+    user-select: none;
+  }
+
+  /* ===== 顶部工具栏 ===== */
+  #toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    height: auto;
+    min-height: 80px;
+    padding: 14px 20px 10px;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    flex-shrink: 0;
+    position: relative;       /* V0.7.2: 面板定位参考 */
+  }
+
+  /* 标题彩色加大艺术字 */
+  #title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #e74c3c, #f39c12, #2ecc71, #3498db, #9b59b6);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: rainbowShift 6s ease infinite;
+  }
+  @keyframes rainbowShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* 控件行 */
+  #toolbar-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .group + .group { padding-left: 8px; border-left: 1px solid #e0e0e0; }
+
+  label { font-size: 13px; color: #666; white-space: nowrap; }
+
+  input[type="number"] {
+    width: 52px; height: 28px;
+    border: 1px solid #ccc; border-radius: 4px;
+    text-align: center; font-size: 13px;
+    outline: none;
+  }
+  input[type="number"]:focus { border-color: #1976d2; }
+
+  input[type="text"] {
+    width: 90px; height: 28px;
+    border: 1px solid #ccc; border-radius: 4px;
+    padding: 0 6px; font-size: 13px;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: #1976d2; }
+
+  button {
+    height: 28px; padding: 0 12px;
+    border: 1px solid #ccc; border-radius: 4px;
+    background: #fff; font-size: 13px;
+    cursor: pointer; white-space: nowrap;
+  }
+  button:hover { background: #f0f0f0; }
+  button:disabled { opacity: 0.4; cursor: default; }
+
+  #applyBtn {
+    background: #1976d2; color: #fff; border-color: #1976d2;
+  }
+  #applyBtn:hover { background: #1565c0; }
+
+  /* Palette: color quick-select at far left, 2 rows visible, vertical scrollbar */
+  #palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 156px;         /* 8 cols × 18px + 7 gaps × 4px = 172px → reduce */
+    height: 40px;         /* 2 rows × 16px + 1 gap × 8px = 40px */
+    max-height: 40px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .swatch {
+    width: 16px; height: 16px;
+    border: 1px solid #ccc; border-radius: 2px; cursor: pointer;
+  }
+  .swatch.active { outline: 2px solid #1976d2; outline-offset: -2px; }
+
+  /* 颜色快速选择区标题 */
+  #color-strip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-right: 12px;
+    padding-right: 12px;
+    border-right: 1px solid #e0e0e0;
+  }
+
+  /* 版本号和调试数据 */
+  #debug-info {
+    position: fixed;
+    top: 10px; right: 16px;
+    font-size: 11px; color: #bbb;
+    z-index: 999;
+    pointer-events: none;
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  /* ===== 画布区域 ===== */
+  #canvas-area {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #f0f7ff;
+    padding: 10px 20px 10px 0px;//间距
+    min-height: 0;
+  }
+
+  /* 画布容器：一个整体 canvas 即可，行列号直接画在 canvas 上 */
+  #canvas-wrapper {
+    position: relative;
+    display: block;
+  }
+
+  #canvas-border {
+    position: relative;
+    display: block;
+  }
+
+  /* 画布本体 */
+  canvas {
+    background: #fff;
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  /* 复选框样式 */
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+  }
+  .checkbox-group input[type="checkbox"] {
+    width: 14px; height: 14px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- 版本号和调试数据 -->
+<div id="debug-info"></div>
+
+<!-- 顶部工具栏 -->
+<div id="toolbar">
+  <span id="title">画图++</span>
+
+  <div id="toolbar-controls">
+    <!-- 颜色快速选择区域：放在最左侧，调色盘+编辑颜色在同一行 -->
+    <div id="color-strip">
+      <div id="palette"></div>
+      <button id="editColorBtn" title="编辑自定义颜色">编辑颜色</button>
+    </div>
+
+    <!-- 其他单行控件，排在颜色右侧 -->
+    <div class="group">
+      <label>画布</label>
+      <input type="number" id="gridSize" min="10" max="100" value="20">
+      <button id="applyBtn" title="应用网格设置">应用</button>
+    </div>
+
+    <!-- 功能勾选框 -->
+    <div class="group">
+      <label class="checkbox-group">
+        <input type="checkbox" id="showLabelsCb"> 行号列号
+      </label>
+      <label class="checkbox-group">
+        <input type="checkbox" id="showGridCb" checked> 画布边框
+      </label>
+    </div>
+
+    <div class="group">
+      <button id="undoBtn" title="撤销 (Ctrl+Z)">撤销</button>
+      <button id="redoBtn" title="重做 (Ctrl+Y)">重做</button>
+      <button id="resetBtn" title="重置画布">重置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 画图区域 -->
+<div id="canvas-area">
+  <div id="canvas-wrapper">
+    <div id="canvas-border">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ===== 配置 =====
+  const DEFAULT_GRID = 20;         // V0.7.6: 默认 20×20 格
+  const MIN_CELL = 8;              // V0.7.6: 每格最小像素，防止太小看不清
+  const VERSION = '0.7.12';
+
+  // 调色板预设颜色（20 种）
+  const PRESET_COLORS = [
+    '#000000', '#434343', '#666666', '#999999', '#cccccc', '#ffffff',
+    '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c',
+    '#3498db', '#2980b9', '#9b59b6', '#8e44ad',
+    '#e91e63', '#00bcd4', '#795548', '#607d8b', '#ff9800',
+  ];
+
+  // ===== DOM =====
+  const canvas         = document.getElementById('canvas');
+  const ctx            = canvas.getContext('2d');
+  const gridInput      = document.getElementById('gridSize');
+  const applyBtn       = document.getElementById('applyBtn');
+  const palette        = document.getElementById('palette');
+  const editColorBtn   = document.getElementById('editColorBtn');
+  const showLabelsCb   = document.getElementById('showLabelsCb');
+  const showGridCb     = document.getElementById('showGridCb');
+  const undoBtn        = document.getElementById('undoBtn');
+  const redoBtn        = document.getElementById('redoBtn');
+  const resetBtn       = document.getElementById('resetBtn');
+  const canvasArea     = document.getElementById('canvas-area');
+  const canvasBorder   = document.getElementById('canvas-border');
+  const versionEl      = document.getElementById('debug-info');
+
+  // ===== 状态 =====
+  let grid           = DEFAULT_GRID;
+  let currentColor   = '#000000';
+  let undoStack      = [];
+  let redoStack      = [];
+  let isDrawing      = false;
+  let showLabels     = false;   // V0.7.6: 默认不显示
+  let showGrid       = true;    // V0.7.9: 默认勾选画布边框
+  let cellPx_g       = 0;
+  let totalPx_g       = 0;
+  let gridPx_g       = 0;
+  
+  // 双层 canvas 方案
+  const paintCanvas  = document.createElement('canvas');
+  const paintCtx     = paintCanvas.getContext('2d');
+
+  // ===== 版本号和调试数据 =====
+  function updateVersion() {
+    // V0.7.7: 显示版本号、浏览器窗口大小、画布总像素
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const cw = canvas.width;
+    const ch = canvas.height;
+    versionEl.innerHTML = '版本号：v' + VERSION + '<br>' +
+      '窗口' + w + '×' + h + '  ' +
+      '画布' + totalPx_g + '×' + totalPx_g + '  ' +
+      '格子' + grid + '×' + grid + '  ' +
+      '像素' + gridPx_g 
+      ;
+  }
+
+  // V0.7.3: buildPalette 带 data-color 属性便于查重
+  function buildPalette() {
+    PRESET_COLORS.forEach((c) => {
+      const s = document.createElement('div');
+      s.className = 'swatch';
+      s.style.background = c;
+      s.title = c;
+      s.setAttribute('data-color', c);
+      s.addEventListener('click', () => {
+        currentColor = c;
+        document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+        s.classList.add('active');
+      });
+      palette.appendChild(s);
+    });
+    palette.firstChild.classList.add('active');
+  }
+
+  // ===== 自定义调色板 =====
+  function addSwatch(color) {
+    // 检查是否已存在
+    if (palette.querySelector('[data-color="' + color + '"]')) return;
+    const s = document.createElement('div');
+    s.className = 'swatch';
+    s.style.background = color;
+    s.title = color;
+    s.setAttribute('data-color', color);
+    s.addEventListener('click', () => {
+      currentColor = color;
+      document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+    });
+    palette.appendChild(s);
+  }
+
+  // V0.7.5: 编辑颜色 — 弹出原生圆圈颜色选择器，点确认后添加到调色板
+  let pendingColor = null;  // 暂存待确认的颜色
+
+  editColorBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    pendingColor = null;
+
+    // 创建原生颜色选择器 input（visible 以便触发原生调色盘）
+    const input = document.createElement('input');
+    input.type = 'color';
+    input.value = currentColor;
+    input.style.cssText = 'width:40px;height:36px;border:1px solid #ccc;border-radius:4px;cursor:pointer;padding:0;background:#fff;';
+
+    // 创建确认按钮
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = '确定';
+    confirmBtn.style.cssText = 'height:36px;padding:0 20px;font-size:14px;cursor:pointer;background:#1976d2;color:#fff;border:1px solid #1976d2;border-radius:4px;';
+    confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = '#1565c0'; });
+    confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = '#1976d2'; });
+
+    // 面板容器
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'background:#fff;border-radius:8px;padding:20px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);';
+    wrapper.appendChild(input);
+    wrapper.appendChild(confirmBtn);
+
+    // 遮罩层
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.appendChild(wrapper);
+    document.body.appendChild(overlay);
+
+    // 点击遮罩关闭
+    const closeOverlay = () => {
+      document.body.removeChild(overlay);
+    };
+    overlay.addEventListener('click', (ev) => {
+      if (ev.target === overlay) closeOverlay();
+    });
+
+    // 确定按钮 — 选色后添加到调色板末尾
+    confirmBtn.addEventListener('click', () => {
+      if (input.value) {
+        const color = input.value;
+        addSwatch(color);
+        currentColor = color;
+        document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+        const target = palette.querySelector('[data-color="' + color + '"]');
+        if (target) target.classList.add('active');
+      }
+      closeOverlay();
+    });
+
+    // 自动聚焦并触发原生调色盘
+    input.focus();
+    input.click();
+  });
+
+  // ===== 保存/恢复绘画内容 =====
+  // V0.7.8: 只保存 grid×grid 的绘画区（排除 row 0 / col 0 标签区）
+  // V0.7.9: paintCanvas 始终持有完整绘画数据（不含标签区）
+  function savePaintToOffscreen() {
+    const totalCells = grid + 1;
+    const cellPx = canvas.width / totalCells;
+    const paintW = grid * cellPx;
+    const paintH = grid * cellPx;
+    paintCanvas.width  = paintW;
+    paintCanvas.height = paintH;
+    // 从主 canvas 的 (1,1) 位置开始拷贝绘画区
+    paintCtx.drawImage(canvas,
+      cellPx, cellPx,   // 源裁剪起点
+      paintW, paintH,   // 源裁剪大小
+      0, 0,             // 目标起点
+      paintW, paintH);  // 目标大小
+  }
+
+  // 绘制指定格子的边框（V0.7.9: 接受画布上的绝对坐标）
+  function drawCellGridAtCanvas(px, py) {
+    // px, py 是画布上的像素坐标（已在 grid×grid 区域内，不含标签区）
+    const totalCells = grid + 1;
+    const cellPx = canvas.width / totalCells;
+    ctx.strokeStyle = '#d0d0d0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    // 上边
+    ctx.moveTo(Math.round(px), Math.round(py));
+    ctx.lineTo(Math.round(px + cellPx), Math.round(py));
+    ctx.stroke();
+    // 右边
+    ctx.beginPath();
+    ctx.moveTo(Math.round(px + cellPx), Math.round(py));
+    ctx.lineTo(Math.round(px + cellPx), Math.round(py + cellPx));
+    ctx.stroke();
+    // 下边
+    ctx.beginPath();
+    ctx.moveTo(Math.round(px), Math.round(py + cellPx));
+    ctx.lineTo(Math.round(px + cellPx), Math.round(py + cellPx));
+    ctx.stroke();
+    // 左边
+    ctx.beginPath();
+    ctx.moveTo(Math.round(px), Math.round(py));
+    ctx.lineTo(Math.round(px), Math.round(py + cellPx));
+    ctx.stroke();
+  }
+
+  // V0.7.3: 重绘显示层（V0.7.9: 两个图层：底层 paintCanvas 绘画 + 顶层边框线 + 标签）
+  // V0.7.10: 顶层额外绘制外边框（只包围 paint 区域，不包含标签行）
+  // V0.7.11: 标签行背景浅蓝色始终绘制，不管标签是否显示
+  function redrawDisplay() {
+    const totalPx = canvas.width;
+    const totalCells = grid + 1;
+    const cellPx = totalPx / totalCells;
+    const paintW = grid * cellPx;
+    const paintH = grid * cellPx;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, totalPx, totalPx);
+    // V0.7.11: 始终填充标签行浅蓝色背景（row 0 和 col 0）
+    ctx.fillStyle = '#f0f7ff';
+    ctx.fillRect(0, 0, totalPx, cellPx);           // 顶部一行
+    ctx.fillRect(0, 0, cellPx, totalPx);           // 左侧一列
+    // 第一层：绘画（从 paintCanvas 拷贝，带 1 格标签偏移）
+    if (paintCanvas.width > 0 && paintCanvas.height > 0) {
+      ctx.drawImage(paintCanvas, 0, 0, paintW, paintH, cellPx, cellPx, paintW, paintH);
+    }
+    // 第二层：边框线（在绘画上方）
+    if (showGrid) {
+      drawAllGridLines(cellPx, cellPx, paintW, paintH);
+    }
+    // 第三层：外边框（包围 paint 区域，不含标签行）
+    if (showGrid) {
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cellPx, cellPx, paintW, paintH);
+    }
+    // 第四层：行号列号（在边框上方，仅当勾选时显示）
+    drawLabels();
+  }
+
+  // 绘制全部边框线（V0.7.9: 只在初始化/重置时调用）
+  function drawAllGridLines(offsetX, offsetY, paintW, paintH) {
+    ctx.strokeStyle = '#d0d0d0';
+    ctx.lineWidth = 1;
+    const cellPx = paintW / grid;  // 单格像素
+    // 竖线
+    for (let i = 0; i <= grid; i++) {
+      const x = offsetX + i * cellPx;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(x), offsetY);
+      ctx.lineTo(Math.round(x), offsetY + paintH);
+      ctx.stroke();
+    }
+    // 横线
+    for (let i = 0; i <= grid; i++) {
+      const y = offsetY + i * cellPx;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(offsetX), Math.round(y));
+      ctx.lineTo(Math.round(offsetX + paintW), Math.round(y));
+      ctx.stroke();
+    }
+  }
+
+  // ===== 构建行列标注（V0.7.8: 画在 canvas 的 row 0 / col 0 单元格里） =====
+  // V0.7.10: 标签格子填充浅蓝色，与绘画区白色区分开
+  // V0.7.11: 背景色已在 redrawDisplay 中统一绘制，这里只绘制数字显隐
+  function drawLabels() {
+    if (!showLabels) return;
+    const cellPx = canvas.width / (grid + 1);
+
+    // 列号：画在 row 0（最上面一行）
+    for (let j = 1; j <= grid; j++) {
+      // V0.7.12: 列号显示1以及5的倍数
+      const colText = (j === 1 || j % 5 === 0) ? j : '';
+      if (!colText) continue;
+      const cx = (j) * cellPx + cellPx / 2;   // 居中在 col j 的 row 0 格子中心
+      const cy = cellPx / 2;
+      ctx.font = Math.max(10, Math.floor(24 / grid * 1.0)) + 'px -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif';
+      ctx.fillStyle = '#888';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(colText, cx, cy);
+    }
+
+    // 行号：画在 col 0（最左边一列）
+    for (let i = 1; i <= grid; i++) {
+      // V0.7.12: 行号显示1以及5的倍数
+      const rowText = (i === 1 || i % 5 === 0) ? i : '';
+      if (!rowText) continue;
+      const cx = cellPx / 2;
+      const cy = (i) * cellPx + cellPx / 2;   // 居中在 row i 的 col 0 格子中心
+      ctx.font = Math.max(10, Math.floor(24 / grid * 1.0)) + 'px -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif';
+      ctx.fillStyle = '#888';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(rowText, cx, cy);
+    }
+  }
+
+  // ===== 初始化画布（V0.7.8: 直接使用 window.innerWidth/window.innerHeight 计算画布大小） =====
+  function initCanvas() {
+    // V0.7.8: 直接用浏览器窗口宽高，减去工具栏(min-height 80+padding)、上下间距，算出画布可用高度
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const availHeight = h - 200; // 工具栏占约80px + 额外间距，画布上下各留20px
+    const availWidth  = w - 48;  // 左右padding + 行号标注预留
+    const maxHeight = Math.max(200, Math.floor(availHeight));
+    const maxWidth  = Math.max(200, Math.floor(availWidth));
+
+    // V0.7.8: 去掉 +2 的 hack，避免每次重算画布像素变化
+    // 注意：实际网格是 (grid+1) × (grid+1)，多出一行一列放标签
+    let cellPx = Math.max(MIN_CELL, Math.floor(maxHeight / (grid + 1)));
+    if (cellPx < MIN_CELL) {
+      cellPx = MIN_CELL;
+      grid = Math.min(100, Math.floor(maxHeight / MIN_CELL) - 1);
+      if (grid < 10) grid = 10;
+      gridInput.value = grid;
+    }
+    cellPx_g = cellPx;
+
+    // 画布总像素 = (grid+1) × cellPx，包含 row 0 + col 0 标签区
+    const totalCells = grid + 1;
+    const totalPx = totalCells * cellPx;
+    // paintCanvas 只存 grid×grid 的绘画区
+    const paintW = grid * cellPx;
+    const paintH = grid * cellPx;
+
+    canvas.width  = totalPx;
+    canvas.height = totalPx;
+    paintCanvas.width  = paintW;
+    paintCanvas.height = paintH;
+    paintCtx.fillStyle = '#ffffff';
+    paintCtx.fillRect(0, 0, paintW, paintH);
+
+    // 白色底 + 边框线 + 标注条 + 外边框（已在 redrawDisplay 中绘制）
+    redrawDisplay();
+
+    // V0.7.10: 外边框已在 redrawDisplay 中绘制，CSS 边框不再需要
+    canvasBorder.style.border = 'none';
+    canvasBorder.style.boxShadow = 'none';
+
+    fitCanvas();
+  }
+
+  // ===== 标注条显隐（V0.7.8: 标签画在 canvas 上，切换时重绘） =====
+  showLabelsCb.addEventListener('change', () => {
+    showLabels = showLabelsCb.checked;
+    redrawDisplay();
+  });
+
+  // ===== 边框切换（V0.7.9: 重绘整个显示层） =====
+  showGridCb.addEventListener('change', () => {
+    showGrid = showGridCb.checked;
+    // 完整重绘（包含外边框）
+    redrawDisplay();
+  });
+
+  // ===== 缩放适配（V0.7.8: 使用 window.innerWidth/window.innerHeight 计算） =====
+  function fitCanvas() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const areaW = w - 20;   // 左右间距
+    const areaH = h - 170;  // 工具栏+上下间距
+    const totalPx = canvas.width;
+
+    const scale = Math.min(areaW, areaH) / totalPx;
+    const size = Math.round(totalPx * scale);
+
+    const minSize = 40;
+    const finalSize = Math.max(minSize, size);
+    totalPx_g=finalSize;
+    gridPx_g=(totalPx_g / grid).toFixed(1);
+    
+    canvas.style.width  = finalSize + 'px';
+    canvas.style.height = finalSize + 'px';
+  }
+
+  // ===== 撤销 / 重做 =====
+  function saveState() {
+    undoStack.push(paintCanvas.toDataURL());
+    if (undoStack.length > 50) undoStack.shift();
+    redoStack = [];
+    updateUndoRedoUI();
+  }
+
+  function doUndo() {
+    if (undoStack.length <= 1) return;
+    redoStack.push(undoStack.pop());
+    restoreFromState(undoStack[undoStack.length - 1]);
+    updateUndoRedoUI();
+  }
+
+  function doRedo() {
+    if (redoStack.length === 0) return;
+    const state = redoStack.pop();
+    undoStack.push(state);
+    restoreFromState(state);
+    updateUndoRedoUI();
+  }
+
+  function restoreFromState(dataUrl) {
+    const img = new Image();
+    img.onload = () => {
+      // 确保 paintCanvas 尺寸匹配
+      if (paintCanvas.width !== img.width || paintCanvas.height !== img.height) {
+        paintCanvas.width  = img.width;
+        paintCanvas.height = img.height;
+      }
+      paintCtx.drawImage(img, 0, 0);
+      // 完整重绘显示层
+      redrawDisplay();
+    };
+    img.src = dataUrl;
+  }
+
+  function updateUndoRedoUI() {
+    undoBtn.disabled = undoStack.length <= 1;
+    redoBtn.disabled = redoStack.length === 0;
+  }
+
+  // ===== 绘制逻辑 =====
+  function getCellFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const totalCells = grid + 1;  // canvas 实际是 (grid+1)×(grid+1)
+    const cellPx = canvas.width / totalCells;
+    // 鼠标在 canvas 上的逻辑坐标
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+    const gx = Math.floor(mx / cellPx);
+    const gy = Math.floor(my / cellPx);
+    // row 0 / col 0 不响应绘画
+    if (gx < 1 || gy < 1 || gx > grid || gy > grid) return null;
+    // 返回相对于 grid×grid 绘画区的坐标（从1开始，画的时候减1）
+    return { x: gx - 1, y: gy - 1 };
+  }
+
+  // V0.7.9→0.7.10: 画在 paintCanvas 上，然后完整重绘显示层（整个画布边框 + 标签）
+  function paintCell(x, y, color) {
+    // 在 paintCanvas 上绘画
+    paintCtx.fillStyle = color;
+    paintCtx.fillRect(x * cellPx_g, y * cellPx_g, cellPx_g, cellPx_g);
+    // 完整重绘显示层
+    redrawDisplay();
+  }
+
+  canvas.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    if (e.button === 0) {
+      isDrawing = true;
+      const cell = getCellFromEvent(e);
+      if (cell) paintCell(cell.x, cell.y, currentColor);
+    } else if (e.button === 2) {
+      e.preventDefault();
+      saveState();
+      const cell = getCellFromEvent(e);
+      if (cell) paintCell(cell.x, cell.y, '#ffffff');
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const cell = getCellFromEvent(e);
+    if (cell) paintCell(cell.x, cell.y, currentColor);
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDrawing) {
+      isDrawing = false;
+      saveState();
+    }
+  });
+
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('dragstart', e => e.preventDefault());
+
+  applyBtn.addEventListener('click', () => {
+    let v = parseInt(gridInput.value, 10);
+    if (isNaN(v) || v < 10) v = 10;
+    if (v > 100) v = 100;
+    gridInput.value = v;
+    grid = v;
+    initCanvas();
+    fitCanvas();
+    updateVersion();
+  });
+
+  undoBtn.addEventListener('click', doUndo);
+  redoBtn.addEventListener('click', doRedo);
+
+  // V0.7.2: 重置功能 — 清空绘画 + 边框，V0.7.9: 使用 paintCanvas 双图层，V0.7.10: 外边框在 redrawDisplay 中绘制
+  resetBtn.addEventListener('click', () => {
+    undoStack = [];
+    redoStack = [];
+    const totalCells = grid + 1;
+    const cellPx = canvas.width / totalCells;
+    const paintW = grid * cellPx;
+    const paintH = grid * cellPx;
+    paintCanvas.width  = paintW;
+    paintCanvas.height = paintH;
+    paintCtx.fillStyle = '#ffffff';
+    paintCtx.fillRect(0, 0, paintW, paintH);
+    redrawDisplay();
+    // V0.7.10: 外边框已在 redrawDisplay 中绘制，无需额外处理
+    updateUndoRedoUI();
+    fitCanvas();
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'z') { e.preventDefault(); doUndo(); }
+    if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) { e.preventDefault(); doRedo(); }
+  });
+
+  window.addEventListener('resize', () => { fitCanvas(); updateVersion(); });
+
+  // ===== 启动 =====
+  updateVersion();
+  buildPalette();
+  initCanvas();
+  updateUndoRedoUI();
+  updateVersion();  // V0.7.7: 显示调试数据
+})();
+</script>
+</body>
+</html>
