@@ -25,10 +25,11 @@
     height: auto;
     min-height: 80px;
     padding: 14px 20px 10px;
-    background: #fff;
-    border-bottom: 1px solid #e0e0e0;
+    background: #ffffff;  /* V0.7.15: 标题区纯白 */
+    border-bottom: 1px solid #d8e0e8;
     flex-shrink: 0;
     position: relative;       /* V0.7.2: 面板定位参考 */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
 
   /* 标题彩色加大艺术字 */
@@ -57,6 +58,9 @@
     align-items: center;
     gap: 4px;
     width: 100%;
+    background: #f5f8fc;  /* V0.7.15: 控件区浅蓝灰，与标题区 #fff 区分 */
+    padding: 6px 20px 8px;
+    border-top: 1px solid #e2e8f0;
   }
 
   .group {
@@ -99,14 +103,14 @@
   }
   #applyBtn:hover { background: #1565c0; }
 
-  /* Palette: color quick-select at far left, 2 rows visible, vertical scrollbar */
+  /* Palette: 3行5列，垂直滚动条 */
   #palette {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    width: 156px;         /* 8 cols × 18px + 7 gaps × 4px = 172px → reduce */
-    height: 40px;         /* 2 rows × 16px + 1 gap × 8px = 40px */
-    max-height: 40px;
+    width: 88px;         /* 5 cols × 16px + 4 gaps × 4px = 96px → reduce */
+    height: 56px;        /* 3 rows × 16px + 2 gaps × 4px = 56px */
+    max-height: 56px;
     overflow-y: auto;
     flex-shrink: 0;
   }
@@ -146,8 +150,8 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    background: #f0f7ff;
-    padding: 10px 20px 10px 0px;//间距
+    background: #eaf2fb;  /* V0.7.15: 画布区柔和浅蓝 */
+    padding: 10px 20px 10px 0px;  /* V0.7.15: 使用全局变量控制边距 */
     min-height: 0;
   }
 
@@ -217,6 +221,12 @@
       </label>
     </div>
 
+    <!-- V0.7.15: 画笔粗细 1-7 -->
+    <div class="group">
+      <label>画笔</label>
+      <input type="number" id="brushSizeInput" min="1" max="7" value="1">
+    </div>
+
     <div class="group">
       <button id="undoBtn" title="撤销 (Ctrl+Z)">撤销</button>
       <button id="redoBtn" title="重做 (Ctrl+Y)">重做</button>
@@ -239,14 +249,23 @@
   // ===== 配置 =====
   const DEFAULT_GRID = 20;         // V0.7.6: 默认 20×20 格
   const MIN_CELL = 8;              // V0.7.6: 每格最小像素，防止太小看不清
-  const VERSION = '0.7.12';
+  const VERSION = '0.7.15';
 
-  // 调色板预设颜色（20 种）
+  // V0.7.15: 配色方案 — 标题区白色、控件区分隔色、画布区浅蓝
+  // V0.7.13: 画布区域和浏览器窗口左右下边距，全局变量控制
+  const MARGIN_TOP    = 90;   // 上方边距（像素）
+  const MARGIN_RIGHT  = 20;   // 右侧边距（像素）
+  const MARGIN_BOTTOM = 20;   // 下方边距（像素）
+  const MARGIN_LEFT   = 10;   // 左侧边距（像素）
+
+  // V0.7.13→0.7.15: 画笔粗细 1-7，默认 1
+  let brushSize = 1;
+
+  // 调色板预设颜色（15 种常用色）
   const PRESET_COLORS = [
-    '#000000', '#434343', '#666666', '#999999', '#cccccc', '#ffffff',
+    '#000000', '#434343', '#666666', '#cccccc', '#ffffff',
     '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c',
-    '#3498db', '#2980b9', '#9b59b6', '#8e44ad',
-    '#e91e63', '#00bcd4', '#795548', '#607d8b', '#ff9800',
+    '#3498db', '#2980b9', '#9b59b6', '#e91e63', '#795548',
   ];
 
   // ===== DOM =====
@@ -261,6 +280,7 @@
   const undoBtn        = document.getElementById('undoBtn');
   const redoBtn        = document.getElementById('redoBtn');
   const resetBtn       = document.getElementById('resetBtn');
+  const brushSizeInput = document.getElementById('brushSizeInput');
   const canvasArea     = document.getElementById('canvas-area');
   const canvasBorder   = document.getElementById('canvas-border');
   const versionEl      = document.getElementById('debug-info');
@@ -292,7 +312,9 @@
       '窗口' + w + '×' + h + '  ' +
       '画布' + totalPx_g + '×' + totalPx_g + '  ' +
       '格子' + grid + '×' + grid + '  ' +
-      '像素' + gridPx_g 
+      '像素' + gridPx_g + '  ' +
+      '画笔' + brushSize + '  ' +
+      '边距' + MARGIN_TOP + '/' + MARGIN_RIGHT + '/' + MARGIN_BOTTOM + '/' + MARGIN_LEFT
       ;
   }
 
@@ -570,6 +592,10 @@
     canvasBorder.style.border = 'none';
     canvasBorder.style.boxShadow = 'none';
 
+    // V0.7.15: 重建空白快照和撤销栈
+    initBlankState();
+    rebuildUndoStack();
+
     fitCanvas();
   }
 
@@ -586,12 +612,12 @@
     redrawDisplay();
   });
 
-  // ===== 缩放适配（V0.7.8: 使用 window.innerWidth/window.innerHeight 计算） =====
+  // ===== 缩放适配（V0.7.13: 使用全局变量控制边距） =====
   function fitCanvas() {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const areaW = w - 20;   // 左右间距
-    const areaH = h - 170;  // 工具栏+上下间距
+    const areaW = w - MARGIN_LEFT - MARGIN_RIGHT;
+    const areaH = h - MARGIN_TOP - MARGIN_BOTTOM;
     const totalPx = canvas.width;
 
     const scale = Math.min(areaW, areaH) / totalPx;
@@ -599,14 +625,38 @@
 
     const minSize = 40;
     const finalSize = Math.max(minSize, size);
-    totalPx_g=finalSize;
-    gridPx_g=(totalPx_g / grid).toFixed(1);
-    
+    totalPx_g = finalSize;
+    gridPx_g = (totalPx_g / grid).toFixed(1);
+
     canvas.style.width  = finalSize + 'px';
     canvas.style.height = finalSize + 'px';
   }
 
   // ===== 撤销 / 重做 =====
+  // V0.7.15: 修复撤销问题 — 不再用 1x1 dummy，而是存储真实 blank canvas 快照
+  // 每次 initCanvas/reset 后重建 undo 栈，避免 stale dataURL
+  let blankDataURL = null;  // V0.7.15: 缓存空白 canvas 的 dataURL
+
+  function initBlankState() {
+    // 创建一个与当前 grid 匹配的空白 paintCanvas，转 dataURL
+    const blank = document.createElement('canvas');
+    blank.width = grid * cellPx_g;
+    blank.height = grid * cellPx_g;
+    const bctx = blank.getContext('2d');
+    bctx.fillStyle = '#ffffff';
+    bctx.fillRect(0, 0, blank.width, blank.height);
+    blankDataURL = blank.toDataURL();
+  }
+
+  // V0.7.15: 重建撤销栈 — 在 initCanvas 和 reset 时调用
+  function rebuildUndoStack() {
+    undoStack = [];
+    redoStack = [];
+    if (blankDataURL) {
+      undoStack.push(blankDataURL);
+    }
+  }
+
   function saveState() {
     undoStack.push(paintCanvas.toDataURL());
     if (undoStack.length > 50) undoStack.shift();
@@ -668,10 +718,20 @@
   }
 
   // V0.7.9→0.7.10: 画在 paintCanvas 上，然后完整重绘显示层（整个画布边框 + 标签）
+  // V0.7.13→0.7.15: 画笔粗细 1-7，奇数对称扩展，偶数向右下各多1格
   function paintCell(x, y, color) {
-    // 在 paintCanvas 上绘画
-    paintCtx.fillStyle = color;
-    paintCtx.fillRect(x * cellPx_g, y * cellPx_g, cellPx_g, cellPx_g);
+    // V0.7.15: 画笔扩展范围 = floor((size-1)/2)，确保偶数不会自动+1
+    const half = Math.floor((brushSize - 1) / 2);
+    const startX = Math.max(0, x - half);
+    const startY = Math.max(0, y - half);
+    const endX   = Math.min(grid - 1, x + half + (brushSize % 2 === 0 ? 1 : 0));
+    const endY   = Math.min(grid - 1, y + half + (brushSize % 2 === 0 ? 1 : 0));
+    for (let py = startY; py <= endY; py++) {
+      for (let px = startX; px <= endX; px++) {
+        paintCtx.fillStyle = color;
+        paintCtx.fillRect(px * cellPx_g, py * cellPx_g, cellPx_g, cellPx_g);
+      }
+    }
     // 完整重绘显示层
     redrawDisplay();
   }
@@ -722,9 +782,8 @@
   redoBtn.addEventListener('click', doRedo);
 
   // V0.7.2: 重置功能 — 清空绘画 + 边框，V0.7.9: 使用 paintCanvas 双图层，V0.7.10: 外边框在 redrawDisplay 中绘制
+  // V0.7.15: 重置后重建撤销栈
   resetBtn.addEventListener('click', () => {
-    undoStack = [];
-    redoStack = [];
     const totalCells = grid + 1;
     const cellPx = canvas.width / totalCells;
     const paintW = grid * cellPx;
@@ -734,7 +793,8 @@
     paintCtx.fillStyle = '#ffffff';
     paintCtx.fillRect(0, 0, paintW, paintH);
     redrawDisplay();
-    // V0.7.10: 外边框已在 redrawDisplay 中绘制，无需额外处理
+    // V0.7.15: 重置后重建撤销栈
+    rebuildUndoStack();
     updateUndoRedoUI();
     fitCanvas();
   });
@@ -744,12 +804,21 @@
     if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) { e.preventDefault(); doRedo(); }
   });
 
+  // V0.7.15: 画笔粗细输入框 1-7
+  brushSizeInput.addEventListener('change', () => {
+    let v = parseInt(brushSizeInput.value, 10);
+    if (isNaN(v) || v < 1) v = 1;
+    if (v > 7) v = 7;
+    brushSizeInput.value = v;
+    brushSize = v;
+  });
+
   window.addEventListener('resize', () => { fitCanvas(); updateVersion(); });
 
   // ===== 启动 =====
   updateVersion();
   buildPalette();
-  initCanvas();
+  initCanvas();  // V0.7.15: 内部已调用 initBlankState + rebuildUndoStack
   updateUndoRedoUI();
   updateVersion();  // V0.7.7: 显示调试数据
 })();
