@@ -10,7 +10,7 @@
   html, body {
     width: 100%; height: 100%;
     overflow: hidden;
-    background: #f0f7ff;
+    background: #eaf2fb; /*#f0f7ff;*/
     font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
     color: #333;
     user-select: none;
@@ -103,20 +103,22 @@
   }
   #applyBtn:hover { background: #1565c0; }
 
-  /* Palette: 3行5列，垂直滚动条 */
+  /* Palette: 固定5列，最多3行，垂直滚动条 */
   #palette {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    width: 88px;         /* 5 cols × 16px + 4 gaps × 4px = 96px → reduce */
-    height: 56px;        /* 3 rows × 16px + 2 gaps × 4px = 56px */
-    max-height: 56px;
+    width: 113px;         /* 5 cols × 16px + 4 gaps × 4px = 96px 精确 */
+    height: 36px;        /* 2 rows visible: 2 × 16 + 1 × 4 = 36 */
+    max-height: 56px;    /* 3 rows scrollable */
     overflow-y: auto;
     flex-shrink: 0;
+    box-sizing: border-box;
   }
   .swatch {
     width: 16px; height: 16px;
     border: 1px solid #ccc; border-radius: 2px; cursor: pointer;
+    flex: 0 0 16px;    /* V0.7.16: 固定 16px 防止 flex 压缩导致列数变化 */
   }
   .swatch.active { outline: 2px solid #1976d2; outline-offset: -2px; }
 
@@ -134,11 +136,11 @@
   /* 版本号和调试数据 */
   #debug-info {
     position: fixed;
-    top: 10px; right: 16px;
+    bottom: 10px; left: 16px;
     font-size: 11px; color: #bbb;
     z-index: 999;
     pointer-events: none;
-    text-align: right;
+    text-align: left;
     line-height: 1.4;
   }
 
@@ -151,22 +153,11 @@
     justify-content: center;
     overflow: hidden;
     background: #eaf2fb;  /* V0.7.15: 画布区柔和浅蓝 */
-    padding: 10px 20px 10px 0px;  /* V0.7.15: 使用全局变量控制边距 */
+    padding: var(--mt, 150px) var(--mr, 20px) var(--mb, 20px) var(--ml, 10px);
     min-height: 0;
   }
 
-  /* 画布容器：一个整体 canvas 即可，行列号直接画在 canvas 上 */
-  #canvas-wrapper {
-    position: relative;
-    display: block;
-  }
-
-  #canvas-border {
-    position: relative;
-    display: block;
-  }
-
-  /* 画布本体 */
+  /* V0.7.16: 简化结构，去掉多余的嵌套层，直接 canvas + 调试信息 */
   canvas {
     background: #fff;
     display: block;
@@ -237,11 +228,7 @@
 
 <!-- 画图区域 -->
 <div id="canvas-area">
-  <div id="canvas-wrapper">
-    <div id="canvas-border">
-      <canvas id="canvas"></canvas>
-    </div>
-  </div>
+  <canvas id="canvas"></canvas>
 </div>
 
 <script>
@@ -249,17 +236,26 @@
   // ===== 配置 =====
   const DEFAULT_GRID = 20;         // V0.7.6: 默认 20×20 格
   const MIN_CELL = 8;              // V0.7.6: 每格最小像素，防止太小看不清
-  const VERSION = '0.7.15';
+  const VERSION = '0.7.16';
 
   // V0.7.15: 配色方案 — 标题区白色、控件区分隔色、画布区浅蓝
   // V0.7.13: 画布区域和浏览器窗口左右下边距，全局变量控制
-  const MARGIN_TOP    = 90;   // 上方边距（像素）
-  const MARGIN_RIGHT  = 20;   // 右侧边距（像素）
-  const MARGIN_BOTTOM = 20;   // 下方边距（像素）
-  const MARGIN_LEFT   = 10;   // 左侧边距（像素）
+  const MARGIN_TOP    = 0;   // 上方边距（像素）
+  let MARGIN_RIGHT  = 0;   // 右侧边距（像素）
+  const MARGIN_BOTTOM = 35;   // 下方边距（像素）
+  const MARGIN_LEFT   = 0;   // 左侧边距（像素）
 
   // V0.7.13→0.7.15: 画笔粗细 1-7，默认 1
   let brushSize = 1;
+
+  // V0.7.16: 同步边距全局变量到 CSS 变量，使 padding 真正按变量值生效
+  function applyMarginToCSS() {
+    document.documentElement.style.setProperty('--mt', MARGIN_TOP + 'px');
+    document.documentElement.style.setProperty('--mr', MARGIN_RIGHT + 'px');
+    document.documentElement.style.setProperty('--mb', MARGIN_BOTTOM + 'px');
+    document.documentElement.style.setProperty('--ml', MARGIN_LEFT + 'px');
+  }
+  applyMarginToCSS();
 
   // 调色板预设颜色（15 种常用色）
   const PRESET_COLORS = [
@@ -281,8 +277,6 @@
   const redoBtn        = document.getElementById('redoBtn');
   const resetBtn       = document.getElementById('resetBtn');
   const brushSizeInput = document.getElementById('brushSizeInput');
-  const canvasArea     = document.getElementById('canvas-area');
-  const canvasBorder   = document.getElementById('canvas-border');
   const versionEl      = document.getElementById('debug-info');
 
   // ===== 状态 =====
@@ -308,13 +302,13 @@
     const h = window.innerHeight;
     const cw = canvas.width;
     const ch = canvas.height;
-    versionEl.innerHTML = '版本号：v' + VERSION + '<br>' +
-      '窗口' + w + '×' + h + '  ' +
-      '画布' + totalPx_g + '×' + totalPx_g + '  ' +
-      '格子' + grid + '×' + grid + '  ' +
-      '像素' + gridPx_g + '  ' +
-      '画笔' + brushSize + '  ' +
-      '边距' + MARGIN_TOP + '/' + MARGIN_RIGHT + '/' + MARGIN_BOTTOM + '/' + MARGIN_LEFT
+    versionEl.innerHTML = '版本V' + VERSION 
+      + '  ' +'窗口' + w + '×' + h + '  ' 
+      + '  ' +'画布' + totalPx_g + '×' + totalPx_g 
+      + '  ' +'网格' + grid + '×' + grid 
+      + '  ' +'像素' + gridPx_g 
+      //+ '  ' +'画笔' + brushSize 
+      //+ '  ' +'边距' + MARGIN_TOP + '/' + MARGIN_RIGHT + '/' + MARGIN_BOTTOM + '/' + MARGIN_LEFT
       ;
   }
 
@@ -469,8 +463,8 @@
     const paintH = grid * cellPx;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, totalPx, totalPx);
-    // V0.7.11: 始终填充标签行浅蓝色背景（row 0 和 col 0）
-    ctx.fillStyle = '#f0f7ff';
+    // V0.7.16: 标签行背景色与画布区背景色相同
+    ctx.fillStyle = '#eaf2fb';
     ctx.fillRect(0, 0, totalPx, cellPx);           // 顶部一行
     ctx.fillRect(0, 0, cellPx, totalPx);           // 左侧一列
     // 第一层：绘画（从 paintCanvas 拷贝，带 1 格标签偏移）
@@ -588,9 +582,7 @@
     // 白色底 + 边框线 + 标注条 + 外边框（已在 redrawDisplay 中绘制）
     redrawDisplay();
 
-    // V0.7.10: 外边框已在 redrawDisplay 中绘制，CSS 边框不再需要
-    canvasBorder.style.border = 'none';
-    canvasBorder.style.boxShadow = 'none';
+    // V0.7.16: 已去掉多余的嵌套层，无需清空 CSS 边框
 
     // V0.7.15: 重建空白快照和撤销栈
     initBlankState();
@@ -616,8 +608,12 @@
   function fitCanvas() {
     const w = window.innerWidth;
     const h = window.innerHeight;
+    //添加控件区高度，确保画布不会被遮挡
+    const toolbarHeight = document.getElementById('toolbar').offsetHeight;
+    
+
     const areaW = w - MARGIN_LEFT - MARGIN_RIGHT;
-    const areaH = h - MARGIN_TOP - MARGIN_BOTTOM;
+    const areaH = h - MARGIN_TOP - MARGIN_BOTTOM  - toolbarHeight;
     const totalPx = canvas.width;
 
     const scale = Math.min(areaW, areaH) / totalPx;
@@ -627,6 +623,10 @@
     const finalSize = Math.max(minSize, size);
     totalPx_g = finalSize;
     gridPx_g = (totalPx_g / grid).toFixed(1);
+
+    //右边距使用格子像素大小
+    MARGIN_RIGHT  = gridPx_g;   // 右侧边距（格子数）
+    applyMarginToCSS();
 
     canvas.style.width  = finalSize + 'px';
     canvas.style.height = finalSize + 'px';
