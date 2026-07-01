@@ -249,7 +249,7 @@
   // ===== 配置 =====
   const DEFAULT_GRID = 20;         // V0.7.6: 默认 20×20 格
   const MIN_CELL = 8;              // V0.7.6: 每格最小像素，防止太小看不清
-  const VERSION = '0.7.19';
+  const VERSION = '0.7.20';
 
   // V0.7.15: 配色方案 — 标题区白色、控件区分隔色、画布区浅蓝
   // V0.7.13: 画布区域和浏览器窗口左右下边距，全局变量控制
@@ -258,7 +258,7 @@
   const MARGIN_BOTTOM = 35;   // 下方边距（像素）
   const MARGIN_LEFT   = 0;   // 左侧边距（像素）
 
-  // V0.7.15→0.7.19: 画笔类型与状态管理
+  // V0.7.15→0.7.20: 画笔类型与状态管理
   const BRUSH_PENCIL = 'pencil';    // 铅笔（可变粗细）
   const BRUSH_FLAG   = 'flag';      // 旗帜（固定7×7）
   const BRUSH_ERASER = 'eraser';    // 橡皮擦（V0.7.19: 手机端用）
@@ -271,8 +271,16 @@
     eraser: { color: '#FFFFFF', size: 1,  preview: true },
   };
 
-  // 当前画笔的实时设置（从 brushSettings 克隆）
+  // V0.7.20: 获取当前画笔设置引用（直接修改会持久化）
   function getSettings() { return brushSettings[currentBrush]; }
+
+  // V0.7.20: 旗帜画笔实际绘制区域跟踪（替代不稳定的像素扫描法）
+  // flagCells[py * grid + px] = true 表示该格子被旗帜画笔占据
+  let flagCells;  // Uint8Array[grid * grid]
+  function initFlagCells() {
+    flagCells = new Uint8Array(grid * grid);
+    flagCells.fill(0);
+  }
 
   const FLAG_SIZE    = 7;           // 旗帜画笔固定7×7
   const FLAG_COLOR   = '#87CEEB';   // 旗帜画笔颜色：浅蓝
@@ -312,7 +320,7 @@
 
   // ===== 状态 =====
   let grid           = DEFAULT_GRID;
-  let currentColor   = '#000000';
+  let currentColor   = '#000000';  // V0.7.20: 与 brushSettings.pencil.color 保持一致
   let undoStack      = [];
   let redoStack      = [];
   let isDrawing      = false;
@@ -320,8 +328,9 @@
   let showGrid       = true;    // V0.7.9: 默认勾选画布边框
   let showPreview    = true;    // V0.7.17: 默认开启预览
   let cellPx_g       = 0;      // V0.7.8→0.7.18: 单格像素大小
-  let totalPx_g       = 0;
+  let totalPx_g      = 0;
   let gridPx_g       = 0;
+  let brushSize      = 1;       // V0.7.20: 显式声明画笔粗细变量，避免切换画笔时参数混乱
   
   // 双层 canvas 方案
   const paintCanvas  = document.createElement('canvas');
@@ -525,91 +534,22 @@
     drawLabels();
   }
 
-  // V0.7.18→0.7.19: 收集旗帜画笔的位置 — 用于边框渲染时跳过内部格子线
-  // 旗帜画笔占据 FLAG_SIZE×FLAG_SIZE 区域，内部不画格子线，只画最外圈
-  function collectFlagCells() {
-    // 扫描 paintCanvas，找出 FLAG_COLOR 的连通区域，每块区域视为一个"大格子"
-    // 使用 flood fill 标记已访问
-    const flagSet = new Set();  // key: "minX,minY,maxX,maxY"
-    const w = paintCanvas.width;
-    const h = paintCanvas.height;
-    if (w <= 0 || h <= 0) return flagSet;
-    const imageData = paintCtx.getImageData(0, 0, w, h);
-    const data = imageData.data;
-    // 浅蓝 FLAG_COLOR = #87CEEB → rgb(135, 206, 235)
-    const fr = 135, fg = 206, fb = 235;
-    const visited = new Uint8Array(w * h);
-    for (let py = 0; py < grid; py++) {
-      for (let px = 0; px < grid; px++) {
-        const idx = (py * w + px) * 4;
-        if (data[idx] === fr && data[idx+1] === fg && data[idx+2] === fb && !visited[py * w + px]) {
-          // flood fill 找出连通区域
-          const block = [];
-          const stack = [[px, py]];
-          visited[py * w + px] = 1;
-          while (stack.length) {
-            const [cx, cy] = stack.pop();
-            block.push([cx, cy]);
-            const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
-            for (const [dx, dy] of dirs) {
-              const nx = cx + dx, ny = cy + dy;
-              if (nx >= 0 && nx < grid && ny >= 0 && ny < grid && !visited[ny * w + nx]) {
-                const nIdx = (ny * w + nx) * 4;
-                if (data[nIdx] === fr && data[nIdx+1] === fg && data[nIdx+2] === fb) {
-                  visited[ny * w + nx] = 1;
-                  stack.push([nx, ny]);
-                }
-              }
-            }
-          }
-          // 计算包围盒
-          let minX = grid, maxX = 0, minY = grid, maxY = 0;
-          for (const [bx, by] of block) {
-            minX = Math.min(minX, bx);
-            maxX = Math.max(maxX, bx);
-            minY = Math.min(minY, by);
-            maxY = Math.max(maxY, by);
-          }
-          flagSet.set(minX + ',' + minY + ',' + maxX + ',' + maxY);
-        }
-      }
-    }
-    return flagSet;
-  }
-
-  // 绘制全部边框线（V0.7.9: 只在初始化/重置时调用）
-  // V0.7.18→0.7.19: 旗帜画笔区域 — 内部格子线跳过，仅保留最外圈外框线
+  // V0.7.20: 绘制全部边框线 — 直接使用 flagCells 数组，不经过 collectFlagCells
+  // 旗帜画笔区域内部格子线跳过，仅保留最外圈外框线
   function drawAllGridLines(offsetX, offsetY, paintW, paintH) {
     ctx.strokeStyle = '#d0d0d0';
     ctx.lineWidth = 1;
     const cellPx = paintW / grid;  // 单格像素
-    // V0.7.18: 找出旗帜画笔区域
-    const flags = collectFlagCells();
-
-    // V0.7.19: 预计算每个格子是否属于某个旗帜块
-    const cellInFlag = new Array(grid * grid);  // [py * grid + px] = flagBlockKey 或 -1
-    for (let i = 0; i < cellInFlag.length; i++) cellInFlag[i] = -1;
-    for (const key of flags.keys()) {
-      const parts = key.split(',');
-      const fx = parseInt(parts[0]);
-      const fy = parseInt(parts[1]);
-      const maxX = parseInt(parts[2]);
-      const maxY = parseInt(parts[3]);
-      for (let py = fy; py <= maxY; py++) {
-        for (let px = fx; px <= maxX; px++) {
-          cellInFlag[py * grid + px] = key;
-        }
-      }
-    }
 
     // 竖线：line i 在 col i-1 和 col i 之间（i=1..grid-1 是内部线）
     for (let i = 1; i < grid; i++) {
-      // 如果这条线两侧有同一旗帜块跨越，则跳过
+      // 如果这条线上任意位置两侧属于同一旗帜块，则跳过
       let skip = false;
       for (let py = 0; py < grid; py++) {
-        const leftKey  = cellInFlag[py * grid + (i - 1)];
-        const rightKey = cellInFlag[py * grid + i];
-        if (leftKey !== -1 && leftKey === rightKey) { skip = true; break; }
+        if (flagCells[py * grid + (i - 1)] === 1 && flagCells[py * grid + i] === 1) {
+          skip = true;
+          break;
+        }
       }
       if (skip) continue;
       const x = offsetX + i * cellPx;
@@ -622,9 +562,10 @@
     for (let i = 1; i < grid; i++) {
       let skip = false;
       for (let px = 0; px < grid; px++) {
-        const aboveKey  = cellInFlag[(i - 1) * grid + px];
-        const belowKey  = cellInFlag[i * grid + px];
-        if (aboveKey !== -1 && aboveKey === belowKey) { skip = true; break; }
+        if (flagCells[(i - 1) * grid + px] === 1 && flagCells[i * grid + px] === 1) {
+          skip = true;
+          break;
+        }
       }
       if (skip) continue;
       const y = offsetY + i * cellPx;
@@ -634,24 +575,41 @@
       ctx.stroke();
     }
 
-    // V0.7.18→0.7.19: 绘制旗帜画笔的外框线（每个旗帜块的包围盒外框）
-    if (flags.size > 0) {
-      ctx.strokeStyle = FLAG_COLOR;
-      ctx.lineWidth = 2;
-      for (const key of flags.keys()) {
-        const parts = key.split(',');
-        const fx = parseInt(parts[0]);
-        const fy = parseInt(parts[1]);
-        const maxX = parseInt(parts[2]);
-        const maxY = parseInt(parts[3]);
-        const fw = maxX - fx + 1;
-        const fh = maxY - fy + 1;
-        // 旗帜块的外框：包围盒边界
-        const x1 = offsetX + fx * cellPx;
-        const y1 = offsetY + fy * cellPx;
-        const x2 = x1 + fw * cellPx;
-        const y2 = y1 + fh * cellPx;
-        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    // V0.7.20: 绘制旗帜画笔的外框线（基于 flagCells 找连通区域，绘制包围盒外框）
+    const visited = new Uint8Array(grid * grid);
+    ctx.strokeStyle = FLAG_COLOR;
+    ctx.lineWidth = 2;
+
+    for (let py = 0; py < grid; py++) {
+      for (let px = 0; px < grid; px++) {
+        const idx = py * grid + px;
+        if (flagCells[idx] === 1 && !visited[idx]) {
+          // flood fill 找出连通区域
+          let minX = px, maxX = px, minY = py, maxY = py;
+          const stack = [[px, py]];
+          visited[idx] = 1;
+          while (stack.length) {
+            const [cx, cy] = stack.pop();
+            const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+            for (const [dx, dy] of dirs) {
+              const nx = cx + dx, ny = cy + dy;
+              if (nx >= 0 && nx < grid && ny >= 0 && ny < grid && !visited[ny * grid + nx] && flagCells[ny * grid + nx] === 1) {
+                visited[ny * grid + nx] = 1;
+                stack.push([nx, ny]);
+                minX = Math.min(minX, nx);
+                maxX = Math.max(maxX, nx);
+                minY = Math.min(minY, ny);
+                maxY = Math.max(maxY, ny);
+              }
+            }
+          }
+          // 绘制包围盒外框
+          const x1 = offsetX + minX * cellPx;
+          const y1 = offsetY + minY * cellPx;
+          const x2 = x1 + (maxX - minX + 1) * cellPx;
+          const y2 = y1 + (maxY - minY + 1) * cellPx;
+          ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        }
       }
     }
   }
@@ -734,6 +692,9 @@
 
     // V0.7.16: 已去掉多余的嵌套层，无需清空 CSS 边框
 
+    // V0.7.20: 初始化旗帜画笔跟踪数组
+    initFlagCells();
+
     // V0.7.15: 重建空白快照和撤销栈
     initBlankState();
     rebuildUndoStack();
@@ -811,11 +772,11 @@
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     const totalCells = grid + 1;
-    const cellPx = canvas.width / totalCells;
+    const canvasCellPx = canvas.width / totalCells; // 主 canvas 上的 cellPx，用于坐标转换
     const mx = (clientX - rect.left) * scaleX;
     const my = (clientY - rect.top) * scaleY;
-    const gx = Math.floor(mx / cellPx);
-    const gy = Math.floor(my / cellPx);
+    const gx = Math.floor(mx / canvasCellPx);
+    const gy = Math.floor(my / canvasCellPx);
     // row 0 / col 0 不响应预览
     if (gx < 1 || gy < 1 || gx > grid || gy > grid) {
       previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
@@ -824,21 +785,24 @@
       redrawDisplay();
       return;
     }
-    // V0.7.19: 计算画笔范围，根据当前画笔类型
+    // V0.7.20: 计算画笔范围，根据当前画笔类型
+    // gx, gy 是从 1 开始的坐标（标签区为 0），需要减 1 得到从 0 开始的网格坐标
     const s = getSettings();
     let pStartX, pStartY, pEndX, pEndY;
     if (currentBrush === BRUSH_FLAG) {
+      // V0.7.20: 旗帜画笔以鼠标位置为中心
       const half = Math.floor(FLAG_SIZE / 2);
-      pStartX = Math.max(0, gx - 1 - half);
-      pStartY = Math.max(0, gy - 1 - half);
-      pEndX   = Math.min(grid - 1, gx - 1 + half);
-      pEndY   = Math.min(grid - 1, gy - 1 + half);
+      pStartX = Math.max(0, (gx - 1) - half);
+      pStartY = Math.max(0, (gy - 1) - half);
+      pEndX   = Math.min(grid - 1, (gx - 1) + half);
+      pEndY   = Math.min(grid - 1, (gy - 1) + half);
     } else {
+      // V0.7.20: 铅笔/橡皮擦以鼠标位置为左上角
       const half = Math.floor((s.size - 1) / 2);
-      pStartX = Math.max(0, gx - 1 - half);
-      pStartY = Math.max(0, gy - 1 - half);
-      pEndX   = Math.min(grid - 1, gx - 1 + half + (s.size % 2 === 0 ? 1 : 0));
-      pEndY   = Math.min(grid - 1, gy - 1 + half + (s.size % 2 === 0 ? 1 : 0));
+      pStartX = Math.max(0, (gx - 1) - half);
+      pStartY = Math.max(0, (gy - 1) - half);
+      pEndX   = Math.min(grid - 1, (gx - 1) + half + (s.size % 2 === 0 ? 1 : 0));
+      pEndY   = Math.min(grid - 1, (gy - 1) + half + (s.size % 2 === 0 ? 1 : 0));
     }
 
     // 只在格子变化时重绘（避免不必要的 redraw）
@@ -849,16 +813,18 @@
 
     if (prevX !== pStartX || prevY !== pStartY) {
       previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      // V0.7.20: 使用 previewCanvas 上的 cellPx（确保与 previewCanvas 尺寸一致）
+      const previewCellPx = previewCanvas.width / grid;
       previewCtx.globalAlpha = 0.3;
       previewCtx.fillStyle = s.color;
       for (let py = pStartY; py <= pEndY; py++) {
         for (let px = pStartX; px <= pEndX; px++) {
-          previewCtx.fillRect(px * cellPx_g, py * cellPx_g, cellPx_g, cellPx_g);
+          previewCtx.fillRect(px * previewCellPx, py * previewCellPx, previewCellPx, previewCellPx);
         }
       }
       // 鼠标/触摸当前位置，使用0.6透明度绘制预览色
       previewCtx.globalAlpha = 0.6;
-      previewCtx.fillRect((gx - 1) * cellPx_g, (gy - 1) * cellPx_g, cellPx_g, cellPx_g);
+      previewCtx.fillRect((gx - 1) * previewCellPx, (gy - 1) * previewCellPx, previewCellPx, previewCellPx);
       previewCtx.globalAlpha = 1;
       redrawDisplay();
     }
@@ -894,7 +860,7 @@
 
   // ===== 撤销 / 重做 =====
   // V0.7.15: 修复撤销问题 — 不再用 1x1 dummy，而是存储真实 blank canvas 快照
-  // 每次 initCanvas/reset 后重建 undo 栈，避免 stale dataURL
+  // V0.7.20: 撤销/重做时也恢复 flagCells 状态
   let blankDataURL = null;  // V0.7.15: 缓存空白 canvas 的 dataURL
 
   function initBlankState() {
@@ -908,17 +874,31 @@
     blankDataURL = blank.toDataURL();
   }
 
-  // V0.7.15: 重建撤销栈 — 在 initCanvas 和 reset 时调用
+  // V0.7.20: 序列化/反序列化 flagCells
+  function serializeFlagCells() {
+    // 将 Uint8Array 转为逗号分隔字符串
+    return Array.from(flagCells).join(',');
+  }
+  function deserializeFlagCells(str) {
+    // V0.7.20: 确保数组大小正确
+    const arr = str.length === 0 ? [] : str.split(',').map(Number);
+    flagCells = new Uint8Array(grid * grid);
+    for (let i = 0; i < arr.length && i < flagCells.length; i++) {
+      flagCells[i] = arr[i];
+    }
+  }
+
+  // V0.7.15→0.7.20: 重建撤销栈 — 在 initCanvas 和 reset 时调用
   function rebuildUndoStack() {
     undoStack = [];
     redoStack = [];
     if (blankDataURL) {
-      undoStack.push(blankDataURL);
+      undoStack.push({ data: blankDataURL, flags: '' });
     }
   }
 
   function saveState() {
-    undoStack.push(paintCanvas.toDataURL());
+    undoStack.push({ data: paintCanvas.toDataURL(), flags: serializeFlagCells() });
     if (undoStack.length > 50) undoStack.shift();
     redoStack = [];
     updateUndoRedoUI();
@@ -939,7 +919,11 @@
     updateUndoRedoUI();
   }
 
-  function restoreFromState(dataUrl) {
+  function restoreFromState(stateObj) {
+    // V0.7.20: 兼容旧格式（直接是 dataURL 字符串）和新格式（{data, flags} 对象）
+    const dataUrl = typeof stateObj === 'string' ? stateObj : stateObj.data;
+    const flagsStr = typeof stateObj === 'object' && stateObj.flags ? stateObj.flags : '';
+
     const img = new Image();
     img.onload = () => {
       // 确保 paintCanvas 尺寸匹配
@@ -948,6 +932,13 @@
         paintCanvas.height = img.height;
       }
       paintCtx.drawImage(img, 0, 0);
+      // V0.7.20: 恢复 flagCells
+      if (flagsStr) {
+        deserializeFlagCells(flagsStr);
+      } else {
+        // 空白状态：flagCells 全零
+        flagCells = new Uint8Array(grid * grid);
+      }
       // 完整重绘显示层
       redrawDisplay();
     };
@@ -979,24 +970,30 @@
 
   // V0.7.9→0.7.10: 画在 paintCanvas 上，然后完整重绘显示层（整个画布边框 + 标签）
   // V0.7.13→0.7.15: 画笔粗细 1-9，奇数对称扩展，偶数向右下各多1格
-  // V0.7.18: 旗帜画笔 — 7×7 固定，内部无内边框，仅显示最外圈外框线
-  // V0.7.19: 颜色/粗细从当前画笔设置读取，橡皮擦用白色覆盖
+  // V0.7.18→0.7.20: 旗帜画笔 — 7×7 固定，内部无内边框，仅显示最外圈外框线
+  // V0.7.19→0.7.20: 颜色/粗细从当前画笔设置读取，橡皮擦用白色覆盖
+  // V0.7.20: 每次绘制前先清空 flagCells，绘制后再标记新的旗帜位置
   function paintCell(x, y, forceColor) {
     const s = getSettings();
     const color = forceColor !== undefined ? forceColor : s.color;
 
     if (currentBrush === BRUSH_FLAG) {
-      // 旗帜画笔：7×7 区域，填充旗帜颜色，特殊边框处理
+      // V0.7.20: 旗帜画笔，不做额外处理
       paintFlagBrush(x, y);
       return;
     }
 
-    // 铅笔/橡皮擦：常规逻辑
+    // V0.7.20: 铅笔/橡皮擦模式下，清除画笔范围内原有的 flagCells 标记
+    // 计算画笔范围（确保不会超出左上角）
     const half = Math.floor((s.size - 1) / 2);
     const startX = Math.max(0, x - half);
     const startY = Math.max(0, y - half);
     const endX   = Math.min(grid - 1, x + half + (s.size % 2 === 0 ? 1 : 0));
     const endY   = Math.min(grid - 1, y + half + (s.size % 2 === 0 ? 1 : 0));
+    // V0.7.20: 不清除 flagCells，仅在右键/橡皮擦时用白色覆盖
+    // 铅笔覆盖旗帜区域时，视觉上被覆盖但 flagCells 保持，边框继续正确显示
+
+    // 铅笔/橡皮擦：常规逻辑
     paintCtx.fillStyle = color;
     for (let py = startY; py <= endY; py++) {
       for (let px = startX; px <= endX; px++) {
@@ -1006,21 +1003,33 @@
     redrawDisplay();
   }
 
-  // V0.7.18→0.7.19: 旗帜画笔 — 在 paintCanvas 上填充 FLAG_SIZE×FLAG_SIZE 格子为旗帜颜色
-  // V0.7.19: 边界处理修正 — 靠近左上角时正常截断，不会导致边框丢失
+  // V0.7.20: 旗帜画笔 — 在 paintCanvas 上填充 FLAG_SIZE×FLAG_SIZE 格子为旗帜颜色
+  // 边界处理：靠近边缘时截断，同时更新 flagCells 跟踪
+  // V0.7.20: 正确计算画笔范围，确保即使超出边界也正确显示外框线
   function paintFlagBrush(centerX, centerY) {
-    const half = Math.floor(FLAG_SIZE / 2);
-    const startX = Math.max(0, centerX - half);
-    const startY = Math.max(0, centerY - half);
-    const endX   = Math.min(grid - 1, centerX + half);
-    const endY   = Math.min(grid - 1, centerY + half);
-    // 在 paintCanvas 上填充颜色
+    // V0.7.20: centerX/centerY 是 paintCanvas 上的坐标（从0开始）
+    // 7x7 区域，以鼠标位置为中心：从 centerX-3 到 centerX+3
+    const half = Math.floor(FLAG_SIZE / 2); // 3
+    const rawStartX = centerX - half;
+    const rawStartY = centerY - half;
+    const rawEndX   = centerX + half;
+    const rawEndY   = centerY + half;
+
+    // V0.7.20: 限制在画布范围内（clamp）
+    const clampedStartX = Math.max(0, rawStartX);
+    const clampedStartY = Math.max(0, rawStartY);
+    const clampedEndX   = Math.min(grid - 1, rawEndX);
+    const clampedEndY   = Math.min(grid - 1, rawEndY);
+
     paintCtx.fillStyle = FLAG_COLOR;
-    for (let py = startY; py <= endY; py++) {
-      for (let px = startX; px <= endX; px++) {
+    for (let py = clampedStartY; py <= clampedEndY; py++) {
+      for (let px = clampedStartX; px <= clampedEndX; px++) {
         paintCtx.fillRect(px * cellPx_g, py * cellPx_g, cellPx_g, cellPx_g);
+        // 标记该格子被旗帜画笔占据
+        flagCells[py * grid + px] = 1;
       }
     }
+
     redrawDisplay();
   }
 
@@ -1028,6 +1037,7 @@
     e.preventDefault();
     if (e.button === 0) {
       isDrawing = true;
+      saveState();  // V0.7.20: 左键按下时先保存状态，再绘制
       const cell = getCellFromEvent(e);
       if (cell) paintCell(cell.x, cell.y);  // 使用当前画笔设置的颜色
     } else if (e.button === 2) {
@@ -1039,7 +1049,12 @@
   });
 
   canvas.addEventListener('mousemove', (e) => {
-    if (isDrawing) return;  // 绘制时走 paintCell 逻辑
+    // V0.7.20: 鼠标拖拽绘画
+    if (isDrawing) {
+      const cell = getCellFromEvent(e);
+      if (cell) paintCell(cell.x, cell.y);
+      return;
+    }
     // V0.7.17→0.7.19: 鼠标悬停预览
     if (!showPreview) return;
     e.preventDefault();
@@ -1058,7 +1073,7 @@
   window.addEventListener('mouseup', () => {
     if (isDrawing) {
       isDrawing = false;
-      saveState();
+      // V0.7.20: saveState 已在 mousedown 中调用，此处不需要重复保存
     }
   });
 
@@ -1086,6 +1101,9 @@
     touchMoved = false;
     const touch = e.touches[0];
 
+    // V0.7.20: 保存状态
+    saveState();
+
     // V0.7.19: 长按触发预览（500ms）
     touchLongPressTimer = setTimeout(() => {
       if (!touchMoved) {
@@ -1097,7 +1115,6 @@
     const cell = getCellFromEvent(touch);
     if (cell) {
       if (currentBrush === BRUSH_ERASER) {
-        saveState();
         paintCell(cell.x, cell.y, '#FFFFFF');
       } else {
         paintCell(cell.x, cell.y);
@@ -1128,7 +1145,7 @@
   canvas.addEventListener('touchend', (e) => {
     if (touchDrawing) {
       touchDrawing = false;
-      saveState();
+      // V0.7.20: saveState 已在 touchstart 中调用，此处不需要重复保存
       if (touchLongPressTimer) {
         clearTimeout(touchLongPressTimer);
         touchLongPressTimer = null;
@@ -1165,6 +1182,8 @@
     previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
     previewCellX = -1;
     previewCellY = -1;
+    // V0.7.20: 重置时清空 flagCells
+    flagCells.fill(0);
     redrawDisplay();
     // V0.7.15: 重置后重建撤销栈
     rebuildUndoStack();
