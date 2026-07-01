@@ -14,6 +14,8 @@
     font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
     color: #333;
     user-select: none;
+    -webkit-user-select: none;   /* V0.7.19: 手机端禁止文字选中 */
+    -webkit-touch-callout: none;  /* V0.7.19: 手机端禁止长按菜单 */
   }
 
   /* ===== 顶部工具栏 ===== */
@@ -215,7 +217,15 @@
       </label>
     </div>
 
-    <!-- V0.7.15: 画笔粗细 1-9 -->
+    <!-- V0.7.19: 画笔类型切换（含橡皮擦） -->
+    <div class="group">
+      <label>画笔</label>
+      <select id="brushTypeSelect" style="height:28px;font-size:13px;border:1px solid #ccc;border-radius:4px;padding:0 4px;cursor:pointer;">
+        <option value="pencil">铅笔</option>
+        <option value="flag">旗帜</option>
+        <option value="eraser">橡皮擦</option>
+      </select>
+    </div>
     <div class="group">
       <label>粗细</label>
       <input type="number" id="brushSizeInput" min="1" max="7" value="1">
@@ -239,7 +249,7 @@
   // ===== 配置 =====
   const DEFAULT_GRID = 20;         // V0.7.6: 默认 20×20 格
   const MIN_CELL = 8;              // V0.7.6: 每格最小像素，防止太小看不清
-  const VERSION = '0.7.17';
+  const VERSION = '0.7.19';
 
   // V0.7.15: 配色方案 — 标题区白色、控件区分隔色、画布区浅蓝
   // V0.7.13: 画布区域和浏览器窗口左右下边距，全局变量控制
@@ -248,8 +258,24 @@
   const MARGIN_BOTTOM = 35;   // 下方边距（像素）
   const MARGIN_LEFT   = 0;   // 左侧边距（像素）
 
-  // V0.7.13→0.7.15: 画笔粗细 1-9，默认 1
-  let brushSize = 1;
+  // V0.7.15→0.7.19: 画笔类型与状态管理
+  const BRUSH_PENCIL = 'pencil';    // 铅笔（可变粗细）
+  const BRUSH_FLAG   = 'flag';      // 旗帜（固定7×7）
+  const BRUSH_ERASER = 'eraser';    // 橡皮擦（V0.7.19: 手机端用）
+  let currentBrush   = BRUSH_PENCIL;
+
+  // V0.7.19: 每种画笔独立保存颜色/粗细/预览设置
+  const brushSettings = {
+    pencil: { color: '#000000', size: 1, preview: true  },
+    flag:   { color: '#87CEEB', size: 7,  preview: true },  // 旗帜固定开启预览
+    eraser: { color: '#FFFFFF', size: 1,  preview: true },
+  };
+
+  // 当前画笔的实时设置（从 brushSettings 克隆）
+  function getSettings() { return brushSettings[currentBrush]; }
+
+  const FLAG_SIZE    = 7;           // 旗帜画笔固定7×7
+  const FLAG_COLOR   = '#87CEEB';   // 旗帜画笔颜色：浅蓝
 
   // V0.7.16: 同步边距全局变量到 CSS 变量，使 padding 真正按变量值生效
   function applyMarginToCSS() {
@@ -277,6 +303,7 @@
   const showLabelsCb   = document.getElementById('showLabelsCb');
   const showGridCb     = document.getElementById('showGridCb');
   const previewCb     = document.getElementById('previewCb');
+  const brushTypeSelect = document.getElementById('brushTypeSelect');
   const undoBtn        = document.getElementById('undoBtn');
   const redoBtn        = document.getElementById('redoBtn');
   const resetBtn       = document.getElementById('resetBtn');
@@ -292,7 +319,7 @@
   let showLabels     = false;   // V0.7.6: 默认不显示
   let showGrid       = true;    // V0.7.9: 默认勾选画布边框
   let showPreview    = true;    // V0.7.17: 默认开启预览
-  let cellPx_g       = 0;
+  let cellPx_g       = 0;      // V0.7.8→0.7.18: 单格像素大小
   let totalPx_g       = 0;
   let gridPx_g       = 0;
   
@@ -498,26 +525,134 @@
     drawLabels();
   }
 
+  // V0.7.18→0.7.19: 收集旗帜画笔的位置 — 用于边框渲染时跳过内部格子线
+  // 旗帜画笔占据 FLAG_SIZE×FLAG_SIZE 区域，内部不画格子线，只画最外圈
+  function collectFlagCells() {
+    // 扫描 paintCanvas，找出 FLAG_COLOR 的连通区域，每块区域视为一个"大格子"
+    // 使用 flood fill 标记已访问
+    const flagSet = new Set();  // key: "minX,minY,maxX,maxY"
+    const w = paintCanvas.width;
+    const h = paintCanvas.height;
+    if (w <= 0 || h <= 0) return flagSet;
+    const imageData = paintCtx.getImageData(0, 0, w, h);
+    const data = imageData.data;
+    // 浅蓝 FLAG_COLOR = #87CEEB → rgb(135, 206, 235)
+    const fr = 135, fg = 206, fb = 235;
+    const visited = new Uint8Array(w * h);
+    for (let py = 0; py < grid; py++) {
+      for (let px = 0; px < grid; px++) {
+        const idx = (py * w + px) * 4;
+        if (data[idx] === fr && data[idx+1] === fg && data[idx+2] === fb && !visited[py * w + px]) {
+          // flood fill 找出连通区域
+          const block = [];
+          const stack = [[px, py]];
+          visited[py * w + px] = 1;
+          while (stack.length) {
+            const [cx, cy] = stack.pop();
+            block.push([cx, cy]);
+            const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+            for (const [dx, dy] of dirs) {
+              const nx = cx + dx, ny = cy + dy;
+              if (nx >= 0 && nx < grid && ny >= 0 && ny < grid && !visited[ny * w + nx]) {
+                const nIdx = (ny * w + nx) * 4;
+                if (data[nIdx] === fr && data[nIdx+1] === fg && data[nIdx+2] === fb) {
+                  visited[ny * w + nx] = 1;
+                  stack.push([nx, ny]);
+                }
+              }
+            }
+          }
+          // 计算包围盒
+          let minX = grid, maxX = 0, minY = grid, maxY = 0;
+          for (const [bx, by] of block) {
+            minX = Math.min(minX, bx);
+            maxX = Math.max(maxX, bx);
+            minY = Math.min(minY, by);
+            maxY = Math.max(maxY, by);
+          }
+          flagSet.set(minX + ',' + minY + ',' + maxX + ',' + maxY);
+        }
+      }
+    }
+    return flagSet;
+  }
+
   // 绘制全部边框线（V0.7.9: 只在初始化/重置时调用）
+  // V0.7.18→0.7.19: 旗帜画笔区域 — 内部格子线跳过，仅保留最外圈外框线
   function drawAllGridLines(offsetX, offsetY, paintW, paintH) {
     ctx.strokeStyle = '#d0d0d0';
     ctx.lineWidth = 1;
     const cellPx = paintW / grid;  // 单格像素
-    // 竖线
-    for (let i = 0; i <= grid; i++) {
+    // V0.7.18: 找出旗帜画笔区域
+    const flags = collectFlagCells();
+
+    // V0.7.19: 预计算每个格子是否属于某个旗帜块
+    const cellInFlag = new Array(grid * grid);  // [py * grid + px] = flagBlockKey 或 -1
+    for (let i = 0; i < cellInFlag.length; i++) cellInFlag[i] = -1;
+    for (const key of flags.keys()) {
+      const parts = key.split(',');
+      const fx = parseInt(parts[0]);
+      const fy = parseInt(parts[1]);
+      const maxX = parseInt(parts[2]);
+      const maxY = parseInt(parts[3]);
+      for (let py = fy; py <= maxY; py++) {
+        for (let px = fx; px <= maxX; px++) {
+          cellInFlag[py * grid + px] = key;
+        }
+      }
+    }
+
+    // 竖线：line i 在 col i-1 和 col i 之间（i=1..grid-1 是内部线）
+    for (let i = 1; i < grid; i++) {
+      // 如果这条线两侧有同一旗帜块跨越，则跳过
+      let skip = false;
+      for (let py = 0; py < grid; py++) {
+        const leftKey  = cellInFlag[py * grid + (i - 1)];
+        const rightKey = cellInFlag[py * grid + i];
+        if (leftKey !== -1 && leftKey === rightKey) { skip = true; break; }
+      }
+      if (skip) continue;
       const x = offsetX + i * cellPx;
       ctx.beginPath();
       ctx.moveTo(Math.round(x), offsetY);
       ctx.lineTo(Math.round(x), offsetY + paintH);
       ctx.stroke();
     }
-    // 横线
-    for (let i = 0; i <= grid; i++) {
+    // 横线：line i 在 row i-1 和 row i 之间
+    for (let i = 1; i < grid; i++) {
+      let skip = false;
+      for (let px = 0; px < grid; px++) {
+        const aboveKey  = cellInFlag[(i - 1) * grid + px];
+        const belowKey  = cellInFlag[i * grid + px];
+        if (aboveKey !== -1 && aboveKey === belowKey) { skip = true; break; }
+      }
+      if (skip) continue;
       const y = offsetY + i * cellPx;
       ctx.beginPath();
       ctx.moveTo(Math.round(offsetX), Math.round(y));
       ctx.lineTo(Math.round(offsetX + paintW), Math.round(y));
       ctx.stroke();
+    }
+
+    // V0.7.18→0.7.19: 绘制旗帜画笔的外框线（每个旗帜块的包围盒外框）
+    if (flags.size > 0) {
+      ctx.strokeStyle = FLAG_COLOR;
+      ctx.lineWidth = 2;
+      for (const key of flags.keys()) {
+        const parts = key.split(',');
+        const fx = parseInt(parts[0]);
+        const fy = parseInt(parts[1]);
+        const maxX = parseInt(parts[2]);
+        const maxY = parseInt(parts[3]);
+        const fw = maxX - fx + 1;
+        const fh = maxY - fy + 1;
+        // 旗帜块的外框：包围盒边界
+        const x1 = offsetX + fx * cellPx;
+        const y1 = offsetY + fy * cellPx;
+        const x2 = x1 + fw * cellPx;
+        const y2 = y1 + fh * cellPx;
+        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      }
     }
   }
 
@@ -619,8 +754,13 @@
     redrawDisplay();
   });
 
-  // V0.7.17: 预览切换
+  // V0.7.17→0.7.19: 预览切换（旗帜画笔固定开启，不可关闭）
   previewCb.addEventListener('change', () => {
+    if (currentBrush === BRUSH_FLAG) {
+      // 旗帜画笔不可关闭预览
+      previewCb.checked = true;
+      return;
+    }
     showPreview = previewCb.checked;
     if (!showPreview) {
       // 关闭预览时清空预览层
@@ -630,6 +770,99 @@
     }
     redrawDisplay();
   });
+
+  // V0.7.19: 画笔类型切换 — 保存旧设置，恢复新设置
+  brushTypeSelect.addEventListener('change', () => {
+    // 保存旧画笔设置
+    brushSettings[currentBrush].color   = currentColor;
+    brushSettings[currentBrush].size    = brushSize;
+    brushSettings[currentBrush].preview = showPreview;
+
+    // 切换画笔类型
+    currentBrush = brushTypeSelect.value;
+    const s = getSettings();
+    currentColor  = s.color;
+    brushSize     = s.size;
+    showPreview   = s.preview;
+    previewCb.checked = showPreview;
+    brushSizeInput.value = brushSize;
+
+    // 旗帜画笔固定开启预览且不可关闭
+    if (currentBrush === BRUSH_FLAG) {
+      brushSizeInput.disabled = true;
+    } else {
+      brushSizeInput.disabled = false;
+    }
+
+    // 更新调色板选中状态
+    document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+    const target = palette.querySelector('[data-color="' + currentColor + '"]');
+    if (target) {
+      target.classList.add('active');
+    } else {
+      // 自定义颜色不在调色板中，手动高亮
+    }
+    redrawDisplay();
+  });
+
+  // V0.7.17→0.7.19: 提取预览渲染为独立函数，供 mousemove 和 touchmove 共用
+  function renderPreview(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const totalCells = grid + 1;
+    const cellPx = canvas.width / totalCells;
+    const mx = (clientX - rect.left) * scaleX;
+    const my = (clientY - rect.top) * scaleY;
+    const gx = Math.floor(mx / cellPx);
+    const gy = Math.floor(my / cellPx);
+    // row 0 / col 0 不响应预览
+    if (gx < 1 || gy < 1 || gx > grid || gy > grid) {
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      previewCellX = -1;
+      previewCellY = -1;
+      redrawDisplay();
+      return;
+    }
+    // V0.7.19: 计算画笔范围，根据当前画笔类型
+    const s = getSettings();
+    let pStartX, pStartY, pEndX, pEndY;
+    if (currentBrush === BRUSH_FLAG) {
+      const half = Math.floor(FLAG_SIZE / 2);
+      pStartX = Math.max(0, gx - 1 - half);
+      pStartY = Math.max(0, gy - 1 - half);
+      pEndX   = Math.min(grid - 1, gx - 1 + half);
+      pEndY   = Math.min(grid - 1, gy - 1 + half);
+    } else {
+      const half = Math.floor((s.size - 1) / 2);
+      pStartX = Math.max(0, gx - 1 - half);
+      pStartY = Math.max(0, gy - 1 - half);
+      pEndX   = Math.min(grid - 1, gx - 1 + half + (s.size % 2 === 0 ? 1 : 0));
+      pEndY   = Math.min(grid - 1, gy - 1 + half + (s.size % 2 === 0 ? 1 : 0));
+    }
+
+    // 只在格子变化时重绘（避免不必要的 redraw）
+    const prevX = previewCellX;
+    const prevY = previewCellY;
+    previewCellX = pStartX;
+    previewCellY = pStartY;
+
+    if (prevX !== pStartX || prevY !== pStartY) {
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      previewCtx.globalAlpha = 0.3;
+      previewCtx.fillStyle = s.color;
+      for (let py = pStartY; py <= pEndY; py++) {
+        for (let px = pStartX; px <= pEndX; px++) {
+          previewCtx.fillRect(px * cellPx_g, py * cellPx_g, cellPx_g, cellPx_g);
+        }
+      }
+      // 鼠标/触摸当前位置，使用0.6透明度绘制预览色
+      previewCtx.globalAlpha = 0.6;
+      previewCtx.fillRect((gx - 1) * cellPx_g, (gy - 1) * cellPx_g, cellPx_g, cellPx_g);
+      previewCtx.globalAlpha = 1;
+      redrawDisplay();
+    }
+  }
 
   // ===== 缩放适配（V0.7.13: 使用全局变量控制边距） =====
   function fitCanvas() {
@@ -746,20 +979,48 @@
 
   // V0.7.9→0.7.10: 画在 paintCanvas 上，然后完整重绘显示层（整个画布边框 + 标签）
   // V0.7.13→0.7.15: 画笔粗细 1-9，奇数对称扩展，偶数向右下各多1格
-  function paintCell(x, y, color) {
-    // V0.7.15: 画笔扩展范围 = floor((size-1)/2)，确保偶数不会自动+1
-    const half = Math.floor((brushSize - 1) / 2);
+  // V0.7.18: 旗帜画笔 — 7×7 固定，内部无内边框，仅显示最外圈外框线
+  // V0.7.19: 颜色/粗细从当前画笔设置读取，橡皮擦用白色覆盖
+  function paintCell(x, y, forceColor) {
+    const s = getSettings();
+    const color = forceColor !== undefined ? forceColor : s.color;
+
+    if (currentBrush === BRUSH_FLAG) {
+      // 旗帜画笔：7×7 区域，填充旗帜颜色，特殊边框处理
+      paintFlagBrush(x, y);
+      return;
+    }
+
+    // 铅笔/橡皮擦：常规逻辑
+    const half = Math.floor((s.size - 1) / 2);
     const startX = Math.max(0, x - half);
     const startY = Math.max(0, y - half);
-    const endX   = Math.min(grid - 1, x + half + (brushSize % 2 === 0 ? 1 : 0));
-    const endY   = Math.min(grid - 1, y + half + (brushSize % 2 === 0 ? 1 : 0));
+    const endX   = Math.min(grid - 1, x + half + (s.size % 2 === 0 ? 1 : 0));
+    const endY   = Math.min(grid - 1, y + half + (s.size % 2 === 0 ? 1 : 0));
+    paintCtx.fillStyle = color;
     for (let py = startY; py <= endY; py++) {
       for (let px = startX; px <= endX; px++) {
-        paintCtx.fillStyle = color;
         paintCtx.fillRect(px * cellPx_g, py * cellPx_g, cellPx_g, cellPx_g);
       }
     }
-    // 完整重绘显示层
+    redrawDisplay();
+  }
+
+  // V0.7.18→0.7.19: 旗帜画笔 — 在 paintCanvas 上填充 FLAG_SIZE×FLAG_SIZE 格子为旗帜颜色
+  // V0.7.19: 边界处理修正 — 靠近左上角时正常截断，不会导致边框丢失
+  function paintFlagBrush(centerX, centerY) {
+    const half = Math.floor(FLAG_SIZE / 2);
+    const startX = Math.max(0, centerX - half);
+    const startY = Math.max(0, centerY - half);
+    const endX   = Math.min(grid - 1, centerX + half);
+    const endY   = Math.min(grid - 1, centerY + half);
+    // 在 paintCanvas 上填充颜色
+    paintCtx.fillStyle = FLAG_COLOR;
+    for (let py = startY; py <= endY; py++) {
+      for (let px = startX; px <= endX; px++) {
+        paintCtx.fillRect(px * cellPx_g, py * cellPx_g, cellPx_g, cellPx_g);
+      }
+    }
     redrawDisplay();
   }
 
@@ -768,71 +1029,31 @@
     if (e.button === 0) {
       isDrawing = true;
       const cell = getCellFromEvent(e);
-      if (cell) paintCell(cell.x, cell.y, currentColor);
+      if (cell) paintCell(cell.x, cell.y);  // 使用当前画笔设置的颜色
     } else if (e.button === 2) {
       e.preventDefault();
       saveState();
       const cell = getCellFromEvent(e);
-      if (cell) paintCell(cell.x, cell.y, '#ffffff');
+      if (cell) paintCell(cell.x, cell.y, '#FFFFFF');  // 右键/橡皮擦用白色
     }
   });
 
   canvas.addEventListener('mousemove', (e) => {
     if (isDrawing) return;  // 绘制时走 paintCell 逻辑
-    // V0.7.17: 鼠标悬停预览
+    // V0.7.17→0.7.19: 鼠标悬停预览
     if (!showPreview) return;
     e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const totalCells = grid + 1;
-    const cellPx = canvas.width / totalCells;
-    const mx = (e.clientX - rect.left) * scaleX;// 鼠标在 canvas 上的逻辑坐标
-    const my = (e.clientY - rect.top) * scaleY;// 鼠标在 canvas 上的逻辑坐标
-    const gx = Math.floor(mx / cellPx);// 相对于 canvas 的格子坐标
-    const gy = Math.floor(my / cellPx);// 相对于 canvas 的格子坐标
-    // row 0 / col 0 不响应预览
-    if (gx < 1 || gy < 1 || gx > grid || gy > grid) {
-      // 鼠标移出网格，清除预览
-      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-      previewCellX = -1;
-      previewCellY = -1;
-      redrawDisplay();
-      return;
-    }
-    // V0.7.17: 计算画笔范围，画半透明预览色
-    const half = Math.floor((brushSize - 1) / 2);
-    const startX = Math.max(0, gx - 1 - half);
-    const startY = Math.max(0, gy - 1 - half);
-    const endX   = Math.min(grid - 1, gx - 1 + half + (brushSize % 2 === 0 ? 1 : 0));
-    const endY   = Math.min(grid - 1, gy - 1 + half + (brushSize % 2 === 0 ? 1 : 0));
-
-    // 只在格子变化时重绘（避免不必要的 redraw）
-    const prevX = previewCellX;
-    const prevY = previewCellY;
-    previewCellX = startX;
-    previewCellY = startY;
-
-    if (prevX !== startX || prevY !== startY || previewCellX !== gx - 1 || previewCellY !== gy - 1) {
-      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-      previewCtx.globalAlpha = 0.1;// 半透明预览色
-      previewCtx.fillStyle = currentColor;
-      for (let py = startY; py <= endY; py++) {
-        for (let px = startX; px <= endX; px++) {
-          previewCtx.fillRect(px * cellPx_g, py * cellPx_g, cellPx_g, cellPx_g);
-        }
-      }
-      //鼠标当前位置，使用0.6透明度绘制预览色 
-      previewCtx.globalAlpha = 0.5;
-      const px = (gx - 1) * cellPx_g;
-      const py = (gy - 1) * cellPx_g;
-      previewCtx.fillRect(px, py, cellPx_g, cellPx_g);
-      
-
-      previewCtx.globalAlpha = 1;
-      redrawDisplay();
-    }
+    renderPreview(e.clientX, e.clientY);
   });
+
+  // V0.7.19: 触摸预览 — 用于手机端长按预览
+  canvas.addEventListener('touchmove', (e) => {
+    if (isDrawing) return;
+    if (!showPreview) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    renderPreview(touch.clientX, touch.clientY);
+  }, { passive: false });
 
   window.addEventListener('mouseup', () => {
     if (isDrawing) {
@@ -841,8 +1062,79 @@
     }
   });
 
+  // V0.7.19: 鼠标离开画布时清除预览
+  canvas.addEventListener('mouseleave', () => {
+    if (isDrawing) return;
+    if (!showPreview) return;
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    previewCellX = -1;
+    previewCellY = -1;
+    redrawDisplay();
+  });
+
   canvas.addEventListener('contextmenu', e => e.preventDefault());
   canvas.addEventListener('dragstart', e => e.preventDefault());
+
+  // V0.7.19: 手机端触摸绘制支持
+  let touchDrawing = false;
+  let touchLongPressTimer = null;
+  let touchMoved = false;
+
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    touchDrawing = true;
+    touchMoved = false;
+    const touch = e.touches[0];
+
+    // V0.7.19: 长按触发预览（500ms）
+    touchLongPressTimer = setTimeout(() => {
+      if (!touchMoved) {
+        renderPreview(touch.clientX, touch.clientY);
+      }
+    }, 500);
+
+    // 触摸即绘制
+    const cell = getCellFromEvent(touch);
+    if (cell) {
+      if (currentBrush === BRUSH_ERASER) {
+        saveState();
+        paintCell(cell.x, cell.y, '#FFFFFF');
+      } else {
+        paintCell(cell.x, cell.y);
+      }
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (!touchDrawing) return;
+    e.preventDefault();
+    touchMoved = true;
+    // 取消长按计时器（用户主动拖动 = 绘画）
+    if (touchLongPressTimer) {
+      clearTimeout(touchLongPressTimer);
+      touchLongPressTimer = null;
+    }
+    const touch = e.touches[0];
+    const cell = getCellFromEvent(touch);
+    if (cell) {
+      if (currentBrush === BRUSH_ERASER) {
+        paintCell(cell.x, cell.y, '#FFFFFF');
+      } else {
+        paintCell(cell.x, cell.y);
+      }
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    if (touchDrawing) {
+      touchDrawing = false;
+      saveState();
+      if (touchLongPressTimer) {
+        clearTimeout(touchLongPressTimer);
+        touchLongPressTimer = null;
+      }
+    }
+  });
 
   applyBtn.addEventListener('click', () => {
     let v = parseInt(gridInput.value, 10);
@@ -885,12 +1177,13 @@
     if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) { e.preventDefault(); doRedo(); }
   });
 
-  // V0.7.15: 画笔粗细输入框 1-9
-  brushSizeInput.addEventListener('change', () => {
+  // V0.7.15→0.7.19: 画笔粗细输入框（铅笔/橡皮擦模式使用，从当前画笔设置读写）
+  brushSizeInput.addEventListener('input', () => {
     let v = parseInt(brushSizeInput.value, 10);
     if (isNaN(v) || v < 1) v = 1;
-    if (v > 9) v = 9;
+    if (v > 7) v = 7;
     brushSizeInput.value = v;
+    getSettings().size = v;
     brushSize = v;
   });
 
