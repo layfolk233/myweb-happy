@@ -210,11 +210,14 @@
       <label class="checkbox-group">
         <input type="checkbox" id="showGridCb" checked> 画布边框
       </label>
+      <label class="checkbox-group">
+        <input type="checkbox" id="previewCb" checked> 预览
+      </label>
     </div>
 
-    <!-- V0.7.15: 画笔粗细 1-7 -->
+    <!-- V0.7.15: 画笔粗细 1-9 -->
     <div class="group">
-      <label>画笔</label>
+      <label>粗细</label>
       <input type="number" id="brushSizeInput" min="1" max="7" value="1">
     </div>
 
@@ -236,7 +239,7 @@
   // ===== 配置 =====
   const DEFAULT_GRID = 20;         // V0.7.6: 默认 20×20 格
   const MIN_CELL = 8;              // V0.7.6: 每格最小像素，防止太小看不清
-  const VERSION = '0.7.16';
+  const VERSION = '0.7.17';
 
   // V0.7.15: 配色方案 — 标题区白色、控件区分隔色、画布区浅蓝
   // V0.7.13: 画布区域和浏览器窗口左右下边距，全局变量控制
@@ -245,7 +248,7 @@
   const MARGIN_BOTTOM = 35;   // 下方边距（像素）
   const MARGIN_LEFT   = 0;   // 左侧边距（像素）
 
-  // V0.7.13→0.7.15: 画笔粗细 1-7，默认 1
+  // V0.7.13→0.7.15: 画笔粗细 1-9，默认 1
   let brushSize = 1;
 
   // V0.7.16: 同步边距全局变量到 CSS 变量，使 padding 真正按变量值生效
@@ -273,6 +276,7 @@
   const editColorBtn   = document.getElementById('editColorBtn');
   const showLabelsCb   = document.getElementById('showLabelsCb');
   const showGridCb     = document.getElementById('showGridCb');
+  const previewCb     = document.getElementById('previewCb');
   const undoBtn        = document.getElementById('undoBtn');
   const redoBtn        = document.getElementById('redoBtn');
   const resetBtn       = document.getElementById('resetBtn');
@@ -287,6 +291,7 @@
   let isDrawing      = false;
   let showLabels     = false;   // V0.7.6: 默认不显示
   let showGrid       = true;    // V0.7.9: 默认勾选画布边框
+  let showPreview    = true;    // V0.7.17: 默认开启预览
   let cellPx_g       = 0;
   let totalPx_g       = 0;
   let gridPx_g       = 0;
@@ -294,6 +299,11 @@
   // 双层 canvas 方案
   const paintCanvas  = document.createElement('canvas');
   const paintCtx     = paintCanvas.getContext('2d');
+
+  // V0.7.17: 预览层 canvas（半透明预览色）
+  const previewCanvas  = document.createElement('canvas');
+  const previewCtx     = previewCanvas.getContext('2d');
+  let previewCellX = -1, previewCellY = -1;  // 当前预览格子坐标
 
   // ===== 版本号和调试数据 =====
   function updateVersion() {
@@ -307,7 +317,7 @@
       + '  ' +'画布' + totalPx_g + '×' + totalPx_g 
       + '  ' +'网格' + grid + '×' + grid 
       + '  ' +'像素' + gridPx_g 
-      //+ '  ' +'画笔' + brushSize 
+      //+ '  ' +'粗细' + brushSize 
       //+ '  ' +'边距' + MARGIN_TOP + '/' + MARGIN_RIGHT + '/' + MARGIN_BOTTOM + '/' + MARGIN_LEFT
       ;
   }
@@ -453,8 +463,7 @@
   }
 
   // V0.7.3: 重绘显示层（V0.7.9: 两个图层：底层 paintCanvas 绘画 + 顶层边框线 + 标签）
-  // V0.7.10: 顶层额外绘制外边框（只包围 paint 区域，不包含标签行）
-  // V0.7.11: 标签行背景浅蓝色始终绘制，不管标签是否显示
+  // V0.7.17: 三图层 — 绘画层(paintCanvas) → 预览层(previewCanvas) → 边框线+外边框+标签
   function redrawDisplay() {
     const totalPx = canvas.width;
     const totalCells = grid + 1;
@@ -471,17 +480,21 @@
     if (paintCanvas.width > 0 && paintCanvas.height > 0) {
       ctx.drawImage(paintCanvas, 0, 0, paintW, paintH, cellPx, cellPx, paintW, paintH);
     }
-    // 第二层：边框线（在绘画上方）
+    // V0.7.17: 第二层：预览（从 previewCanvas 拷贝，带 1 格标签偏移）
+    if (previewCanvas.width > 0 && previewCanvas.height > 0 && showPreview) {
+      ctx.drawImage(previewCanvas, 0, 0, paintW, paintH, cellPx, cellPx, paintW, paintH);
+    }
+    // 第三层：边框线（在绘画/预览上方）
     if (showGrid) {
       drawAllGridLines(cellPx, cellPx, paintW, paintH);
     }
-    // 第三层：外边框（包围 paint 区域，不含标签行）
+    // 第四层：外边框（包围 paint 区域，不含标签行）
     if (showGrid) {
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 2;
       ctx.strokeRect(cellPx, cellPx, paintW, paintH);
     }
-    // 第四层：行号列号（在边框上方，仅当勾选时显示）
+    // 第五层：行号列号（在边框上方，仅当勾选时显示）
     drawLabels();
   }
 
@@ -576,6 +589,8 @@
     canvas.height = totalPx;
     paintCanvas.width  = paintW;
     paintCanvas.height = paintH;
+    previewCanvas.width  = paintW;
+    previewCanvas.height = paintH;
     paintCtx.fillStyle = '#ffffff';
     paintCtx.fillRect(0, 0, paintW, paintH);
 
@@ -601,6 +616,18 @@
   showGridCb.addEventListener('change', () => {
     showGrid = showGridCb.checked;
     // 完整重绘（包含外边框）
+    redrawDisplay();
+  });
+
+  // V0.7.17: 预览切换
+  previewCb.addEventListener('change', () => {
+    showPreview = previewCb.checked;
+    if (!showPreview) {
+      // 关闭预览时清空预览层
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      previewCellX = -1;
+      previewCellY = -1;
+    }
     redrawDisplay();
   });
 
@@ -718,7 +745,7 @@
   }
 
   // V0.7.9→0.7.10: 画在 paintCanvas 上，然后完整重绘显示层（整个画布边框 + 标签）
-  // V0.7.13→0.7.15: 画笔粗细 1-7，奇数对称扩展，偶数向右下各多1格
+  // V0.7.13→0.7.15: 画笔粗细 1-9，奇数对称扩展，偶数向右下各多1格
   function paintCell(x, y, color) {
     // V0.7.15: 画笔扩展范围 = floor((size-1)/2)，确保偶数不会自动+1
     const half = Math.floor((brushSize - 1) / 2);
@@ -751,10 +778,60 @@
   });
 
   canvas.addEventListener('mousemove', (e) => {
-    if (!isDrawing) return;
+    if (isDrawing) return;  // 绘制时走 paintCell 逻辑
+    // V0.7.17: 鼠标悬停预览
+    if (!showPreview) return;
     e.preventDefault();
-    const cell = getCellFromEvent(e);
-    if (cell) paintCell(cell.x, cell.y, currentColor);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const totalCells = grid + 1;
+    const cellPx = canvas.width / totalCells;
+    const mx = (e.clientX - rect.left) * scaleX;// 鼠标在 canvas 上的逻辑坐标
+    const my = (e.clientY - rect.top) * scaleY;// 鼠标在 canvas 上的逻辑坐标
+    const gx = Math.floor(mx / cellPx);// 相对于 canvas 的格子坐标
+    const gy = Math.floor(my / cellPx);// 相对于 canvas 的格子坐标
+    // row 0 / col 0 不响应预览
+    if (gx < 1 || gy < 1 || gx > grid || gy > grid) {
+      // 鼠标移出网格，清除预览
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      previewCellX = -1;
+      previewCellY = -1;
+      redrawDisplay();
+      return;
+    }
+    // V0.7.17: 计算画笔范围，画半透明预览色
+    const half = Math.floor((brushSize - 1) / 2);
+    const startX = Math.max(0, gx - 1 - half);
+    const startY = Math.max(0, gy - 1 - half);
+    const endX   = Math.min(grid - 1, gx - 1 + half + (brushSize % 2 === 0 ? 1 : 0));
+    const endY   = Math.min(grid - 1, gy - 1 + half + (brushSize % 2 === 0 ? 1 : 0));
+
+    // 只在格子变化时重绘（避免不必要的 redraw）
+    const prevX = previewCellX;
+    const prevY = previewCellY;
+    previewCellX = startX;
+    previewCellY = startY;
+
+    if (prevX !== startX || prevY !== startY || previewCellX !== gx - 1 || previewCellY !== gy - 1) {
+      previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      previewCtx.globalAlpha = 0.1;// 半透明预览色
+      previewCtx.fillStyle = currentColor;
+      for (let py = startY; py <= endY; py++) {
+        for (let px = startX; px <= endX; px++) {
+          previewCtx.fillRect(px * cellPx_g, py * cellPx_g, cellPx_g, cellPx_g);
+        }
+      }
+      //鼠标当前位置，使用0.6透明度绘制预览色 
+      previewCtx.globalAlpha = 0.5;
+      const px = (gx - 1) * cellPx_g;
+      const py = (gy - 1) * cellPx_g;
+      previewCtx.fillRect(px, py, cellPx_g, cellPx_g);
+      
+
+      previewCtx.globalAlpha = 1;
+      redrawDisplay();
+    }
   });
 
   window.addEventListener('mouseup', () => {
@@ -792,6 +869,10 @@
     paintCanvas.height = paintH;
     paintCtx.fillStyle = '#ffffff';
     paintCtx.fillRect(0, 0, paintW, paintH);
+    // V0.7.17: 重置时清空预览层
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    previewCellX = -1;
+    previewCellY = -1;
     redrawDisplay();
     // V0.7.15: 重置后重建撤销栈
     rebuildUndoStack();
@@ -804,11 +885,11 @@
     if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) { e.preventDefault(); doRedo(); }
   });
 
-  // V0.7.15: 画笔粗细输入框 1-7
+  // V0.7.15: 画笔粗细输入框 1-9
   brushSizeInput.addEventListener('change', () => {
     let v = parseInt(brushSizeInput.value, 10);
     if (isNaN(v) || v < 1) v = 1;
-    if (v > 7) v = 7;
+    if (v > 9) v = 9;
     brushSizeInput.value = v;
     brushSize = v;
   });
@@ -821,6 +902,7 @@
   initCanvas();  // V0.7.15: 内部已调用 initBlankState + rebuildUndoStack
   updateUndoRedoUI();
   updateVersion();  // V0.7.7: 显示调试数据
+  fitCanvas();
 })();
 </script>
 </body>
